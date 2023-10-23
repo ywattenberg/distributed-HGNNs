@@ -101,7 +101,9 @@ if(0)
   endif()
 endif()
 
-include("${CMAKE_CURRENT_LIST_DIR}/public/mkl.cmake")
+if(ON)
+  include("${CMAKE_CURRENT_LIST_DIR}/public/mkl.cmake")
+endif()
 
 if(ON)
   include("${CMAKE_CURRENT_LIST_DIR}/public/mkldnn.cmake")

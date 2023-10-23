@@ -299,6 +299,7 @@
 #include <ATen/ops/fft_rfftfreq_compositeexplicitautograd_dispatch.h>
 #include <ATen/ops/fill_compositeexplicitautograd_dispatch.h>
 #include <ATen/ops/flip_compositeexplicitautograd_dispatch.h>
+#include <ATen/ops/floor_divide_compositeexplicitautograd_dispatch.h>
 #include <ATen/ops/fmod_compositeexplicitautograd_dispatch.h>
 #include <ATen/ops/frexp_compositeexplicitautograd_dispatch.h>
 #include <ATen/ops/from_file_compositeexplicitautograd_dispatch.h>
