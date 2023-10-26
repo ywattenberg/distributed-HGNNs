@@ -65,7 +65,6 @@ Model::Model(int in_dim, std::vector<int> lay_dim, int out_dim, double dropout_v
         register_module("HG_conv_out", out_conv);
         layers.push_back(out_conv);
     }
-}
 
 
 torch::Tensor Model::forward(const torch::Tensor &input){
