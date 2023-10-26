@@ -44,3 +44,22 @@ make
 ```
 
 Now you can run the executable files that have been produced. 
+
+
+### How to run the porject on MACOS
+
+```
+brew install openblas
+```
+Download torchlib and install to lib/torchlib:
+```
+ wget https://github.com/mlverse/libtorch-mac-m1/releases/download/LibTorch/libtorch-v2.1.0.zip && unzip libtorch-v2.1.0.zip -d libs/torchlib
+```
+
+Create build directory and executables:
+```
+mkdir build
+cd build
+cmake ..
+make
+```
