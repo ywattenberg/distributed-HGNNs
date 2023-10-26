@@ -1,4 +1,0 @@
-/home/zkoutsok2/distributed-THNN/build/CMakeFiles/example.dir
-/home/zkoutsok2/distributed-THNN/build/CMakeFiles/torchtest.dir
-/home/zkoutsok2/distributed-THNN/build/CMakeFiles/edit_cache.dir
-/home/zkoutsok2/distributed-THNN/build/CMakeFiles/rebuild_cache.dir
