@@ -16,7 +16,5 @@ int main() {
   std::cout << layers[0] << std::endl;
 
   Model *m = new Model(10, layers, 5, 0.2, false);
-  
-  
+   
 }
-
