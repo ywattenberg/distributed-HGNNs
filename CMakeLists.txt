@@ -9,8 +9,6 @@ message(STATUS "${CMAKE_CURRENT_LIST_DIR}")
 
 set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_LIST_DIR}/libs/libtorch")
 find_package(Torch REQUIRED)
-find_package(BLAS REQUIRED)
-
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 # Use homebrew when on macos
