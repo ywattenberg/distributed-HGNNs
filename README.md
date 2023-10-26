@@ -44,6 +44,7 @@ make
 ```
 
 Now you can run the executable files that have been produced. 
+<<<<<<< HEAD
 
 
 ### How to run the project on MACOS
@@ -63,3 +64,5 @@ cd build
 cmake ..
 make
 ```
+=======
+>>>>>>> d99ccc6 (added instruction to set up the project)
