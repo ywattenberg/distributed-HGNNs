@@ -4,7 +4,7 @@
 #include <vector>
 #include <iostream>
 
-Model::Model(int in_dim, std::vector<int> &lay_dim, int out_dim, int dropout_value, bool withBias=false){
+Model::Model(int in_dim, std::vector<int> &lay_dim, int out_dim, double dropout_value, bool withBias=false){
     input_dim = in_dim;
     output_dim = out_dim;
     dropout = dropout_value;

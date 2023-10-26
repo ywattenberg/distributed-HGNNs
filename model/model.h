@@ -31,7 +31,7 @@ class Model : torch::nn::Module
         double dropout;
 
     public:
-        Model(int in_dim, std::vector<int> &lay_dim, int out_dim, int dropout, bool withBias);
+        Model(int in_dim, std::vector<int> &lay_dim, int out_dim, double dropout, bool withBias);
 
         // TODO: add Graph as parameter: torch::Tensor forward(torch::Tensor input, Graph G);
         torch::Tensor forward(torch::Tensor &input);
