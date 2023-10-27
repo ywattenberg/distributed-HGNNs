@@ -32,17 +32,13 @@ class ConvNdImpl : public torch::nn::Cloneable<Derived> {
 
   void reset() override {
     TORCH_CHECK(
-        options.in_channels() > 0 && options.groups() > 0 &&
-            options.out_channels() > 0,
-        "in_channels, groups and out_channels must be a positive integer.");
-    TORCH_CHECK(
         options.in_channels() % options.groups() == 0,
         "in_channels must be divisible by groups");
     TORCH_CHECK(
         options.out_channels() % options.groups() == 0,
         "out_channels must be divisible by groups");
 
-    std::visit(
+    c10::visit(
         c10::overloaded(
             [&](enumtype::kValid) {
               _reversed_padding_repeated_twice.resize(2 * D);
@@ -121,7 +117,7 @@ class ConvNdImpl : public torch::nn::Cloneable<Derived> {
            << "(" << options.in_channels() << ", " << options.out_channels()
            << ", kernel_size=" << options.kernel_size()
            << ", stride=" << options.stride();
-    std::visit(
+    c10::visit(
         c10::overloaded(
             [&](enumtype::kValid) { stream << ", padding='valid'"; },
             [&](enumtype::kSame) { stream << ", padding='same'"; },
@@ -143,7 +139,7 @@ class ConvNdImpl : public torch::nn::Cloneable<Derived> {
     if (!options.bias()) {
       stream << ", bias=" << std::boolalpha << false;
     }
-    if (!std::get_if<enumtype::kZeros>(&options.padding_mode())) {
+    if (!c10::get_if<enumtype::kZeros>(&options.padding_mode())) {
       stream << ", padding_mode="
              << enumtype::get_enum_name(options.padding_mode());
     }
@@ -276,7 +272,7 @@ class ConvTransposeNdImpl : public ConvNdImpl<D, Derived> {
   explicit ConvTransposeNdImpl(detail::ConvNdOptions<D> options_)
       : ConvNdImpl<D, Derived>(options_) {
     TORCH_INTERNAL_ASSERT(
-        std::holds_alternative<ExpandingArray<D>>(this->options.padding()),
+        c10::holds_alternative<ExpandingArray<D>>(this->options.padding()),
         "ConvTranspose padding cannot be a string");
   }
 
@@ -303,7 +299,7 @@ class ConvTransposeNdImpl : public ConvNdImpl<D, Derived> {
     if (!this->options.bias()) {
       stream << ", bias=" << std::boolalpha << false;
     }
-    if (!std::get_if<enumtype::kZeros>(&this->options.padding_mode())) {
+    if (!c10::get_if<enumtype::kZeros>(&this->options.padding_mode())) {
       stream << ", padding_mode="
              << enumtype::get_enum_name(this->options.padding_mode());
     }
@@ -312,7 +308,7 @@ class ConvTransposeNdImpl : public ConvNdImpl<D, Derived> {
 
  protected:
   const ExpandingArray<D>& padding() const {
-    return std::get<ExpandingArray<D>>(this->options.padding());
+    return c10::get<ExpandingArray<D>>(this->options.padding());
   }
 
   std::vector<int64_t> _output_padding(

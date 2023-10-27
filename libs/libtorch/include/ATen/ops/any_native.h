@@ -19,11 +19,17 @@ namespace native {
 struct TORCH_API structured_any_out : public at::meta::structured_any_dim {
 void impl(const at::Tensor & self, int64_t dim, bool keepdim, const at::Tensor & out);
 };
+struct TORCH_API structured_any_out_mps : public at::meta::structured_any_dim {
+void impl(const at::Tensor & self, int64_t dim, bool keepdim, const at::Tensor & out);
+};
 TORCH_API at::Tensor any(const at::Tensor & self, at::Dimname dim, bool keepdim=false);
 TORCH_API at::Tensor & any_out(const at::Tensor & self, at::Dimname dim, bool keepdim, at::Tensor & out);
 struct TORCH_API structured_any_all_out : public at::meta::structured_any {
 void impl(const at::Tensor & self, const at::Tensor & out);
 };
 TORCH_API at::Tensor any_sparse(const at::Tensor & self);
+struct TORCH_API structured_any_all_out_mps : public at::meta::structured_any {
+void impl(const at::Tensor & self, const at::Tensor & out);
+};
 } // namespace native
 } // namespace at

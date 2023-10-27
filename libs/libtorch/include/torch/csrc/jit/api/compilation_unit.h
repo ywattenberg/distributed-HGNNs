@@ -8,6 +8,7 @@
 #include <torch/csrc/jit/runtime/graph_executor.h>
 
 #include <torch/csrc/Export.h>
+#include <torch/csrc/utils/memory.h>
 
 #include <ATen/core/function_schema.h>
 #include <ATen/core/qualified_name.h>
@@ -22,7 +23,8 @@
 #include <unordered_map>
 #include <vector>
 
-namespace torch::jit {
+namespace torch {
+namespace jit {
 
 struct Def;
 struct Property;
@@ -130,7 +132,7 @@ struct TORCH_API CompilationUnit {
     if (shouldMangle) {
       name = mangle(name);
     }
-    auto fn = std::make_unique<GraphFunction>(
+    auto fn = torch::make_unique<GraphFunction>(
         std::move(name), std::move(graph), nullptr);
     auto ret = fn.get();
     register_function(std::move(fn));
@@ -348,4 +350,5 @@ namespace script {
 // of the public API; new code should not use this type alias.
 using CompilationUnit = ::torch::jit::CompilationUnit;
 } // namespace script
-} // namespace torch::jit
+} // namespace jit
+} // namespace torch

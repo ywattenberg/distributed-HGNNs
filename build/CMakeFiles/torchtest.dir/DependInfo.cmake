@@ -8,7 +8,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/zkoutsok2/distributed-THNN/main.cpp" "CMakeFiles/torchtest.dir/main.cpp.o" "gcc" "CMakeFiles/torchtest.dir/main.cpp.o.d"
+  "/Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/main.cpp" "CMakeFiles/torchtest.dir/main.cpp.o" "gcc" "CMakeFiles/torchtest.dir/main.cpp.o.d"
   )
 
 # Targets to which this target links.

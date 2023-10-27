@@ -73,7 +73,8 @@ struct TORCH_API CUDAHooksInterface {
     TORCH_CHECK(false, "Cannot initialize CUDA without ATen_cuda library. ", CUDA_HELP);
   }
 
-  virtual const Generator& getDefaultCUDAGenerator(C10_UNUSED DeviceIndex device_index = -1) const {
+  virtual const Generator& getDefaultCUDAGenerator(DeviceIndex device_index = -1) const {
+    (void)device_index; // Suppress unused variable warning
     TORCH_CHECK(false, "Cannot get default CUDA generator without ATen_cuda library. ", CUDA_HELP);
   }
 

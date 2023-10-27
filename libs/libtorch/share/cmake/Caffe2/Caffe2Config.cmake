@@ -74,11 +74,11 @@ if (OFF)
   include("${CMAKE_CURRENT_LIST_DIR}/public/LoadHIP.cmake")
 endif()
 
-if(0)
+if(OFF)
   # The file public/cuda.cmake exclusively uses CAFFE2_USE_*.
   # If Caffe2 was compiled with the libraries below, they must
   # be found again when including the Caffe2 target.
-  set(CAFFE2_USE_CUDA 0)
+  set(CAFFE2_USE_CUDA OFF)
   set(CAFFE2_USE_TENSORRT OFF)
 
   # Add current directory to module path so we pick up FindCUDAToolkit.cmake
@@ -87,13 +87,13 @@ if(0)
   include("${CMAKE_CURRENT_LIST_DIR}/public/cuda.cmake")
   set(CMAKE_MODULE_PATH "${old_CMAKE_MODULE_PATH}")
 
-  if( AND NOT CAFFE2_USE_CUDA)
+  if(OFF AND NOT CAFFE2_USE_CUDA)
     message(FATAL_ERROR
       "Your installed Caffe2 version uses CUDA but I cannot find the CUDA "
       "libraries. Please set the proper CUDA prefixes and / or install "
       "CUDA.")
   endif()
-  if( AND NOT CAFFE2_USE_TENSORRT)
+  if(OFF AND NOT CAFFE2_USE_TENSORRT)
     message(FATAL_ERROR
       "Your installed Caffe2 version uses TensorRT but I cannot find the TensorRT "
       "libraries. Please set the proper TensorRT prefixes and / or install "
@@ -101,9 +101,7 @@ if(0)
   endif()
 endif()
 
-if(ON)
-  include("${CMAKE_CURRENT_LIST_DIR}/public/mkl.cmake")
-endif()
+include("${CMAKE_CURRENT_LIST_DIR}/public/mkl.cmake")
 
 if(ON)
   include("${CMAKE_CURRENT_LIST_DIR}/public/mkldnn.cmake")

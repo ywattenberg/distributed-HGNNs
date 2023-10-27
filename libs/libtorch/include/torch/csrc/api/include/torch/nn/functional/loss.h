@@ -50,7 +50,7 @@ inline Tensor kl_div(
   // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
   torch::Reduction::Reduction reduction_enum;
 
-  if (std::holds_alternative<enumtype::kMean>(reduction)) {
+  if (c10::get_if<enumtype::kMean>(&reduction)) {
     TORCH_WARN(
         "reduction: 'mean' divides the total loss by both the batch size and the support size."
         "'batchmean' divides only by the batch size, and aligns with the KL div math definition."
@@ -58,7 +58,7 @@ inline Tensor kl_div(
   }
 
   // special case for batchmean
-  if (std::holds_alternative<enumtype::kBatchMean>(reduction)) {
+  if (c10::get_if<enumtype::kBatchMean>(&reduction)) {
     reduction_enum = torch::Reduction::Sum;
   } else {
     reduction_enum = enumtype::reduction_get_enum(reduction);
@@ -66,8 +66,7 @@ inline Tensor kl_div(
 
   auto reduced = torch::kl_div(input, target, reduction_enum, log_target);
 
-  if (std::holds_alternative<enumtype::kBatchMean>(reduction) &&
-      input.dim() != 0) {
+  if (c10::get_if<enumtype::kBatchMean>(&reduction) && input.dim() != 0) {
     reduced = reduced / input.sizes()[0];
   }
 
@@ -346,7 +345,7 @@ inline Tensor smooth_l1_loss(
     const Tensor& input,
     const Tensor& target,
     SmoothL1LossFuncOptions::reduction_t reduction,
-    c10::optional<double> beta_opt = c10::nullopt) {
+    double beta = 1.) {
   if (target.sizes() != input.sizes()) {
     TORCH_WARN(
         "Using a target size (",
@@ -357,7 +356,6 @@ inline Tensor smooth_l1_loss(
         "This will likely lead to incorrect results due to broadcasting. ",
         "Please ensure they have the same size.");
   }
-  double beta = beta_opt.value_or(1.0);
 
   std::vector<Tensor> expanded_tensors =
       torch::broadcast_tensors({input, target});
@@ -385,29 +383,8 @@ inline Tensor smooth_l1_loss(
 inline Tensor smooth_l1_loss(
     const Tensor& input,
     const Tensor& target,
-    const SmoothL1LossFuncOptions& options = {}) {
-  return detail::smooth_l1_loss(
-      input, target, options.reduction(), options.beta());
-}
-
-/// See
-/// https://pytorch.org/docs/master/nn.functional.html#torch.nn.functional.smooth_l1_loss
-/// about the exact behavior of this functional.
-///
-/// Example:
-/// ```
-/// namespace F = torch::nn::functional;
-/// F::smooth_l1_loss(input, target, /*options=*/torch::kNone, /*beta=*/0.5);
-/// ```
-inline Tensor smooth_l1_loss(
-    const Tensor& input,
-    const Tensor& target,
-    const SmoothL1LossFuncOptions& options,
-    double beta) {
-  TORCH_CHECK(
-      options.beta() == c10::nullopt,
-      "expected beta not to be provided in 'options', but got ",
-      options.beta().value());
+    const SmoothL1LossFuncOptions& options = {},
+    double beta = 1.) {
   return detail::smooth_l1_loss(input, target, options.reduction(), beta);
 }
 
@@ -554,11 +531,11 @@ inline Tensor multilabel_soft_margin_loss(
 
   Tensor ret;
 
-  if (std::holds_alternative<enumtype::kNone>(reduction)) {
+  if (c10::get_if<enumtype::kNone>(&reduction)) {
     ret = loss;
-  } else if (std::holds_alternative<enumtype::kMean>(reduction)) {
+  } else if (c10::get_if<enumtype::kMean>(&reduction)) {
     ret = loss.mean();
-  } else if (std::holds_alternative<enumtype::kSum>(reduction)) {
+  } else if (c10::get_if<enumtype::kSum>(&reduction)) {
     ret = loss.sum();
   } else {
     ret = input;
@@ -684,11 +661,11 @@ inline Tensor triplet_margin_with_distance_loss(
   auto loss = torch::clamp_min(dist_pos - dist_neg + margin, 0);
 
   Tensor ret;
-  if (std::holds_alternative<enumtype::kNone>(reduction)) {
+  if (c10::get_if<enumtype::kNone>(&reduction)) {
     ret = loss;
-  } else if (std::holds_alternative<enumtype::kMean>(reduction)) {
+  } else if (c10::get_if<enumtype::kMean>(&reduction)) {
     ret = loss.mean();
-  } else if (std::holds_alternative<enumtype::kSum>(reduction)) {
+  } else if (c10::get_if<enumtype::kSum>(&reduction)) {
     ret = loss.sum();
   } else {
     ret = anchor;

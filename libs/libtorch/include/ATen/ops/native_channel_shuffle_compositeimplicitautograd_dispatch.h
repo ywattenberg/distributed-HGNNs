@@ -18,7 +18,6 @@ namespace at {
 namespace compositeimplicitautograd {
 
 TORCH_API at::Tensor native_channel_shuffle(const at::Tensor & self, int64_t groups);
-TORCH_API at::Tensor native_channel_shuffle_symint(const at::Tensor & self, c10::SymInt groups);
 
 } // namespace compositeimplicitautograd
 } // namespace at

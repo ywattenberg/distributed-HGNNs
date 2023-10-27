@@ -5,7 +5,6 @@
 #include <mutex>
 #include <type_traits>
 #include <utility>
-#include <variant>
 
 #include <ATen/Context.h>
 #include <c10/core/Device.h>
@@ -13,6 +12,7 @@
 #include <c10/macros/Macros.h>
 #include <c10/util/flat_hash_map.h>
 #include <c10/util/strong_type.h>
+#include <c10/util/variant.h>
 #include <torch/csrc/profiler/containers.h>
 #include <torch/csrc/profiler/data_flow.h>
 #include <torch/csrc/profiler/events.h>
@@ -85,7 +85,7 @@ struct TORCH_API TensorMetadata : public RawTensorMetadataBase {
   c10::optional<AllocationID> allocation_id_;
 };
 
-using op_input_t = std::variant<
+using op_input_t = c10::variant<
     TensorMetadata,
     std::vector<TensorMetadata>,
     c10::IValue,
@@ -345,12 +345,12 @@ struct TORCH_API Result : public std::enable_shared_from_this<Result> {
 
   template <typename T>
   decltype(auto) visit(T&& visitor) {
-    return std::visit(std::forward<T>(visitor), extra_fields_);
+    return c10::visit(std::forward<T>(visitor), extra_fields_);
   }
 
   template <typename T>
   decltype(auto) visit(T&& visitor) const {
-    return std::visit(std::forward<T>(visitor), extra_fields_);
+    return c10::visit(std::forward<T>(visitor), extra_fields_);
   }
 
   template <typename T, typename Fn>
@@ -379,7 +379,7 @@ struct TORCH_API Result : public std::enable_shared_from_this<Result> {
   int64_t start_time_ns_;
   uint64_t start_tid_;
   kineto::DeviceAndResource kineto_info_;
-  std::variant<
+  c10::variant<
       ExtraFields<EventType::TorchOp>,
       ExtraFields<EventType::Backend>,
       ExtraFields<EventType::Vulkan>,

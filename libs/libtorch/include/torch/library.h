@@ -60,7 +60,6 @@
 
 #include <ATen/core/op_registration/infer_schema.h>
 #include <ATen/core/op_registration/op_allowlist.h>
-#include <ATen/core/dispatch/Dispatcher.h>
 #include <c10/core/DispatchKey.h>
 #include <torch/csrc/jit/frontend/function_schema_parser.h>
 
@@ -427,20 +426,19 @@ inline c10::FunctionSchema&& schema(c10::FunctionSchema&& s) {
 
 namespace detail {
 
-inline std::variant<c10::OperatorName, c10::FunctionSchema> constructSchemaOrName(
+inline c10::either<c10::OperatorName, c10::FunctionSchema> constructSchemaOrName(
     c10::FunctionSchema&& s) {
-  return std::move(s);
+  return c10::make_right<c10::OperatorName, c10::FunctionSchema>(std::move(s));
 }
-inline std::variant<c10::OperatorName, c10::FunctionSchema> constructSchemaOrName(
+inline c10::either<c10::OperatorName, c10::FunctionSchema> constructSchemaOrName(
     c10::OperatorName&& n) {
-  return std::move(n);
+  return c10::make_left<c10::OperatorName, c10::FunctionSchema>(std::move(n));
 }
-inline std::variant<c10::OperatorName, c10::FunctionSchema>
-constructSchemaOrName(const char* str) {
+inline c10::either<c10::OperatorName, c10::FunctionSchema> constructSchemaOrName(
+    const char* str) {
   auto s = torch::jit::parseSchemaOrName(str);
-  if (std::holds_alternative<c10::FunctionSchema>(s)) {
-    std::get<c10::FunctionSchema>(s).setAliasAnalysis(
-        c10::AliasAnalysisKind::FROM_SCHEMA);
+  if (s.is_right()) {
+    s.right().setAliasAnalysis(c10::AliasAnalysisKind::FROM_SCHEMA);
   }
   return s;
 }
@@ -605,23 +603,6 @@ class TORCH_API Library final {
     c10::FunctionSchema s = schema(std::forward<Schema>(raw_schema));
     return _def(std::move(s), nullptr, tags, rv);
   }
-
-  /// Declares that an operator (given by name) has an abstract impl in a
-  /// Python module (pymodule). If the abstract impl was not yet imported,
-  /// we will warn about it.
-  ///
-  /// Args:
-  /// - name: the name of the operator
-  /// - pymodule: the python module
-  /// - context: We may include this in the error message.
-  Library& impl_abstract_pystub(const char* name, const char* pymodule, const char* context = "") {
-    at::OperatorName opname = _parseNameForLib(name);
-    registrars_.emplace_back(
-      c10::Dispatcher::singleton().registerAbstractImplPyStub(opname, pymodule, context)
-      );
-    return *this;
-  }
-
   /// Define an operator for a schema and then register an implementation for
   /// it.  This is typically what you would use if you aren't planning
   /// on making use of the dispatcher to structure your operator
@@ -646,10 +627,9 @@ class TORCH_API Library final {
   template <typename NameOrSchema, typename Func>
   Library& def(NameOrSchema&& raw_name_or_schema, Func&& raw_f) & {
     CppFunction f(std::forward<Func>(raw_f));
-    return _def(
-        detail::constructSchemaOrName(
-            ::std::forward<NameOrSchema>(raw_name_or_schema)),
-        ::std::move(f));
+    auto name_or_schema = detail::constructSchemaOrName(
+        std::forward<NameOrSchema>(raw_name_or_schema));
+    return _def(std::move(name_or_schema), std::move(f));
   }
 
   /// Register an implementation for an operator.  You may register multiple
@@ -854,7 +834,7 @@ class TORCH_API Library final {
       const std::vector<at::Tag>& tags = {},
       _RegisterOrVerify rv = _RegisterOrVerify::REGISTER) &;
   Library& _def(
-      std::variant<c10::OperatorName, c10::FunctionSchema>&&,
+      c10::either<c10::OperatorName, c10::FunctionSchema>&&,
       CppFunction&& f) &;
   Library& _impl(
       const char* name,

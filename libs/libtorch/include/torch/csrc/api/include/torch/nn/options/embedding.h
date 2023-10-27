@@ -101,7 +101,7 @@ struct TORCH_API EmbeddingFuncOptions {
 
 // ============================================================================
 
-typedef std::variant<enumtype::kSum, enumtype::kMean, enumtype::kMax>
+typedef c10::variant<enumtype::kSum, enumtype::kMean, enumtype::kMax>
     EmbeddingBagMode;
 
 /// Options for the `EmbeddingBag` module.
