@@ -120,7 +120,7 @@ C10_HOST_DEVICE inline double cauchy(double val, double median, double sigma) {
 
 /**
  * Transforms uniformly distributed `val` between 0.0 and 1.0 to
- * exponentially distributed with `lambda` parameter of the distribution.
+ * exponentialy distributed with `lambda` parameter of the distribution.
  */
 template <typename T>
 C10_HOST_DEVICE inline T exponential(T val, T lambda) {
@@ -144,7 +144,7 @@ C10_HOST_DEVICE inline T exponential(T val, T lambda) {
 
 /**
  * Transforms uniformly distributed `val` between 0.0 and 1.0 to
- * geometrically distributed with success probability `p`.
+ * geometricaly distributed with success probability `p`.
  */
 template <typename T>
 C10_HOST_DEVICE inline T geometric(T val, T p) {

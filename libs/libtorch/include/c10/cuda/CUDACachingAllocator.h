@@ -43,8 +43,6 @@ namespace cuda {
 
 namespace CUDACachingAllocator {
 
-extern const size_t kLargeBuffer;
-
 struct Stat {
   int64_t current = 0;
   int64_t peak = 0;
@@ -190,6 +188,8 @@ enum struct RecordContext {
   ALL = 3, // additionally record stacks for when something is freed
 };
 
+C10_CUDA_API void setAllocatorSettings(const std::string& env);
+
 // Size pretty-printer
 std::string format_size(uint64_t size);
 
@@ -251,7 +251,7 @@ class CUDAAllocator : public Allocator {
 
   // memory not allocated from cudaMalloc cannot be copied
   // across devices using cudaMemcpyAsync if peer to peer access is disabled.
-  // instead it requires cudaMemcpyAsyncPeer
+  // instead it requres cudaMemcpyAsyncPeer
   //  with P2P Enabled, all combinations work
   //  with P2P Disabled:
   //                       cudaMalloc cudaMallocAsync/cuMemMap

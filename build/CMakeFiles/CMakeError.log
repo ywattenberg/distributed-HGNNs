@@ -17,3 +17,213 @@ gmake: *** [Makefile:127: cmTC_45f6c/fast] Error 2
 
 
 
+Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+Compiler: /Library/Developer/CommandLineTools/usr/bin/cc 
+Build flags: 
+Id flags:  
+
+The output was:
+1
+ld: library not found for -lSystem
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /Library/Developer/CommandLineTools/usr/bin/c++ 
+Build flags: 
+Id flags:  
+
+The output was:
+1
+ld: library not found for -lc++
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+
+
+Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+Compiler: /Library/Developer/CommandLineTools/usr/bin/cc 
+Build flags: 
+Id flags:  
+
+The output was:
+1
+ld: library not found for -lSystem
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /Library/Developer/CommandLineTools/usr/bin/c++ 
+Build flags: 
+Id flags:  
+
+The output was:
+1
+ld: library not found for -lc++
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+
+
+Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+Compiler: /Library/Developer/CommandLineTools/usr/bin/cc 
+Build flags: 
+Id flags:  
+
+The output was:
+1
+ld: library not found for -lSystem
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /Library/Developer/CommandLineTools/usr/bin/c++ 
+Build flags: 
+Id flags:  
+
+The output was:
+1
+ld: library not found for -lc++
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+
+
+Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+Compiler: /Library/Developer/CommandLineTools/usr/bin/cc 
+Build flags: 
+Id flags:  
+
+The output was:
+1
+ld: library not found for -lSystem
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /Library/Developer/CommandLineTools/usr/bin/c++ 
+Build flags: 
+Id flags:  
+
+The output was:
+1
+ld: library not found for -lc++
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+
+
+Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+Compiler: /Library/Developer/CommandLineTools/usr/bin/cc 
+Build flags: 
+Id flags:  
+
+The output was:
+1
+ld: library not found for -lSystem
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /Library/Developer/CommandLineTools/usr/bin/c++ 
+Build flags: 
+Id flags:  
+
+The output was:
+1
+ld: library not found for -lc++
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+
+
+Determining if the function sgemm_ exists failed with the following output:
+Change Dir: /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_5d476/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_5d476.dir/build.make CMakeFiles/cmTC_5d476.dir/build
+Building C object CMakeFiles/cmTC_5d476.dir/CheckFunctionExists.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=sgemm_ -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -MD -MT CMakeFiles/cmTC_5d476.dir/CheckFunctionExists.c.o -MF CMakeFiles/cmTC_5d476.dir/CheckFunctionExists.c.o.d -o CMakeFiles/cmTC_5d476.dir/CheckFunctionExists.c.o -c /usr/local/Cellar/cmake/3.21.4/share/cmake/Modules/CheckFunctionExists.c
+Linking C executable cmTC_5d476
+/usr/local/Cellar/cmake/3.21.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5d476.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=sgemm_ -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names -L/usr/local/opt/ruby/lib  CMakeFiles/cmTC_5d476.dir/CheckFunctionExists.c.o -o cmTC_5d476 
+ld: warning: directory not found for option '-L/usr/local/opt/ruby/lib'
+Undefined symbols for architecture x86_64:
+  "_sgemm_", referenced from:
+      _main in CheckFunctionExists.c.o
+ld: symbol(s) not found for architecture x86_64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+make[1]: *** [cmTC_5d476] Error 1
+make: *** [cmTC_5d476/fast] Error 2
+
+
+
+Determining if the function sgemm_ exists failed with the following output:
+Change Dir: /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_75686/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_75686.dir/build.make CMakeFiles/cmTC_75686.dir/build
+Building C object CMakeFiles/cmTC_75686.dir/CheckFunctionExists.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=sgemm_ -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -MD -MT CMakeFiles/cmTC_75686.dir/CheckFunctionExists.c.o -MF CMakeFiles/cmTC_75686.dir/CheckFunctionExists.c.o.d -o CMakeFiles/cmTC_75686.dir/CheckFunctionExists.c.o -c /usr/local/Cellar/cmake/3.21.4/share/cmake/Modules/CheckFunctionExists.c
+Linking C executable cmTC_75686
+/usr/local/Cellar/cmake/3.21.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_75686.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=sgemm_ -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names -L/usr/local/opt/ruby/lib  CMakeFiles/cmTC_75686.dir/CheckFunctionExists.c.o -o cmTC_75686 
+ld: warning: directory not found for option '-L/usr/local/opt/ruby/lib'
+Undefined symbols for architecture x86_64:
+  "_sgemm_", referenced from:
+      _main in CheckFunctionExists.c.o
+ld: symbol(s) not found for architecture x86_64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+make[1]: *** [cmTC_75686] Error 1
+make: *** [cmTC_75686/fast] Error 2
+
+
+
+Determining if the function sgemm_ exists failed with the following output:
+Change Dir: /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_e9d6a/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_e9d6a.dir/build.make CMakeFiles/cmTC_e9d6a.dir/build
+Building C object CMakeFiles/cmTC_e9d6a.dir/CheckFunctionExists.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=sgemm_ -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -MD -MT CMakeFiles/cmTC_e9d6a.dir/CheckFunctionExists.c.o -MF CMakeFiles/cmTC_e9d6a.dir/CheckFunctionExists.c.o.d -o CMakeFiles/cmTC_e9d6a.dir/CheckFunctionExists.c.o -c /usr/local/Cellar/cmake/3.21.4/share/cmake/Modules/CheckFunctionExists.c
+Linking C executable cmTC_e9d6a
+/usr/local/Cellar/cmake/3.21.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e9d6a.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=sgemm_ -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names -L/usr/local/opt/ruby/lib  CMakeFiles/cmTC_e9d6a.dir/CheckFunctionExists.c.o -o cmTC_e9d6a 
+ld: warning: directory not found for option '-L/usr/local/opt/ruby/lib'
+Undefined symbols for architecture x86_64:
+  "_sgemm_", referenced from:
+      _main in CheckFunctionExists.c.o
+ld: symbol(s) not found for architecture x86_64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+make[1]: *** [cmTC_e9d6a] Error 1
+make: *** [cmTC_e9d6a/fast] Error 2
+
+
+
+Determining if the function sgemm_ exists failed with the following output:
+Change Dir: /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_93dec/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_93dec.dir/build.make CMakeFiles/cmTC_93dec.dir/build
+Building C object CMakeFiles/cmTC_93dec.dir/CheckFunctionExists.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=sgemm_ -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -MD -MT CMakeFiles/cmTC_93dec.dir/CheckFunctionExists.c.o -MF CMakeFiles/cmTC_93dec.dir/CheckFunctionExists.c.o.d -o CMakeFiles/cmTC_93dec.dir/CheckFunctionExists.c.o -c /usr/local/Cellar/cmake/3.21.4/share/cmake/Modules/CheckFunctionExists.c
+Linking C executable cmTC_93dec
+/usr/local/Cellar/cmake/3.21.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_93dec.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=sgemm_ -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names -L/usr/local/opt/ruby/lib  CMakeFiles/cmTC_93dec.dir/CheckFunctionExists.c.o -o cmTC_93dec 
+ld: warning: directory not found for option '-L/usr/local/opt/ruby/lib'
+Undefined symbols for architecture x86_64:
+  "_sgemm_", referenced from:
+      _main in CheckFunctionExists.c.o
+ld: symbol(s) not found for architecture x86_64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+make[1]: *** [cmTC_93dec] Error 1
+make: *** [cmTC_93dec/fast] Error 2
+
+
+
+Determining if the function sgemm_ exists failed with the following output:
+Change Dir: /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_40e84/fast && /Library/Developer/CommandLineTools/usr/bin/make  -f CMakeFiles/cmTC_40e84.dir/build.make CMakeFiles/cmTC_40e84.dir/build
+Building C object CMakeFiles/cmTC_40e84.dir/CheckFunctionExists.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=sgemm_ -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -MD -MT CMakeFiles/cmTC_40e84.dir/CheckFunctionExists.c.o -MF CMakeFiles/cmTC_40e84.dir/CheckFunctionExists.c.o.d -o CMakeFiles/cmTC_40e84.dir/CheckFunctionExists.c.o -c /usr/local/Cellar/cmake/3.21.4/share/cmake/Modules/CheckFunctionExists.c
+Linking C executable cmTC_40e84
+/usr/local/Cellar/cmake/3.21.4/bin/cmake -E cmake_link_script CMakeFiles/cmTC_40e84.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=sgemm_ -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names -L/usr/local/opt/ruby/lib  CMakeFiles/cmTC_40e84.dir/CheckFunctionExists.c.o -o cmTC_40e84 
+ld: warning: directory not found for option '-L/usr/local/opt/ruby/lib'
+Undefined symbols for architecture x86_64:
+  "_sgemm_", referenced from:
+      _main in CheckFunctionExists.c.o
+ld: symbol(s) not found for architecture x86_64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+make[2]: *** [cmTC_40e84] Error 1
+make[1]: *** [cmTC_40e84/fast] Error 2
+
+
+

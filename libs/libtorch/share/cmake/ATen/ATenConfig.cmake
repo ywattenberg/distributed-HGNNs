@@ -5,5 +5,5 @@
 # ATEN_FOUND -- set to 1 if found
 
 set(ATEN_FOUND 1)
-set(ATEN_INCLUDE_DIR "/pytorch/torch/include")
+set(ATEN_INCLUDE_DIR "/Users/runner/work/pytorch/pytorch/pytorch/torch/include")
 set(ATEN_LIBRARIES "")

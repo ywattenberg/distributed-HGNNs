@@ -9,6 +9,9 @@
 #include <c10/core/DispatchKey.h>
 #include <ATen/core/function_schema.h>
 #include <c10/util/Optional.h>
+#include <c10/util/variant.h>
+#include <unordered_map>
+#include <mutex>
 #include <c10/core/impl/LocalDispatchKeySet.h>
 #include <ATen/functorch/Interpreter.h>
 #include <ATen/functorch/VmapInterpreter.h>

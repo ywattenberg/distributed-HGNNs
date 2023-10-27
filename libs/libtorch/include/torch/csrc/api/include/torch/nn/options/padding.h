@@ -1,5 +1,6 @@
 #pragma once
 
+#include <c10/util/variant.h>
 #include <torch/arg.h>
 #include <torch/csrc/Export.h>
 #include <torch/enum.h>
@@ -194,7 +195,7 @@ namespace functional {
 /// 2}).mode(torch::kReplicate));
 /// ```
 struct TORCH_API PadFuncOptions {
-  typedef std::variant<
+  typedef c10::variant<
       enumtype::kConstant,
       enumtype::kReflect,
       enumtype::kReplicate,

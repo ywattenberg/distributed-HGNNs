@@ -64,7 +64,7 @@ struct TORCH_API EnumType : public NamedType {
     return cu;
   }
 
-  const QualifiedName& qualifiedClassName() const {
+  const QualifiedName qualifiedClassName() const {
     return name().value();
   }
 
@@ -88,7 +88,8 @@ struct TORCH_API EnumType : public NamedType {
         cu_(std::move(cu)) {}
 
   std::string annotation_str_impl(
-      C10_UNUSED TypePrinter printer = nullptr) const override {
+      TypePrinter printer = nullptr) const override {
+    (void)printer; // Suppress unused variable warning
     const auto& n = name().value();
     return n.qualifiedName();
   }

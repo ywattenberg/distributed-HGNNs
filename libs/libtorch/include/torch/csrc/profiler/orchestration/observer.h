@@ -49,6 +49,7 @@ struct TORCH_API ExperimentalConfig {
       std::vector<std::string> performance_events = {},
       bool enable_cuda_sync_events = false,
       bool adjust_timestamps = false);
+  ~ExperimentalConfig() = default;
   explicit operator bool() const;
 
   std::vector<std::string> profiler_metrics;
@@ -73,7 +74,7 @@ struct TORCH_API ExperimentalConfig {
    * their child events) and delaying CPU event start times (to
    * prevent overlaps), so this should not be used unless Vulkan events are
    * being profiled and it is ok to use this modified timestamp/duration
-   * information instead of the original information.
+   * information instead of the the original information.
    */
   bool adjust_timestamps;
 };
@@ -87,6 +88,7 @@ struct TORCH_API ProfilerConfig {
       bool with_flops = false,
       bool with_modules = false,
       ExperimentalConfig experimental_config = ExperimentalConfig());
+  ~ProfilerConfig() = default;
 
   bool disabled() const;
   bool global() const;

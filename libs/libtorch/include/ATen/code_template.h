@@ -207,7 +207,8 @@ struct CodeTemplate {
   // or trailing newlines. It's the responsibility of the calling function
   // to indent correctly in the context.
   void emitIndent(std::ostream& out, size_t indent) const {
-    for (C10_UNUSED const auto i : c10::irange(indent)) {
+    for (const auto i : c10::irange(indent)) {
+      (void)i; // Suppress unused variable warning
       out << " ";
     }
   }

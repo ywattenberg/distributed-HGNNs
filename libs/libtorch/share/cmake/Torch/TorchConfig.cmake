@@ -72,7 +72,7 @@ else()
   add_library(torch STATIC IMPORTED) # set imported_location at the bottom
   #library need whole archive
   append_wholearchive_lib_if_found(torch torch_cpu)
-  if(0)
+  if(OFF)
     append_wholearchive_lib_if_found(torch_cuda c10_cuda)
   endif()
 
@@ -127,7 +127,7 @@ if(ON)
   append_torchlib_if_found(kineto)
 endif()
 
-if(0)
+if(OFF)
   if(MSVC)
     if(NOT NVTOOLEXT_HOME)
       set(NVTOOLEXT_HOME "C:/Program Files/NVIDIA Corporation/NvToolsExt")
@@ -164,7 +164,7 @@ endif()
 
 # When we build libtorch with the old libstdc++ ABI, dependent libraries must too.
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  set(TORCH_CXX_FLAGS "-D_GLIBCXX_USE_CXX11_ABI=0")
+  set(TORCH_CXX_FLAGS "-D_GLIBCXX_USE_CXX11_ABI=")
 endif()
 
 find_library(TORCH_LIBRARY torch PATHS "${TORCH_INSTALL_PREFIX}/lib")

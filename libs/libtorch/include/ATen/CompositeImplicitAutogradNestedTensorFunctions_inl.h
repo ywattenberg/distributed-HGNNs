@@ -19,6 +19,7 @@
 #include <ATen/ops/randn_like_compositeimplicitautogradnestedtensor_dispatch.h>
 #include <ATen/ops/reshape_compositeimplicitautogradnestedtensor_dispatch.h>
 #include <ATen/ops/reshape_as_compositeimplicitautogradnestedtensor_dispatch.h>
+#include <ATen/ops/unbind_compositeimplicitautogradnestedtensor_dispatch.h>
 #include <ATen/ops/zeros_like_compositeimplicitautogradnestedtensor_dispatch.h>
 
 

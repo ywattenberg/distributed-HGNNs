@@ -23,7 +23,7 @@ using experimental_event_t = std::shared_ptr<torch::profiler::impl::Result>;
 
 struct TORCH_API KinetoEvent {
   KinetoEvent(
-      const std::shared_ptr<const torch::profiler::impl::Result>&,
+      std::shared_ptr<const torch::profiler::impl::Result>,
       const bool verbose);
 
   uint64_t startThreadId() const;

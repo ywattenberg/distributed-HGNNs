@@ -2,6 +2,7 @@
 // IR.
 #pragma once
 
+#include <c10/util/variant.h>
 #include <torch/csrc/jit/ir/ir.h>
 #include <torch/csrc/jit/runtime/interpreter.h>
 #include <torch/csrc/jit/tensorexpr/analysis.h>
@@ -12,11 +13,11 @@ namespace torch {
 namespace jit {
 namespace tensorexpr {
 
-using ArgNone = std::monostate;
+using ArgNone = c10::monostate;
 using BufList = std::vector<tensorexpr::BufHandle>;
 using DoubleList = std::vector<double>;
 using IntList = std::vector<int64_t>;
-using ArgValue = std::variant<
+using ArgValue = c10::variant<
     tensorexpr::BufHandle,
     tensorexpr::VarHandle,
     double,
