@@ -14,8 +14,6 @@ class HGNN_conv : torch::nn::Module
 
     public:
         HGNN_conv(int in_dim, int out_dim, bool withBias);
-
-        // TODO: add Graph as parameter
         torch::Tensor forward(torch::Tensor &input, torch::Tensor &leftSide);
 
 };
@@ -23,7 +21,6 @@ class HGNN_conv : torch::nn::Module
 class Model : torch::nn::Module
 {
     private:
-        // TODO: Graph class
         int input_dim;
         std::vector<int>* layer_dim;
         int output_dim;
