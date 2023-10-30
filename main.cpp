@@ -3,46 +3,79 @@
 #include <vector>
 #include "model/model.h"
 
-
+//cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
 int main() {
   torch::Tensor tensor = torch::rand({2, 3});
-  std::vector<float> customData = {0.0, 0.0, 0.0, 4.0, 0.0, 0.0};
-  std::vector<int64_t> shape = {3,2};
-  tensor = tensor.to_sparse();
-
-  at::Tensor customTensor = torch::from_blob(customData.data(), shape);
-  customTensor = customTensor.to_sparse();
-
-  at::Tensor res2 = tensor.mm(customTensor);
-  at::Tensor res = torch::mm(tensor, customTensor);
-
-  std::cout << "tensor:\n" << tensor << std::endl;
-  std::cout << "sparse:\n" << customTensor << std::endl;
-  auto indices = customTensor.indices();
-  std::cout << "indices:\n" << indices << std::endl;
-
-  std::cout << "Res 2:\n" << res2 << std::endl;
-  std::cout << "Res:\n" << res << std::endl;
-
+  tensor.print();
 
   std::vector<int> layers;
-  layers.push_back(5);
-  layers.push_back(5);
+  layers.push_back(10);
+  layers.push_back(19);
 
   std::cout << layers[0] << std::endl;
 
-  torch::Tensor input = torch::rand({5,5});
-  Model* m = new Model(5, layers, 5, 0.0, false);
+  // create a model with input dim = 10, hidden dims = layers, out_dim = 5
+  // dropout = 0.2, withBias = False
+  Model *m = new Model(4, layers, 5, 0.2, false);
 
-  std::cout << "input: " << input << std::endl;
-
-  at::Tensor identityMatrix = torch::eye(5);
-  std::cout << "output: " << m->forward(input, identityMatrix, true) << std::endl;
-  
-  std::cout << "input: " << input << std::endl;
-
-
-   
+  return 0;
 }
 
+/*
+  ref: 
+  https://github.com/krshrimali/Digit-Recognition-MNIST-SVHN-PyTorch-CPP/blob/master/training.cpp
 
+  TODOs: 
+    -load data
+    -compute statistics
+*/
+void train(){
+
+  // init model 
+  int in_dim = 10;
+  int out_dim = 5;
+  float dropout_rate = 0.2;
+  bool withBias = false;
+
+  int dims[] = {10, 15, 10};
+  std::vector<int> hidden_dims;
+  for (int dim: dims){
+    hidden_dims.push_back(10);
+  } 
+
+  auto model = std::make_shared<Model>(in_dim, hidden_dims, out_dim, dropout_rate, withBias);
+
+  // init training params
+  torch::optim::SGD optimizer(model->parameters(), 0.01); // Learning Rate 0.01
+  size_t n_epochs = 50;
+  size_t n_batches = 100;
+  auto loss_fn = static_cast<torch::Tensor(*)(const torch::Tensor&)>(torch::log_softmax);
+
+  // load data TODO: replace this 
+  auto data_loader = torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(
+			std::move(torch::data::datasets::MNIST("../data").map(torch::data::transforms::Normalize<>(0.13707, 0.3081)).map(
+				torch::data::transforms::Stack<>())), 64);
+
+
+  // training loop
+  for(size_t epoch=1; epoch <= n_epochs; ++epoch) {
+		size_t batch_index = 0;
+		for (auto& batch: *data_loader) {
+			optimizer.zero_grad();
+			torch::Tensor prediction = model->forward(batch.data, (torch::Tensor) torch::rand({1, 1}), false); // TODO: replace
+			torch::Tensor loss = loss_fn(prediction, batch.target);
+			loss.backward();
+			optimizer.step();
+
+			// Output the loss and checkpoint every n_batches
+			if (++batch_index % n_batches == 0) {
+				std::cout << "Epoch: " << epoch << " | Batch: " << batch_index 
+					<< " | Loss: " << loss.item<float>() << std::endl;
+				torch::save(model, "net.pt");
+			}
+		}
+	}
+
+  //compute stats
+
+}
