@@ -4,7 +4,7 @@
 # compile CXX with /Library/Developer/CommandLineTools/usr/bin/c++
 CXX_DEFINES = -DUSE_C10D_GLOO -DUSE_DISTRIBUTED -DUSE_RPC -DUSE_TENSORPIPE
 
-CXX_INCLUDES = -isystem /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/libs/libtorch/include -isystem /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/libs/libtorch/include/torch/csrc/api/include
+CXX_INCLUDES = -isystem /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/libs/libtorch/include -isystem /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/libs/libtorch/include/torch/csrc/api/include
 
-CXX_FLAGS =  -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -std=gnu++17
+CXX_FLAGS = -g -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk -std=gnu++17
 

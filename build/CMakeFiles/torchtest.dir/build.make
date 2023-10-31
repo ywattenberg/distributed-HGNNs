@@ -53,10 +53,10 @@ RM = /usr/local/Cellar/cmake/3.21.4/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN
+CMAKE_SOURCE_DIR = /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build
+CMAKE_BINARY_DIR = /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/torchtest.dir/depend.make
@@ -72,25 +72,41 @@ include CMakeFiles/torchtest.dir/flags.make
 CMakeFiles/torchtest.dir/main.cpp.o: CMakeFiles/torchtest.dir/flags.make
 CMakeFiles/torchtest.dir/main.cpp.o: ../main.cpp
 CMakeFiles/torchtest.dir/main.cpp.o: CMakeFiles/torchtest.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/torchtest.dir/main.cpp.o"
-	/Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/torchtest.dir/main.cpp.o -MF CMakeFiles/torchtest.dir/main.cpp.o.d -o CMakeFiles/torchtest.dir/main.cpp.o -c /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/main.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/torchtest.dir/main.cpp.o"
+	/Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/torchtest.dir/main.cpp.o -MF CMakeFiles/torchtest.dir/main.cpp.o.d -o CMakeFiles/torchtest.dir/main.cpp.o -c /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/main.cpp
 
 CMakeFiles/torchtest.dir/main.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/torchtest.dir/main.cpp.i"
-	/Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/main.cpp > CMakeFiles/torchtest.dir/main.cpp.i
+	/Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/main.cpp > CMakeFiles/torchtest.dir/main.cpp.i
 
 CMakeFiles/torchtest.dir/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/torchtest.dir/main.cpp.s"
-	/Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/main.cpp -o CMakeFiles/torchtest.dir/main.cpp.s
+	/Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/main.cpp -o CMakeFiles/torchtest.dir/main.cpp.s
+
+CMakeFiles/torchtest.dir/model/model.cpp.o: CMakeFiles/torchtest.dir/flags.make
+CMakeFiles/torchtest.dir/model/model.cpp.o: ../model/model.cpp
+CMakeFiles/torchtest.dir/model/model.cpp.o: CMakeFiles/torchtest.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/torchtest.dir/model/model.cpp.o"
+	/Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/torchtest.dir/model/model.cpp.o -MF CMakeFiles/torchtest.dir/model/model.cpp.o.d -o CMakeFiles/torchtest.dir/model/model.cpp.o -c /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/model/model.cpp
+
+CMakeFiles/torchtest.dir/model/model.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/torchtest.dir/model/model.cpp.i"
+	/Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/model/model.cpp > CMakeFiles/torchtest.dir/model/model.cpp.i
+
+CMakeFiles/torchtest.dir/model/model.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/torchtest.dir/model/model.cpp.s"
+	/Library/Developer/CommandLineTools/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/model/model.cpp -o CMakeFiles/torchtest.dir/model/model.cpp.s
 
 # Object files for target torchtest
 torchtest_OBJECTS = \
-"CMakeFiles/torchtest.dir/main.cpp.o"
+"CMakeFiles/torchtest.dir/main.cpp.o" \
+"CMakeFiles/torchtest.dir/model/model.cpp.o"
 
 # External object files for target torchtest
 torchtest_EXTERNAL_OBJECTS =
 
 torchtest: CMakeFiles/torchtest.dir/main.cpp.o
+torchtest: CMakeFiles/torchtest.dir/model/model.cpp.o
 torchtest: CMakeFiles/torchtest.dir/build.make
 torchtest: ../libs/libtorch/lib/libc10.dylib
 torchtest: ../libs/libtorch/lib/libkineto.a
@@ -99,7 +115,7 @@ torchtest: ../libs/libtorch/lib/libtorch_cpu.dylib
 torchtest: ../libs/libtorch/lib/libc10.dylib
 torchtest: ../libs/libtorch/lib/libiomp5.dylib
 torchtest: CMakeFiles/torchtest.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable torchtest"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable torchtest"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/torchtest.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -111,6 +127,6 @@ CMakeFiles/torchtest.dir/clean:
 .PHONY : CMakeFiles/torchtest.dir/clean
 
 CMakeFiles/torchtest.dir/depend:
-	cd /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build/CMakeFiles/torchtest.dir/DependInfo.cmake --color=$(COLOR)
+	cd /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/build /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/build /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/build/CMakeFiles/torchtest.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/torchtest.dir/depend
 

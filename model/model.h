@@ -27,10 +27,11 @@ struct Model : torch::nn::Module
         std::vector<int>* layer_dim;
         int output_dim;
         int number_of_hid_layers;
-        std::vector<HGNN_conv*> layers;
         double dropout;
+        std::vector<std::shared_ptr<HGNN_conv>> layers;
 
     public:
+
         Model(int in_dim, std::vector<int> &lay_dim, int out_dim, double dropout, bool withBias);
 
         // forward function of the Model, it takes the features X (called input) and the constant leftSide of the expression 10 of the paper 
