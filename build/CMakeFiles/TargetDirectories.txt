@@ -1,4 +1,4 @@
-/Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build/CMakeFiles/rebuild_cache.dir
-/Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build/CMakeFiles/edit_cache.dir
-/Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build/CMakeFiles/torchtest.dir
-/Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build/CMakeFiles/example.dir
+/Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/build/CMakeFiles/rebuild_cache.dir
+/Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/build/CMakeFiles/edit_cache.dir
+/Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/build/CMakeFiles/torchtest.dir
+/Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/build/CMakeFiles/example.dir

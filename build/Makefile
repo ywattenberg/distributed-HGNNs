@@ -57,10 +57,10 @@ RM = /usr/local/Cellar/cmake/3.21.4/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN
+CMAKE_SOURCE_DIR = /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build
+CMAKE_BINARY_DIR = /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -87,9 +87,9 @@ edit_cache/fast: edit_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build/CMakeFiles /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/build/CMakeFiles /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/build//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -190,6 +190,30 @@ main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/torchtest.dir/build.make CMakeFiles/torchtest.dir/main.cpp.s
 .PHONY : main.cpp.s
 
+model/model.o: model/model.cpp.o
+.PHONY : model/model.o
+
+# target to build an object file
+model/model.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/torchtest.dir/build.make CMakeFiles/torchtest.dir/model/model.cpp.o
+.PHONY : model/model.cpp.o
+
+model/model.i: model/model.cpp.i
+.PHONY : model/model.i
+
+# target to preprocess a source file
+model/model.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/torchtest.dir/build.make CMakeFiles/torchtest.dir/model/model.cpp.i
+.PHONY : model/model.cpp.i
+
+model/model.s: model/model.cpp.s
+.PHONY : model/model.s
+
+# target to generate assembly for a file
+model/model.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/torchtest.dir/build.make CMakeFiles/torchtest.dir/model/model.cpp.s
+.PHONY : model/model.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -206,6 +230,9 @@ help:
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
+	@echo "... model/model.o"
+	@echo "... model/model.i"
+	@echo "... model/model.s"
 .PHONY : help
 
 

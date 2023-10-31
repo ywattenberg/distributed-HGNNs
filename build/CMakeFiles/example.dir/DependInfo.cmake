@@ -8,7 +8,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/Users/xihan/ms-projects/Sem3/dphpc/code/distributed-THNN/example.cpp" "CMakeFiles/example.dir/example.cpp.o" "gcc" "CMakeFiles/example.dir/example.cpp.o.d"
+  "/Users/xihan/ms-projects/sem3/dphpc/code/distributed-THNN/example.cpp" "CMakeFiles/example.dir/example.cpp.o" "gcc" "CMakeFiles/example.dir/example.cpp.o.d"
   )
 
 # Targets to which this target links.

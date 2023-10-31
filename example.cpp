@@ -27,7 +27,7 @@ int main()
 	std::cout << "The complex dot product is: " << c << std::endl;
 
   	torch::Tensor tensor = torch::rand({2, 3});
- 	std::cout << tensor << std::endl;
+ 	std::cout << tensor.item<float>() << std::endl;
 	
 	return 0;
 }
