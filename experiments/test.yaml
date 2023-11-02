@@ -1,0 +1,16 @@
+model: 
+  data_samples: 10
+  feature_dimensions: 10
+  hidden_dims: [20, 10]
+  drouout_rate: 0.2
+  with_bias: false
+  activation: "relu"
+
+trainer: 
+  learning_rate: 0.001
+  batch_size: 16
+  epochs: 1000
+  output_stepsize: 100
+  loss_fn: "cross_entropy"
+
+task_type: "classification"
