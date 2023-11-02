@@ -1,86 +1,69 @@
 #include <torch/torch.h>
 #include <iostream>
 #include <vector>
+#include <fstream>
+#include <yaml-cpp/yaml.h>
+
 #include "model/model.h"
+#include "trainer/trainer.h"
+#include "utils/data_utils.h"
+
+using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&); //Supertype for loss functions
 
 
-/*
-  ref: 
-  https://github.com/krshrimali/Digit-Recognition-MNIST-SVHN-PyTorch-CPP/blob/master/training.cpp
+int main(){
+  // load config
+  std::string config_path = std::string(std::filesystem::current_path()) + "/../experiments/test.yaml";
+  YAML::Node config = load_config(config_path);
+  std::cout << "Config: " << config << std::endl;
 
-  TODOs: 
-    -custom loss_fn
-    -load data
-*/
-void train(){
+  // PARAMETERS
+  YAML::Node model_conf = config["model"];
+  YAML::Node trainer_conf = config["trainer"];
+  int DATA_SAMPLES = model_conf["data_samples"].as<int>();
+  int FEATURE_DIMENSIONS =  model_conf["feature_dimensions"].as<int>();
+  std::vector<int> HIDDEN_DIMS =  model_conf["hidden_dims"].as<std::vector<int>>();
+  double DROPOUT =  model_conf["dropout_rate"].as<double>();
+  bool WITH_BIAS =  model_conf["with_bias"].as<bool>();
 
-  // init model 
-  int in_dim = 10;
-  int out_dim = 10;
-  float dropout_rate = 0.2;
-  bool withBias = false;
+  double LEARNING_RATE = trainer_conf["learning_rate"].as<double>();
+  int EPOCHS = trainer_conf["epochs"].as<int>();
+  int OUTPUT_STEPSIZE = trainer_conf["output_stepsize"].as<int>(); //interval of epochs to output the loss
+  
+  int CLASSES = 10; //config["classes"].as<int>();
 
-  int dims[] = {10, 10, 10}; //all dimensions are equal because HGNN_conv forward is not implemented yet
-  std::vector<int> hidden_dims;
-  for (int dim: dims){
-    hidden_dims.push_back(dim);
-  } 
+  // Load Data - Currently done randomly
+  torch::Tensor features = torch::rand({DATA_SAMPLES, FEATURE_DIMENSIONS});
+  torch::Tensor labels = torch::randint(0, CLASSES-1, {DATA_SAMPLES});
+  torch::Tensor leftSide = torch::eye(DATA_SAMPLES);
 
-  auto model = std::make_shared<Model>(in_dim, hidden_dims, out_dim, dropout_rate, withBias);
+  std::cout << "Labels: " << std::endl;
+  labels.print();
 
-  // init training params
-  for (auto& module : model->named_children()) {
-    std::cout << module.key() << ": " << module.value() << std::endl;
+
+  // Build Model
+  auto model = new Model(FEATURE_DIMENSIONS, HIDDEN_DIMS, CLASSES, DROPOUT, &leftSide, WITH_BIAS);
+  std::cout << "Model parameters before training: " << std::endl;
+  for (const auto& params :  model->parameters()) {
+    float* buffer = params.data_ptr<float>();
+    std::cout<<buffer[0]<<std::endl;
   }
-  torch::optim::SGD optimizer(model->parameters(), 0.01);
-  size_t n_epochs = 50;
-  size_t n_batches = 100;
 
+  // Define the loss function
+  LossFunction ce_loss_fn = [](const torch::Tensor& predicted, const torch::Tensor& target) {
+        return torch::nn::functional::cross_entropy(predicted, target);
+    };
+    
 
-  // training loop
+  // Train the model
   model->train();
+  train_model(EPOCHS, OUTPUT_STEPSIZE, labels, features, ce_loss_fn, model, LEARNING_RATE);
 
-  for(size_t epoch=1; epoch <= n_epochs; ++epoch) {
-		size_t batch_index = 0;
-      for(int i = 0 ; i < 42; ++i){
-        optimizer.zero_grad();
-        //TODO: replace the following lines with data loader
-        torch::Tensor dummy_input = torch::rand({in_dim, in_dim});
-        torch::Tensor dummy_leftSide = torch::rand({in_dim, in_dim});
-        torch::Tensor dummy_target = torch::rand({out_dim, out_dim});
-        dummy_input.requires_grad_();
-        dummy_leftSide.requires_grad_();
-        dummy_target.requires_grad_();
-        torch::Tensor prediction = model->forward(dummy_input, dummy_leftSide, false); 
-        torch::Tensor loss = torch::cross_entropy_loss(prediction, dummy_target); // TODO: replace with custom loss function
-        loss.backward();
-        optimizer.step();
+  std::cout << "Model parameters after training: "  << std::endl;
+ for (const auto& params :  model->parameters()) {
+    float* buffer = params.data_ptr<float>();
+    std::cout<<buffer[0]<<std::endl;
+  }
 
-			  // Output the loss and checkpoint every n_batches
-        if (++batch_index % n_batches == 0) {
-          std::cout << "Epoch: " << epoch << " | Batch: " << batch_index 
-            << " | Loss: " << loss.item<float>() << std::endl;
-          torch::save(model, "net.pt");
-        }
-		}
-	}
 }
 
-
-//cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
-int main() {
-  torch::Tensor tensor = torch::rand({2, 3});
-  tensor.print();
-
-  std::vector<int> layers;
-  layers.push_back(10);
-  layers.push_back(19);
-
-  std::cout << layers[0] << std::endl;
-
-  // test train function
-  std::cout << "start training..." << std::endl;
-  train();
-
-  return 0;
-}
