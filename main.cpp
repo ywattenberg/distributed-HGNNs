@@ -2,80 +2,44 @@
 #include <iostream>
 #include <vector>
 #include "model/model.h"
+#include "trainer/trainer.h"
 
-//cmake -Bbuild -DCMAKE_BUILD_TYPE=Release
-int main() {
-  torch::Tensor tensor = torch::rand({2, 3});
-  tensor.print();
+// MODEL PARAMETERS
+int DATA_SAMPLES = 10;
+int FEATURE_DIMENSIONS = 10;
+std::vector<int> HIDDEN_DIMS = {20,10};
+double DROPOUT = 0.2;
+bool WITH_BIAS = false;
+double LEARNING_RATE = 0.001;
+int CLASSES = 5;
+int EPOCHS = 1000;
+int OUTPUT_STEPSIZE = 100; //interval of epochs to output the loss
 
-  std::vector<int> layers;
-  layers.push_back(10);
-  layers.push_back(19);
-
-  std::cout << layers[0] << std::endl;
-
-  // create a model with input dim = 10, hidden dims = layers, out_dim = 5
-  // dropout = 0.2, withBias = False
-  Model *m = new Model(4, layers, 5, 0.2, false);
-
-  return 0;
-}
-
-/*
-  ref: 
-  https://github.com/krshrimali/Digit-Recognition-MNIST-SVHN-PyTorch-CPP/blob/master/training.cpp
-
-  TODOs: 
-    -load data
-    -compute statistics
-*/
-void train(){
-
-  // init model 
-  int in_dim = 10;
-  int out_dim = 5;
-  float dropout_rate = 0.2;
-  bool withBias = false;
-
-  int dims[] = {10, 15, 10};
-  std::vector<int> hidden_dims;
-  for (int dim: dims){
-    hidden_dims.push_back(10);
-  } 
-
-  auto model = std::make_shared<Model>(in_dim, hidden_dims, out_dim, dropout_rate, withBias);
-
-  // init training params
-  torch::optim::SGD optimizer(model->parameters(), 0.01); // Learning Rate 0.01
-  size_t n_epochs = 50;
-  size_t n_batches = 100;
-  auto loss_fn = static_cast<torch::Tensor(*)(const torch::Tensor&)>(torch::log_softmax);
-
-  // load data TODO: replace this 
-  auto data_loader = torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(
-			std::move(torch::data::datasets::MNIST("../data").map(torch::data::transforms::Normalize<>(0.13707, 0.3081)).map(
-				torch::data::transforms::Stack<>())), 64);
+using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&); //Supertype for loss functions
 
 
-  // training loop
-  for(size_t epoch=1; epoch <= n_epochs; ++epoch) {
-		size_t batch_index = 0;
-		for (auto& batch: *data_loader) {
-			optimizer.zero_grad();
-			torch::Tensor prediction = model->forward(batch.data, (torch::Tensor) torch::rand({1, 1}), false); // TODO: replace
-			torch::Tensor loss = loss_fn(prediction, batch.target);
-			loss.backward();
-			optimizer.step();
+int main(){
+  
+  // Load Data - Currently done randomly
+  torch::Tensor features = torch::rand({DATA_SAMPLES, FEATURE_DIMENSIONS});
+  torch::Tensor labels = torch::randint(0, CLASSES-1, {DATA_SAMPLES});
+  torch::Tensor leftSide = torch::eye(DATA_SAMPLES);
 
-			// Output the loss and checkpoint every n_batches
-			if (++batch_index % n_batches == 0) {
-				std::cout << "Epoch: " << epoch << " | Batch: " << batch_index 
-					<< " | Loss: " << loss.item<float>() << std::endl;
-				torch::save(model, "net.pt");
-			}
-		}
-	}
+  std::cout << "Labels: " << labels << std::endl;
 
-  //compute stats
+
+  // Build Model
+  auto model = new Model(FEATURE_DIMENSIONS, HIDDEN_DIMS, CLASSES, DROPOUT, &leftSide, WITH_BIAS);
+  // std::cout << "Model parameters before training: " << model->parameters() << std::endl;
+
+  // Define the loss function
+  LossFunction ce_loss_fn = [](const torch::Tensor& predicted, const torch::Tensor& target) {
+        return torch::nn::functional::cross_entropy(predicted, target);
+    };
+
+  // Train the model
+  train_model(EPOCHS, OUTPUT_STEPSIZE, labels, features, ce_loss_fn, model, LEARNING_RATE);
+
+  // std::cout << "Model parameters after training: " << model->parameters() << std::endl;
 
 }
