@@ -21,7 +21,7 @@ void train_model(int n_epochs, int stepsizeOutput, torch::Tensor &labels, torch:
 
         if (epoch % stepsizeOutput == 0){
             std::cout << "Epoch [" << epoch << "/" << n_epochs << "], Loss: " << loss.item<double>() 
-            << ", Predictions: " << round(predictions,2)
+            // << ", Predictions: " << round(predictions,2)
             << std::endl;
         }
     }
