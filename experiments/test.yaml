@@ -12,3 +12,8 @@ trainer:
   output_stepsize: 100
   loss_fn: "cross_entropy"
 task_type: "classification"
+data:
+- ModelNet:
+  G_path: "../G_coo.csv"
+  Labels_path: "../lbls_m_g_ms_gs.csv"
+  Features_path: "../fts_m_g_ms_gs.csv"

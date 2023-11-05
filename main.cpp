@@ -17,7 +17,7 @@ int main(){
   YAML::Node config = load_config(config_path);
   std::cout << "Config: " << config << std::endl;
 
-  // PARAMETERS
+  // load parameters`
   YAML::Node model_conf = config["model"];
   YAML::Node trainer_conf = config["trainer"];
   int DATA_SAMPLES = model_conf["data_samples"].as<int>();
@@ -50,11 +50,11 @@ int main(){
   }
 
   // Define the loss function
+  // TODO: specify which loss function to use in yaml file
   LossFunction ce_loss_fn = [](const torch::Tensor& predicted, const torch::Tensor& target) {
         return torch::nn::functional::cross_entropy(predicted, target);
-    };
+  };
     
-
   // Train the model
   model->train();
   train_model(EPOCHS, OUTPUT_STEPSIZE, labels, features, ce_loss_fn, model, LEARNING_RATE);

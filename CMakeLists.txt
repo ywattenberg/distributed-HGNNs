@@ -23,11 +23,22 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BLAS_CXX_FLAGS}")
 # Find the YAML-CPP package
 find_package(yaml-cpp REQUIRED)
 
-# add executables
+# add example executable
 add_executable(example example.cpp)
 target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}")
 set_property(TARGET example PROPERTY CXX_STANDARD 17)
 
-add_executable(${PROJECT_NAME} main.cpp model/model.h model/model.cpp trainer/trainer.h trainer/trainer.cpp utils/data_utils.h utils/data_utils.cpp)
+# add project executable
+set(SOURCES
+    main.cpp
+    model/model.h
+    model/model.cpp
+    trainer/trainer.h
+    trainer/trainer.cpp
+    utils/data_utils.h
+    utils/data_utils.cpp
+)
+
+add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp::yaml-cpp)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
