@@ -17,9 +17,9 @@ int OUTPUT_STEPSIZE = 100; //interval of epochs to output the loss
 using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&); //Supertype for loss functions
 
 int main(){
-  std::string G_path = "data/G_coo.csv";
-  std::string Labels_path = "data/lbls_m_g_ms_gs.csv";
-  std::string Features_path = "data/fts_m_g_ms_gs.csv";
+  std::string G_path = "../data/G_coo.csv";
+  std::string Labels_path = "../data/lbls_m_g_ms_gs.csv";
+  std::string Features_path = "../data/fts_m_g_ms_gs.csv";
 
   std::vector<float> data;
   auto [G_lines, G_cols] = csvToArray(std::move(G_path), data);
@@ -47,14 +47,9 @@ int main(){
   torch::Tensor features = torch::from_blob(data3.data(), {F_lines,F_cols});
   std::cout << "Features dimensions: " << F_lines << "x" << F_cols << std::endl;
 
-  // Load Data - Currently done randomly
-  // torch::Tensor features = torch::rand({DATA_SAMPLES, FEATURE_DIMENSIONS});
-  // torch::Tensor labels = torch::randint(0, CLASSES-1, {DATA_SAMPLES});
-  // torch::Tensor leftSide = torch::eye(DATA_SAMPLES);
 
   // Build Model
   auto model = new Model(FEATURE_DIMENSIONS, HIDDEN_DIMS, CLASSES, DROPOUT, &leftSide, WITH_BIAS);
-  // std::cout << "Model parameters before training: " << model->parameters() << std::endl;
 
   // Define the loss function
   LossFunction ce_loss_fn = [](const torch::Tensor& predicted, const torch::Tensor& target) {
@@ -62,7 +57,5 @@ int main(){
     };
   // Train the model
   train_model(EPOCHS, OUTPUT_STEPSIZE, labels, features, ce_loss_fn, model, LEARNING_RATE);
-
-  // std::cout << "Model parameters after training: " << model->parameters() << std::endl;
 
 }
