@@ -32,7 +32,7 @@ int main(){
   torch::Tensor values = leftSide.index({at::indexing::Slice(), at::indexing::Slice(2,3)});
   // This way of calling sparse_coo_tensor assumes 
   // that we have at least one non-zero value in each row/column 
-  leftSide = torch::sparse_coo_tensor(index, values);
+  leftSide = torch::sparse_coo_tensor(index, values).squeeze();
   std::cout << "leftSide dimensions: " << leftSide.sizes() << std::endl;
 
   std::vector<float> data2;
@@ -52,13 +52,12 @@ int main(){
 
   // Build Model
   auto model = new Model(FEATURE_DIMENSIONS, HIDDEN_DIMS, CLASSES, DROPOUT, &leftSide, WITH_BIAS);
-  std::cout << "Model parameters before training: " << model->parameters() << std::endl;
+  // std::cout << "Model parameters before training: " << model->parameters() << std::endl;
 
   // Define the loss function
   LossFunction ce_loss_fn = [](const torch::Tensor& predicted, const torch::Tensor& target) {
         return torch::nn::functional::cross_entropy(predicted, target);
     };
-  std::cout << "Loss function defined" << std::endl;
   // Train the model
   train_model(EPOCHS, OUTPUT_STEPSIZE, labels, features, ce_loss_fn, model, LEARNING_RATE);
 
