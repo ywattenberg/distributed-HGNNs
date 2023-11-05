@@ -5,7 +5,7 @@
 
 // MODEL PARAMETERS
 int DATA_SAMPLES = 10;
-int FEATURE_DIMENSIONS = 10;
+int FEATURE_DIMENSIONS = 6145;
 std::vector<int> HIDDEN_DIMS = {20,10};
 double DROPOUT = 0.2;
 bool WITH_BIAS = false;
@@ -29,10 +29,12 @@ int main(){
   // Convert the leftSide tensor to a sparse tensor
   torch::Tensor index = leftSide.index({at::indexing::Slice(), at::indexing::Slice(0,2)}).transpose(0,1);
   index = index.to(torch::kLong);
-  torch::Tensor values = leftSide.index({at::indexing::Slice(), at::indexing::Slice(2,3)});
+  torch::Tensor values = leftSide.index({at::indexing::Slice(), at::indexing::Slice(2,3)}).squeeze();
   // This way of calling sparse_coo_tensor assumes 
   // that we have at least one non-zero value in each row/column 
-  leftSide = torch::sparse_coo_tensor(index, values).squeeze();
+  std::cout << "index dimensions: " << index.sizes() << std::endl;
+  std::cout << "values dimensions: " << values.sizes() << std::endl;
+  leftSide = torch::sparse_coo_tensor(index, values);
   std::cout << "leftSide dimensions: " << leftSide.sizes() << std::endl;
 
   std::vector<float> data2;
