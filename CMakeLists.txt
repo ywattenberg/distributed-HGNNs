@@ -12,6 +12,9 @@ set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_LIST_DIR}/libs/libtorch")
 find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
+# Find the YAML-CPP package
+find_package(yaml-cpp REQUIRED)
+
 # find openblas, use homebrew when on macos
 if (MACOSX)
     set(MAKE_PREFIX_PATH /opt/homebrew/opt/openblas/lib)
@@ -19,21 +22,6 @@ endif()
 
 find_package(BLAS REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BLAS_CXX_FLAGS}")
-
-# Find the YAML-CPP package
-find_package(yaml-cpp REQUIRED)
-
-# add example executable
-# Use homebrew when on macos
-if (MACOSX)
-    set(MAKE_PREFIX_PATH /opt/homebrew/opt/openblas/lib)
-endif()
-
-find_package(BLAS REQUIRED)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BLAS_CXX_FLAGS}")
-
-# Find the YAML-CPP package
-find_package(yaml-cpp REQUIRED)
 
 # add_executable(example example.cpp)
 # target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}")
