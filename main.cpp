@@ -1,22 +1,38 @@
-#include "utils/fileParse.h"
+#include <torch/torch.h>
 #include <iostream>
+#include <yaml-cpp/yaml.h>
+
+
+#include "utils/fileParse.h"
 #include "model/model.h"
 #include "trainer/trainer.h"
 
-// MODEL PARAMETERS
-int DATA_SAMPLES = 10;
-int FEATURE_DIMENSIONS = 6145;
-std::vector<int> HIDDEN_DIMS = {20,10};
-double DROPOUT = 0.2;
-bool WITH_BIAS = false;
-double LEARNING_RATE = 0.001;
-int CLASSES = 2;
-int EPOCHS = 1000;
-int OUTPUT_STEPSIZE = 100; //interval of epochs to output the loss
 
 using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&); //Supertype for loss functions
 
+
 int main(){
+  // load config
+  std::string config_path = std::string(std::filesystem::current_path()) + "/../experiments/test.yaml";
+  YAML::Node config = load_config(config_path);
+  std::cout << "Config: " << config << std::endl;
+
+  // load parameters`
+  YAML::Node model_conf = config["model"];
+  YAML::Node trainer_conf = config["trainer"];
+  int DATA_SAMPLES = model_conf["data_samples"].as<int>(); // TODO: Change to read from data
+  int FEATURE_DIMENSIONS =  model_conf["feature_dimensions"].as<int>(); //TODO: Change to read from data
+  std::vector<int> HIDDEN_DIMS =  model_conf["hidden_dims"].as<std::vector<int>>();
+  double DROPOUT =  model_conf["dropout_rate"].as<double>();
+  bool WITH_BIAS =  model_conf["with_bias"].as<bool>();
+
+  double LEARNING_RATE = trainer_conf["learning_rate"].as<double>();
+  int EPOCHS = trainer_conf["epochs"].as<int>();
+  int OUTPUT_STEPSIZE = trainer_conf["output_stepsize"].as<int>(); //interval of epochs to output the loss
+  
+  int CLASSES = 40; //config["classes"].as<int>();
+  
+  //TODO: Change to read datapaths from config
   std::string G_path = "../data/m_g_ms_gs/G_coo.csv";
   std::string Labels_path = "../data/m_g_ms_gs/lbls_m_g_ms_gs.csv";
   std::string Features_path = "../data/m_g_ms_gs/fts_m_g_ms_gs.csv";
@@ -47,7 +63,6 @@ int main(){
   torch::Tensor features = torch::from_blob(data3.data(), {F_lines,F_cols});
   std::cout << "Features dimensions: " << F_lines << "x" << F_cols << std::endl;
 
-
   // Build Model
   auto model = new Model(FEATURE_DIMENSIONS, HIDDEN_DIMS, CLASSES, DROPOUT, &leftSide, WITH_BIAS);
 
@@ -57,5 +72,4 @@ int main(){
     };
   // Train the model
   train_model(EPOCHS, OUTPUT_STEPSIZE, labels, features, ce_loss_fn, model, LEARNING_RATE);
-
 }

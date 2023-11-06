@@ -56,7 +56,3 @@ torch::Tensor HGNN_conv::forward(const torch::Tensor &input){
     // torch::Tensor x = linear_layer(input);
     return linear_layer(input);
 }
-
-
-
-
