@@ -1,7 +1,7 @@
 #include <torch/torch.h>
 #include <iostream>
 #include <yaml-cpp/yaml.h>
-
+#include <filesystem>
 
 #include "utils/fileParse.h"
 #include "model/model.h"
@@ -14,10 +14,10 @@ using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&); //Supe
 int main(){
   // load config
   std::string config_path = std::string(std::filesystem::current_path()) + "/../experiments/test.yaml";
-  YAML::Node config = load_config(config_path);
+  YAML::Node config = YAML::LoadFile(config_path);
   std::cout << "Config: " << config << std::endl;
 
-  // load parameters`
+  // load parameters
   YAML::Node model_conf = config["model"];
   YAML::Node trainer_conf = config["trainer"];
   int DATA_SAMPLES = model_conf["data_samples"].as<int>(); // TODO: Change to read from data
