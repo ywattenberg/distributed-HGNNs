@@ -13,15 +13,15 @@ using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&); //Supe
 
 int main(){
   // load config
-  std::string config_path = std::string(std::filesystem::current_path()) + "/../experiments/test.yaml";
+  std::string config_path = std::string(std::filesystem::current_path()) + "/../config/test.yaml";
   YAML::Node config = YAML::LoadFile(config_path);
   std::cout << "Config: " << config << std::endl;
 
   // load parameters
   YAML::Node model_conf = config["model"];
   YAML::Node trainer_conf = config["trainer"];
-  int DATA_SAMPLES = model_conf["data_samples"].as<int>(); // TODO: Change to read from data
-  int FEATURE_DIMENSIONS =  model_conf["feature_dimensions"].as<int>(); //TODO: Change to read from data
+  YAML::Node data_config = config["data"];
+
   std::vector<int> HIDDEN_DIMS =  model_conf["hidden_dims"].as<std::vector<int>>();
   double DROPOUT =  model_conf["dropout_rate"].as<double>();
   bool WITH_BIAS =  model_conf["with_bias"].as<bool>();
@@ -30,12 +30,11 @@ int main(){
   int EPOCHS = trainer_conf["epochs"].as<int>();
   int OUTPUT_STEPSIZE = trainer_conf["output_stepsize"].as<int>(); //interval of epochs to output the loss
   
-  int CLASSES = 40; //config["classes"].as<int>();
+  int CLASSES = model_conf["classes"].as<int>();
   
-  //TODO: Change to read datapaths from config
-  std::string G_path = "../data/m_g_ms_gs/G_coo.csv";
-  std::string Labels_path = "../data/m_g_ms_gs/lbls_m_g_ms_gs.csv";
-  std::string Features_path = "../data/m_g_ms_gs/fts_m_g_ms_gs.csv";
+  std::string G_path = data_config["G_path"].as<std::string>();
+  std::string Labels_path = data_config["labels_path"].as<std::string>();
+  std::string Features_path = data_config["features_path"].as<std::string>();
 
   std::vector<float> data;
   auto [G_lines, G_cols] = csvToArray(std::move(G_path), data);
@@ -64,7 +63,7 @@ int main(){
   std::cout << "Features dimensions: " << F_lines << "x" << F_cols << std::endl;
 
   // Build Model
-  auto model = new Model(FEATURE_DIMENSIONS, HIDDEN_DIMS, CLASSES, DROPOUT, &leftSide, WITH_BIAS);
+  auto model = new Model(F_cols, HIDDEN_DIMS, CLASSES, DROPOUT, &leftSide, WITH_BIAS);
 
   // Define the loss function
   LossFunction ce_loss_fn = [](const torch::Tensor& predicted, const torch::Tensor& target) {
