@@ -6,7 +6,6 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 endif()
 
 
-
 message(STATUS "${CMAKE_CURRENT_LIST_DIR}")
 
 find_package(yaml-cpp REQUIRED)
@@ -24,9 +23,6 @@ endif()
 
 find_package(BLAS REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BLAS_CXX_FLAGS}")
-
-# Find the YAML-CPP package
-
 
 # add_executable(example example.cpp)
 # target_link_libraries(example "${YAML_CPP_LIBRARIES}")
