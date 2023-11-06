@@ -47,20 +47,19 @@ int main(){
   torch::Tensor values = leftSide.index({at::indexing::Slice(), at::indexing::Slice(2,3)}).squeeze();
   // This way of calling sparse_coo_tensor assumes 
   // that we have at least one non-zero value in each row/column 
-  std::cout << "index dimensions: " << index.sizes() << std::endl;
-  std::cout << "values dimensions: " << values.sizes() << std::endl;
   leftSide = torch::sparse_coo_tensor(index, values);
   std::cout << "leftSide dimensions: " << leftSide.sizes() << std::endl;
 
   std::vector<float> data2;
   auto [L_lines, L_cols] = csvToArray(std::move(Labels_path), data2);
   torch::Tensor labels = torch::from_blob(data2.data(), {L_lines,L_cols});
-  std::cout << "Labels dimensions: " << L_lines << "x" << L_cols << std::endl;
+  labels = labels.index({at::indexing::Slice(), at::indexing::Slice(1)}).squeeze().to(torch::kLong);
+  std::cout << "labels shape: " << labels.sizes() << std::endl;
  
-  std::vector<float> data3; 
+  std::vector<int> data3; 
   auto [F_lines, F_cols] = csvToArray(std::move(Features_path), data3);
   torch::Tensor features = torch::from_blob(data3.data(), {F_lines,F_cols});
-  std::cout << "Features dimensions: " << F_lines << "x" << F_cols << std::endl;
+  std::cout << "features shape: " << features.sizes() << std::endl;
 
   // Build Model
   auto model = new Model(F_cols, HIDDEN_DIMS, CLASSES, DROPOUT, &leftSide, WITH_BIAS);
