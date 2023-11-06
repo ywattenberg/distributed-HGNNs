@@ -1,3 +1,6 @@
+# Ignore fts matrix
+data/*/fts*.csv
+
 # Ignore MACOS
 .DS_Store
 
