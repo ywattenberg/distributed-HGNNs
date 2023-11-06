@@ -1,6 +1,6 @@
 model: 
   data_samples: 10
-  feature_dimensions: 10
+  feature_dimensions: 6145
   hidden_dims: [20, 10]
   dropout_rate: 0.2
   with_bias: false
@@ -8,8 +8,8 @@ model:
 trainer: 
   learning_rate: 0.001
   batch_size: 16
-  epochs: 1000
-  output_stepsize: 100
+  epochs: 100
+  output_stepsize: 10
   loss_fn: "cross_entropy"
 task_type: "classification"
 data:
