@@ -6,35 +6,34 @@
 #include <iostream>
 
 
-class HGNN_conv : torch::nn::Module
+class HGNN_conv : public torch::nn::Module
 {
-    private: 
-        torch::Tensor weights;
-        torch::Tensor bias;
+    private:
+        torch::nn::Linear linear_layer = nullptr;
 
     public:
-        HGNN_conv(int in_dim, int out_dim, bool withBias);
-
-        // TODO: add Graph as parameter
-        torch::Tensor forward(torch::Tensor* input, torch::Tensor* leftSide);
+        HGNN_conv(int in_dim, int out_dim, bool withBias, bool t);
+        torch::Tensor forward(const torch::Tensor &input);
 
 };
 
-class Model : torch::nn::Module
+class Model : public torch::nn::Module
 {
     private:
-        // TODO: Graph class
         int input_dim;
         std::vector<int>* layer_dim;
         int output_dim;
-        std::vector<HGNN_conv*> layers;
+        int number_of_hid_layers;
+        std::vector<std::shared_ptr<HGNN_conv>> layers;
         double dropout;
+        const torch::Tensor *leftSide;
 
     public:
-        Model(int in_dim, std::vector<int> &lay_dim, int out_dim, double dropout, bool withBias);
+        Model(int in_dim, std::vector<int> lay_dim, int out_dim, double dropout, const torch::Tensor *leftSide, bool withBias);
 
-        // TODO: add Graph as parameter: torch::Tensor forward(torch::Tensor input, Graph G);
-        torch::Tensor forward(torch::Tensor &input);
+        // forward function of the Model, it takes the features X (called input) and the constant leftSide of the expression 10 of the paper 
+        // Hypergraph Neural Networks (called leftSide)
+        torch::Tensor forward(const torch::Tensor &input);
 
 
 };
