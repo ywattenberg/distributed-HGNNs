@@ -5,15 +5,17 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(MACOSX TRUE)
 endif()
 
+
+
 message(STATUS "${CMAKE_CURRENT_LIST_DIR}")
+
+find_package(yaml-cpp REQUIRED)
+message(STATUS  "${YAML_CPP_INCLUDE_DIR}")
 
 # find libtorch
 set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_LIST_DIR}/libs/libtorch")
 find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
-
-# Find the YAML-CPP package
-find_package(yaml-cpp REQUIRED)
 
 # find openblas, use homebrew when on macos
 if (MACOSX)
@@ -23,10 +25,22 @@ endif()
 find_package(BLAS REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BLAS_CXX_FLAGS}")
 
+# Find the YAML-CPP package
+
+
 # add_executable(example example.cpp)
-# target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}")
+# target_link_libraries(example "${YAML_CPP_LIBRARIES}")
 # set_property(TARGET example PROPERTY CXX_STANDARD 17)
 
-add_executable(${PROJECT_NAME} main.cpp)
-target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}")
+set(SOURCES
+    main.cpp
+    model/model.h
+    model/model.cpp
+    trainer/trainer.h./
+    trainer/trainer.cpp
+    utils/data_utils.h
+)
+
+add_executable(${PROJECT_NAME} ${SOURCES})
+target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" "${YAML_CPP_LIBRARIES}")
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
