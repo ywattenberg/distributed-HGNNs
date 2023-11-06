@@ -1,3 +1,6 @@
+# Ignore MACOS
+.DS_Store
+
 .vscode
 
 build
