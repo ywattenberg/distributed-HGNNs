@@ -17,9 +17,9 @@ int OUTPUT_STEPSIZE = 100; //interval of epochs to output the loss
 using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&); //Supertype for loss functions
 
 int main(){
-  std::string G_path = "../data/G_coo.csv";
-  std::string Labels_path = "../data/lbls_m_g_ms_gs.csv";
-  std::string Features_path = "../data/fts_m_g_ms_gs.csv";
+  std::string G_path = "../data/m_g_ms_gs/G_coo.csv";
+  std::string Labels_path = "../data/m_g_ms_gs/lbls_m_g_ms_gs.csv";
+  std::string Features_path = "../data/m_g_ms_gs/fts_m_g_ms_gs.csv";
 
   std::vector<float> data;
   auto [G_lines, G_cols] = csvToArray(std::move(G_path), data);
