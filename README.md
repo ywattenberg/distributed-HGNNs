@@ -3,7 +3,7 @@
 GNN Guide - https://distill.pub/2021/gnn-intro/
 
 
-### How to run the porject on Linux
+### How to run the project on Linux
 
 Install BLAS library:
 ```
@@ -46,7 +46,7 @@ make
 Now you can run the executable files that have been produced. 
 
 
-### How to run the porject on MACOS
+### How to run the project on MACOS
 
 ```
 brew install openblas
