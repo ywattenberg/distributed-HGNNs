@@ -14,7 +14,7 @@ struct ConfigProperties
     int output_stepsize; 
     int classes;
     
-    std::string G_path;
+    std::string g_path;
     std::string labels_path;
     std::string features_path;
     std::vector<int> hidden_dims;
@@ -32,7 +32,7 @@ ConfigProperties ParseConfig(const std::string& config_path){
     config_properties.epochs = config["trainer"]["epochs"].as<int>();
     config_properties.output_stepsize = config["trainer"]["output_stepsize"].as<int>();
     config_properties.classes = config["model"]["classes"].as<int>();
-    config_properties.G_path = config["data"]["G_path"].as<std::string>();
+    config_properties.g_path = config["data"]["G_path"].as<std::string>();
     config_properties.labels_path = config["data"]["labels_path"].as<std::string>();
     config_properties.features_path = config["data"]["features_path"].as<std::string>();
     config_properties.hidden_dims = config["model"]["hidden_dims"].as<std::vector<int>>();
