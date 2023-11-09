@@ -1,6 +1,7 @@
 #ifndef FILE_PARSE_H
 #define FILE_PARSE_H
 
+#include <torch/torch.h>
 #include <filesystem>
 #include <string>
 #include <fstream>
@@ -11,7 +12,7 @@
 
 
 template<class T>
-std::tuple<int,int> csvToArray(std::string &&filePath, std::vector<T> &parsedCsv) {
+std::tuple<int,int> csvToArray(const std::string &&filePath, std::vector<T> &parsedCsv) {
     if(!(std::filesystem::exists(filePath) && std::filesystem::is_regular_file(filePath))){
         std::cout << "File " << filePath << " does not exist or is not a regular file" << std::endl;
         exit(1);
@@ -49,5 +50,13 @@ std::tuple<int,int> csvToArray(std::string &&filePath, std::vector<T> &parsedCsv
     }
 
     return std::make_tuple(lines, (parsedCsv.size())/lines);
+}
+
+
+template<class T>
+inline torch::Tensor tensor_from_file(const std::string& path){
+  std::vector<T> data;
+  auto [lines, cols] = csvToArray(std::move(path), data);
+  return torch::from_blob(data.data(), {lines,cols}).clone();
 }
 #endif

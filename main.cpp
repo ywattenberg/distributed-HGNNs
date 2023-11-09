@@ -10,7 +10,14 @@
 #include "utils/fileParse.h"
 #include "utils/configParse.h"
 
-
+inline torch::Tensor coo_tensor_to_sparse(torch::Tensor& coo_tensor){
+  torch::Tensor index = coo_tensor.index({at::indexing::Slice(), at::indexing::Slice(0,2)}).transpose(0,1);
+  index = index.to(torch::kLong);
+  torch::Tensor values = coo_tensor.index({at::indexing::Slice(), at::indexing::Slice(2,3)}).squeeze();
+  // This way of calling sparse_coo_tensor assumes 
+  // that we have at least one non-zero value in each row/column 
+  return torch::sparse_coo_tensor(index, values);
+}
 
 using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&); //Supertype for loss functions
 
@@ -33,33 +40,20 @@ int main(int argc, char** argv){
   // load config
   ConfigProperties config = ParseConfig(config_path);
 
-  std::vector<float> data;
-  auto [G_lines, G_cols] = csvToArray(std::move(config.G_path), data);
-  torch::Tensor leftSide = torch::from_blob(data.data(), {G_lines,G_cols});
-  std::cout << "G dimensions: " << G_lines << "x" << G_cols << std::endl;
-  
-  // Convert the leftSide tensor to a sparse tensor
-  torch::Tensor index = leftSide.index({at::indexing::Slice(), at::indexing::Slice(0,2)}).transpose(0,1);
-  index = index.to(torch::kLong);
-  torch::Tensor values = leftSide.index({at::indexing::Slice(), at::indexing::Slice(2,3)}).squeeze();
-  // This way of calling sparse_coo_tensor assumes 
-  // that we have at least one non-zero value in each row/column 
-  leftSide = torch::sparse_coo_tensor(index, values);
-  std::cout << "leftSide dimensions: " << leftSide.sizes() << std::endl;
+  torch::Tensor coo_list = tensor_from_file<float>(config.g_path);
+  torch::Tensor left_side = coo_tensor_to_sparse(coo_list);
+  std::cout << "G dimensions: " << left_side.sizes() << std::endl;
 
-  std::vector<float> data2;
-  auto [L_lines, L_cols] = csvToArray(std::move(config.labels_path), data2);
-  torch::Tensor labels = torch::from_blob(data2.data(), {L_lines,L_cols});
+  torch::Tensor labels = tensor_from_file<float>(config.labels_path);
   labels = labels.index({at::indexing::Slice(), at::indexing::Slice(1)}).squeeze().to(torch::kLong);
   std::cout << "labels shape: " << labels.sizes() << std::endl;
+  
  
-  std::vector<int> data3; 
-  auto [F_lines, F_cols] = csvToArray(std::move(config.features_path), data3);
-  torch::Tensor features = torch::from_blob(data3.data(), {F_lines,F_cols});
+  torch::Tensor features = tensor_from_file<float>(config.features_path);
   std::cout << "features shape: " << features.sizes() << std::endl;
-
+  int f_cols = features.size(1);
   // Build Model
-  auto model = new Model(F_cols, config.hidden_dims, config.classes, config.dropout_rate, &leftSide, config.with_bias);
+  auto model = new Model(f_cols, config.hidden_dims, config.classes, config.dropout_rate, &left_side, config.with_bias);
 
   // Define the loss function
   LossFunction ce_loss_fn = [](const torch::Tensor& predicted, const torch::Tensor& target) {
