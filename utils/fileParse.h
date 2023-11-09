@@ -1,7 +1,6 @@
 #ifndef FILE_PARSE_H
 #define FILE_PARSE_H
 
-#include <torch/torch.h>
 #include <filesystem>
 #include <string>
 #include <fstream>
