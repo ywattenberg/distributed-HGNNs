@@ -6,7 +6,7 @@
 
 using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&);
 
-void train_model(int n_epochs, int stepsizeOutput, torch::Tensor &labels, torch::Tensor &input_features, LossFunction loss_fn, Model *model, double lr){
+void train_model(int n_epochs, int stepsize_output, torch::Tensor &labels, torch::Tensor &input_features, LossFunction loss_fn, Model *model, double lr){
     
     torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(lr));
     // torch::optim::SGD optimizer(model.parameters(), torch::optim::SGDOptions(lr));
@@ -19,7 +19,7 @@ void train_model(int n_epochs, int stepsizeOutput, torch::Tensor &labels, torch:
         loss.backward();
         optimizer.step();
 
-        if (epoch % stepsizeOutput == 0){
+        if (epoch % stepsize_output == 0){
             std::cout << "Epoch [" << epoch << "/" << n_epochs << "], Loss: " << loss.item<double>() 
             // << ", Predictions: " << round(predictions,2)
             << std::endl;
