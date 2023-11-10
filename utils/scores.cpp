@@ -1,7 +1,6 @@
 #include "scores.h"
 
 torch::Tensor accuracy(torch::Tensor &y_pred, torch::Tensor &y_true){
-
     torch::Tensor correct = torch::zeros({1}, torch::kLong);
     torch::Tensor total = torch::zeros({1}, torch::kLong);
     torch::Tensor y_pred_max = torch::argmax(y_pred, 1);
