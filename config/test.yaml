@@ -14,3 +14,4 @@ data:
   G_path: "../data/m_g_ms_gs/G_coo.csv"
   labels_path: "../data/m_g_ms_gs/lbls_m_g_ms_gs.csv"
   features_path: "../data/m_g_ms_gs/fts_m_g_ms_gs.csv"
+  test_idx: 9345
