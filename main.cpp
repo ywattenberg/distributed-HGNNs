@@ -47,8 +47,7 @@ int main(int argc, char** argv){
   torch::Tensor labels = tensor_from_file<float>(config.labels_path);
   labels = labels.index({at::indexing::Slice(), at::indexing::Slice(1)}).squeeze().to(torch::kLong);
   std::cout << "labels shape: " << labels.sizes() << std::endl;
-  
- 
+   
   torch::Tensor features = tensor_from_file<float>(config.features_path);
   std::cout << "features shape: " << features.sizes() << std::endl;
   int f_cols = features.size(1);
@@ -60,5 +59,5 @@ int main(int argc, char** argv){
         return torch::nn::functional::cross_entropy(predicted, target);
     };
   // Train the model
-  train_model(config.epochs, config.output_stepsize, labels, features, ce_loss_fn, model, config.learning_rate);
+  train_model(config, labels, features, ce_loss_fn, model);
 }
