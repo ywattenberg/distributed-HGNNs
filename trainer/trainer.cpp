@@ -2,12 +2,19 @@
 #include <vector>
 #include <iostream>
 #include "../model/model.h"
+#include "../utils/configParse.h"
 
 
 using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&);
 
-void train_model(int n_epochs, int stepsize_output, torch::Tensor &labels, torch::Tensor &input_features, LossFunction loss_fn, Model *model, double lr){
+
+void train_model(const ConfigProperties& config, torch::Tensor &labels, torch::Tensor &input_features, LossFunction loss_fn, Model *model){
     
+    double lr = config.learning_rate;
+    int n_epochs = config.epochs;
+    int stepsize_output = config.output_stepsize;
+    long train_set_cutoff = config.test_idx;
+
     torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(lr));
     // torch::optim::SGD optimizer(model.parameters(), torch::optim::SGDOptions(lr));
 
