@@ -35,8 +35,11 @@ set(SOURCES
     model/model.cpp
     trainer/trainer.h
     trainer/trainer.cpp
-    utils/data_utils.h
-    utils/data_utils.cpp
+    utils/fileParse.h
+    utils/scores.h
+    utils/scores.cpp
+    utils/configParse.h
+    utils/configParse.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})

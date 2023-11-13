@@ -20,7 +20,6 @@ Model::Model(int in_dim, std::vector<int> lay_dim, int out_dim, double dropout_v
             std::string module_name = "HG_conv_" + std::to_string(i);
             register_module(module_name, conv);
             layers.push_back(conv);
-            // layers.push_back(new HGNN_conv(lay_dim[i-1], lay_dim[i], withBias));
         }
         auto out_conv = std::make_shared<HGNN_conv>(lay_dim[number_of_hid_layers-1], output_dim, withBias);
         register_module("HG_conv_out", out_conv);
@@ -45,6 +44,8 @@ torch::Tensor Model::forward(const torch::Tensor &input){
     x = layers[layers.size()-1]->forward(x);
     return torch::nn::functional::softmax(x, torch::nn::functional::SoftmaxFuncOptions(1));
 }
+
+//compute the forward pass using t workers
 
 
 
