@@ -9,11 +9,13 @@
 class HGNN_conv : public torch::nn::Module
 {
     private:
-        torch::nn::Linear linear_layer = nullptr;
+        torch::Tensor weights;
+        torch::Tensor bias;
 
     public:
         HGNN_conv(int in_dim, int out_dim, bool withBias, bool t);
         torch::Tensor forward(const torch::Tensor &input);
+        void reset_parameters();
 
 };
 
@@ -42,7 +44,7 @@ class Model : public torch::nn::Module
 class HGNN_fc : torch::nn::Module
 {
     private:
-        torch::Tensor* weights;
+        torch::Tensor weights;
     
     public:
         HGNN_fc(int in_dim, int out_dim);
