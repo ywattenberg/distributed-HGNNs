@@ -23,8 +23,8 @@ void train_model(const ConfigProperties& config, torch::Tensor &labels, torch::T
     torch::Tensor test_labels = labels.index({at::indexing::Slice(train_set_cutoff,labels.size(0))});
 
     torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(lr).weight_decay(0.0005));
-
-     torch::optim::StepLR lr_scheduler = torch::optim::StepLR(optimizer, 100, 0.5);
+    # TODO: Make the scheduler configurable of the yaml config file 
+    torch::optim::StepLR lr_scheduler = torch::optim::StepLR(optimizer, 100, 0.5);
     // torch::optim::SGD optimizer(model.parameters(), torch::optim::SGDOptions(lr));
 
     for (int epoch = 0; epoch < n_epochs; epoch++){
