@@ -22,7 +22,7 @@ void train_model(const ConfigProperties& config, torch::Tensor &labels, torch::T
     torch::Tensor train_labels = labels.index({at::indexing::Slice(0,train_set_cutoff)});
     torch::Tensor test_labels = labels.index({at::indexing::Slice(train_set_cutoff,labels.size(0))});
 
-    torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(lr));
+    torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(lr).weight_decay(0.0005));
     // torch::optim::SGD optimizer(model.parameters(), torch::optim::SGDOptions(lr));
 
     for (int epoch = 0; epoch < n_epochs; epoch++){
@@ -47,6 +47,7 @@ void train_model(const ConfigProperties& config, torch::Tensor &labels, torch::T
                 std::cout << "Test Loss: " << test_loss.item<double>() << ", ";
                 std::cout << "Test Accuracy: " << acc.item<double>() << ", ";
                 std::cout << "Test F1: " << f1.item<double>() << std::endl;
+
                 // << ", Predictions: " << round(predictions,2)
             }
             

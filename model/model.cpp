@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <iostream>
+#include <string>
+#include <cmath>
 
 Model::Model(int in_dim, std::vector<int> lay_dim, int out_dim, double dropout_value, const torch::Tensor *leftSide, bool withBias=false){
     input_dim = in_dim;
@@ -35,11 +37,13 @@ Model::Model(int in_dim, std::vector<int> lay_dim, int out_dim, double dropout_v
 
 
 torch::Tensor Model::forward(const torch::Tensor &input){
-    torch::Tensor x = leftSide->mm(input);
-    x = torch::relu(layers[0]->forward(x));
+    torch::Tensor x = layers[0]->forward(input);
+    x = leftSide->mm(x);
+    x = torch::relu(x);
     for (int i = 1; i < number_of_hid_layers; i++){
-        x = leftSide->mm(x);
-        x = torch::relu(layers[i]->forward(x));
+        x = layers[i]->forward(x);
+        x = leftSide->mm(input);
+        x = torch::relu(x);
         x = torch::dropout(x, this->dropout, true);
     }
     x = layers[layers.size()-1]->forward(x);
@@ -49,10 +53,31 @@ torch::Tensor Model::forward(const torch::Tensor &input){
 
 
 HGNN_conv::HGNN_conv(int in_dim, int out_dim, bool withBias=false, bool t=false){
-    linear_layer = register_module("linear", torch::nn::Linear(in_dim, out_dim));
+    
+    weights = register_parameter("weights", torch::empty({in_dim, out_dim}));
+    if (withBias){
+        bias = register_parameter("bias", torch::empty({out_dim}));
+    } else {
+        bias = register_parameter("bias", torch::Tensor());
+    }
+    reset_parameters();
+    //linear_layer = register_module("linear", torch::nn::Linear(in_dim, out_dim));
+}
+
+void HGNN_conv::reset_parameters(){
+    double stdv = 1.0/std::sqrt(weights.size(1));
+    weights.data().uniform_(-stdv, stdv);
+    if (bias.defined()){
+        bias.data().uniform_(-stdv, stdv);
+    }
 }
 
 torch::Tensor HGNN_conv::forward(const torch::Tensor &input){
     // torch::Tensor x = linear_layer(input);
-    return linear_layer(input);
+    torch::Tensor x = input.mm(weights);
+    if (bias.defined()){
+        x += bias;
+    }
+
+    return x;
 }
