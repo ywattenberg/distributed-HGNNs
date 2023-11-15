@@ -1,12 +1,12 @@
 model:
   classes: 40
-  hidden_dims: [20, 10]
-  dropout_rate: 0.2
-  with_bias: false
+  hidden_dims: [128]
+  dropout_rate: 0.5
+  with_bias: true
   activation: "relu"
 trainer: 
   learning_rate: 0.001
-  epochs: 100
+  epochs: 500
   output_stepsize: 10
   loss_fn: "cross_entropy"
 task_type: "classification"
