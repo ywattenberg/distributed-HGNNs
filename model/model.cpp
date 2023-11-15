@@ -40,9 +40,10 @@ torch::Tensor Model::forward(const torch::Tensor &input){
     torch::Tensor x = layers[0]->forward(input);
     x = leftSide->mm(x);
     x = torch::relu(x);
+    x = torch::dropout(x, this->dropout, true);
     for (int i = 1; i < number_of_hid_layers; i++){
         x = layers[i]->forward(x);
-        x = leftSide->mm(input);
+        x = leftSide->mm(x);
         x = torch::relu(x);
         x = torch::dropout(x, this->dropout, true);
     }
