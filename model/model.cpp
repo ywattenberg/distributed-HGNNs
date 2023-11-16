@@ -48,7 +48,8 @@ torch::Tensor Model::forward(const torch::Tensor &input){
         x = torch::dropout(x, this->dropout, true);
     }
     x = layers[layers.size()-1]->forward(x);
-    return torch::nn::functional::softmax(x, torch::nn::functional::SoftmaxFuncOptions(1));
+    return x;
+    // return torch::nn::functional::softmax(x, torch::nn::functional::SoftmaxFuncOptions(1));
 }
 
 
