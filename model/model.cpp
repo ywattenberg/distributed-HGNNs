@@ -1,8 +1,37 @@
 #include "model.h"
+
 #include <torch/torch.h>
+#include <omp.h>
 
 #include <vector>
 #include <iostream>
+#include <chrono>
+#include <fstream>
+
+torch::Tensor customMatrixMultiplication(const torch::Tensor &A, const torch::Tensor &B) {
+    // Ensure that A and B are 2D matrices
+    assert(A.dim() == 2 && B.dim() == 2);
+    assert(A.size(1) == B.size(0));
+
+    auto A_rows = A.size(0);
+    auto A_cols = A.size(1);
+    auto B_cols = B.size(1);
+
+    // Resultant matrix
+    auto C = torch::zeros({A_rows, B_cols}, torch::kFloat);
+
+    #pragma omp parallel for collapse(2)
+    for (int i = 0; i < A_rows; i++) {
+        for (int j = 0; j < B_cols; j++) {
+            for (int k = 0; k < A_cols; k++) {
+                C[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+
+    return C;
+}
+
 
 Model::Model(int in_dim, std::vector<int> lay_dim, int out_dim, double dropout_value, const torch::Tensor *leftSide, bool withBias=false){
     input_dim = in_dim;
@@ -10,6 +39,12 @@ Model::Model(int in_dim, std::vector<int> lay_dim, int out_dim, double dropout_v
     dropout = dropout_value;
     number_of_hid_layers = lay_dim.size();
     this->leftSide = leftSide;
+    // this->mm_function = [](const torch::Tensor &A, const torch::Tensor &B){
+    //     return customMatrixMultiplication(A, B);
+    // }
+    this->mm_function = [=](const torch::Tensor &A, const torch::Tensor &B){
+        return torch::mm(A, B);
+    };
 
     if (number_of_hid_layers > 0){
         auto in_conv = std::make_shared<HGNN_conv>(input_dim, lay_dim[0], withBias);
@@ -34,19 +69,33 @@ Model::Model(int in_dim, std::vector<int> lay_dim, int out_dim, double dropout_v
 
 
 torch::Tensor Model::forward(const torch::Tensor &input){
-    torch::Tensor x = leftSide->mm(input);
+    std::cout << "actual threads used: " << at::get_num_interop_threads() << std::endl;
+
+    // start timing
+    auto start = std::chrono::high_resolution_clock::now();
+
+    // the actual forward computation goes here
+    torch::Tensor x = mm_function(*leftSide, input);//leftSide->mm(input);//
     x = torch::relu(layers[0]->forward(x));
     for (int i = 1; i < number_of_hid_layers; i++){
-        x = leftSide->mm(x);
+        x = mm_function(*leftSide, x); // leftSide->mm(x);
         x = torch::relu(layers[i]->forward(x));
         x = torch::dropout(x, this->dropout, true);
     }
     x = layers[layers.size()-1]->forward(x);
-    return torch::nn::functional::softmax(x, torch::nn::functional::SoftmaxFuncOptions(1));
+    x = torch::nn::functional::softmax(x, torch::nn::functional::SoftmaxFuncOptions(1));
+
+    // stop timing and save result
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    std::cout << "Time taken per forward pass: " 
+              << duration.count() << "ms" << std::endl;
+    std::ofstream outFile("../timing_info.txt", std::ios::app);
+    outFile << duration.count() << std::endl;
+    outFile.close();
+
+    return x;
 }
-
-//compute the forward pass using t workers
-
 
 
 HGNN_conv::HGNN_conv(int in_dim, int out_dim, bool withBias=false, bool t=false){

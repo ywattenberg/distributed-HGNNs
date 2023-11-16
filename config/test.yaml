@@ -1,17 +1,21 @@
-model:
-  classes: 40
-  hidden_dims: [20, 10]
-  dropout_rate: 0.2
-  with_bias: false
-  activation: "relu"
-trainer: 
-  learning_rate: 0.001
-  epochs: 100
-  output_stepsize: 10
-  loss_fn: "cross_entropy"
-task_type: "classification"
 data:
-  G_path: "../data/m_g_ms_gs/G_coo.csv"
-  labels_path: "../data/m_g_ms_gs/lbls_m_g_ms_gs.csv"
-  features_path: "../data/m_g_ms_gs/fts_m_g_ms_gs.csv"
+  G_path: ../data/m_g_ms_gs/G_coo.csv
+  features_path: ../data/m_g_ms_gs/fts_m_g_ms_gs.csv
+  labels_path: ../data/m_g_ms_gs/lbls_m_g_ms_gs.csv
   test_idx: 9345
+model:
+  activation: relu
+  classes: 40
+  dropout_rate: 0.2
+  hidden_dims:
+  - 20
+  - 10
+  with_bias: false
+parallelization:
+  num_threads: 30
+task_type: classification
+trainer:
+  epochs: 100
+  learning_rate: 0.001
+  loss_fn: cross_entropy
+  output_stepsize: 10

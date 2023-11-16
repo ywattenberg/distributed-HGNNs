@@ -1,5 +1,6 @@
 #include <iostream>
 #include <filesystem>
+#include <fstream>
 #include <unistd.h>
 
 #include <yaml-cpp/yaml.h>
@@ -51,6 +52,7 @@ int main(int argc, char** argv){
   torch::Tensor features = tensor_from_file<float>(config.features_path);
   std::cout << "features shape: " << features.sizes() << std::endl;
   int f_cols = features.size(1);
+
   // Build Model
   auto model = new Model(f_cols, config.hidden_dims, config.classes, config.dropout_rate, &left_side, config.with_bias);
 
@@ -58,6 +60,15 @@ int main(int argc, char** argv){
   LossFunction ce_loss_fn = [](const torch::Tensor& predicted, const torch::Tensor& target) {
         return torch::nn::functional::cross_entropy(predicted, target);
     };
-  // Train the model
+
+  // Train the model using different number of threads, record the timing information of the forward passes
+  int i = config.num_threads;
+  std::cout << "Using " << i << " threads" <<std::endl;
+  std::ofstream outFile("../timing_info.txt", std::ios::app);
+  outFile << i << "_t" << std::endl;
+  outFile.close();
+  torch::set_num_interop_threads(i);
   train_model(config, labels, features, ce_loss_fn, model);
+  
+  
 }

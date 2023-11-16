@@ -21,6 +21,8 @@ ConfigProperties ParseConfig(const std::string& config_path){
     config_properties.labels_path = config["data"]["labels_path"].as<std::string>();
     config_properties.features_path = config["data"]["features_path"].as<std::string>();
     config_properties.test_idx = config["data"]["test_idx"].as<long>();
+
+    config_properties.num_threads = config["parallelization"]["num_threads"].as<int>();
     
     return config_properties;
 }

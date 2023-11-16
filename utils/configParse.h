@@ -14,6 +14,7 @@ struct ConfigProperties
     int output_stepsize; 
     int classes;
     long test_idx;
+    int num_threads;
     
     std::string g_path;
     std::string labels_path;

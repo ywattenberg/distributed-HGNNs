@@ -5,7 +5,6 @@
 #include <vector>
 #include <iostream>
 
-
 class HGNN_conv : public torch::nn::Module
 {
     private:
@@ -27,6 +26,7 @@ class Model : public torch::nn::Module
         std::vector<std::shared_ptr<HGNN_conv>> layers;
         double dropout;
         const torch::Tensor *leftSide;
+        std::function<torch::Tensor(const torch::Tensor&, const torch::Tensor&)> mm_function;
 
     public:
         Model(int in_dim, std::vector<int> lay_dim, int out_dim, double dropout, const torch::Tensor *leftSide, bool withBias);
@@ -34,8 +34,6 @@ class Model : public torch::nn::Module
         // forward function of the Model, it takes the features X (called input) and the constant leftSide of the expression 10 of the paper 
         // Hypergraph Neural Networks (called leftSide)
         torch::Tensor forward(const torch::Tensor &input);
-
-
 };
 
 
