@@ -43,7 +43,7 @@ void train_model(const ConfigProperties& config, torch::Tensor &labels, torch::T
                 torch::Tensor test_predictions = predictions.index({at::indexing::Slice(train_set_cutoff,labels.size(0))});
                 torch::Tensor test_loss = loss_fn(test_predictions, test_labels);
                 torch::Tensor acc = accuracy(test_predictions, test_labels);
-                torch::Tensor f1 = f1_score(test_predictions, test_labels);
+                torch::Tensor f1 = f1_score(test_predictions, test_labels, 40);
 
                 std::cout << "Epoch [" << epoch << "/" << n_epochs << "], ";
                 std::cout << "Train Loss: " << loss.item<double>() << ", ";
