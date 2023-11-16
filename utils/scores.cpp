@@ -5,7 +5,7 @@ torch::Tensor accuracy(torch::Tensor &y_pred, torch::Tensor &y_true){
     torch::Tensor total = torch::zeros({1}, torch::kLong);
     torch::Tensor y_pred_max = torch::argmax(y_pred, 1);
     torch::Tensor cmp = torch::eq(y_pred_max, y_true);
-    correct += torch::sum(cmp).item<long>();
+    correct += torch::sum(cmp);
     total += y_true.size(0);
     return correct.div(total);
 }
@@ -15,8 +15,8 @@ torch::Tensor precision(torch::Tensor &y_pred, torch::Tensor &y_true){
     torch::Tensor predicted_positives = torch::zeros({1}, torch::kLong);
     torch::Tensor y_pred_max = torch::argmax(y_pred, 1);
     torch::Tensor cmp = torch::eq(y_pred_max, y_true);
-    true_positives += torch::sum(cmp).item<long>();
-    predicted_positives += torch::sum(y_pred_max).item<long>();
+    true_positives += torch::sum(cmp);
+    predicted_positives += torch::sum(y_pred_max);
     return true_positives.div(predicted_positives);
 }
 
@@ -25,8 +25,8 @@ torch::Tensor recall(torch::Tensor &y_pred, torch::Tensor &y_true){
     torch::Tensor actual_positives = torch::zeros({1}, torch::kLong);
     torch::Tensor y_pred_max = torch::argmax(y_pred, 1);
     torch::Tensor cmp = torch::eq(y_pred_max, y_true);
-    true_positives += torch::sum(cmp).item<long>();
-    actual_positives += torch::sum(y_true).item<long>();
+    true_positives += torch::sum(cmp);
+    actual_positives += torch::sum(y_true);
     return true_positives.div(actual_positives);
 }
 
