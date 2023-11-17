@@ -14,19 +14,21 @@ using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&);
 
 void train_model(const ConfigProperties& config, torch::Tensor &labels, torch::Tensor &input_features, LossFunction loss_fn, Model *model){
     
-    double lr = config.learning_rate;
-    int n_epochs = config.epochs;
-    int stepsize_output = config.output_stepsize;
-    long train_set_cutoff = config.test_idx;
+    double lr = config.trainer_properties.learning_rate;
+    int n_epochs = config.trainer_properties.epochs;
+    int stepsize_output = config.trainer_properties.output_stepsize;
+    long train_set_cutoff = config.data_properties.test_idx;
+
+    int lr_step_size = config.lr_scheduler_properties.step_size;
+    double lr_gamma = config.lr_scheduler_properties.gamma;
 
     torch::Tensor train_labels = labels.index({at::indexing::Slice(0,train_set_cutoff)});
     torch::Tensor test_labels = labels.index({at::indexing::Slice(train_set_cutoff,labels.size(0))});
 
     torch::optim::Adam optimizer(model->parameters(), torch::optim::AdamOptions(lr).weight_decay(0.0005));
-    // # TODO: Make the scheduler configurable of the yaml config file 
-    torch::optim::StepLR lr_scheduler = torch::optim::StepLR(optimizer, 100, 0.9);
-    // torch::optim::SGD optimizer(model.parameters(), torch::optim::SGDOptions(lr));
 
+    torch::optim::StepLR lr_scheduler = torch::optim::StepLR(optimizer, lr_step_size, lr_gamma);
+    
     for (int epoch = 0; epoch < n_epochs; epoch++){
         torch::Tensor predictions = model->forward(input_features);
         torch::Tensor train_predictions = predictions.index({at::indexing::Slice(0,train_set_cutoff)});

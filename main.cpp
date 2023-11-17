@@ -40,22 +40,22 @@ int main(int argc, char** argv){
   // load config
   ConfigProperties config = ParseConfig(config_path);
 
-  torch::Tensor coo_list = tensor_from_file<float>(config.g_path);
+  torch::Tensor coo_list = tensor_from_file<float>(config.data_properties.g_path);
   torch::Tensor left_side = coo_tensor_to_sparse(coo_list);
   std::cout << "G dimensions: " << left_side.sizes() << std::endl;
 
-  torch::Tensor labels = tensor_from_file<float>(config.labels_path);
+  torch::Tensor labels = tensor_from_file<float>(config.data_properties.labels_path);
   labels = labels.index({at::indexing::Slice(), at::indexing::Slice(1)}).squeeze().to(torch::kLong);
   std::cout << "labels shape: " << labels.sizes() << std::endl;
    
-  torch::Tensor features = tensor_from_file<float>(config.features_path);
+  torch::Tensor features = tensor_from_file<float>(config.data_properties.features_path);
 
   //Cut off first column of features as it is just the node id
   features = features.index({at::indexing::Slice(), at::indexing::Slice(1,features.size(1))});
   std::cout << "features shape: " << features.sizes() << std::endl;
   int f_cols = features.size(1);
   // Build Model
-  auto model = new Model(f_cols, config.hidden_dims, config.classes, config.dropout_rate, &left_side, config.with_bias);
+  auto model = new Model(f_cols, config.model_properties.hidden_dims, config.model_properties.classes, config.model_properties.dropout_rate, &left_side, config.model_properties.with_bias);
   std::cout << model << std::endl;
   // Define the loss function
   LossFunction ce_loss_fn = [](const torch::Tensor& predicted, const torch::Tensor& target) {

@@ -9,6 +9,9 @@ trainer:
   epochs: 500
   output_stepsize: 10
   loss_fn: "cross_entropy"
+lr_schedule:
+  step_size: 100
+  gamma: 0.9
 task_type: "classification"
 data:
   G_path: "../data/m_g_ms_gs/G_coo.csv"
