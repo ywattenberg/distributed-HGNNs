@@ -17,10 +17,10 @@ torch::Tensor precision(torch::Tensor &y_pred, torch::Tensor &y_true, int label)
     torch::Tensor cmp = torch::eq(y_pred_max, y_true);
     torch::Tensor elems_of_class = y_true.eq(label);
     // std::cout << "total elements of this label: " << torch::sum(elems_of_class) << std::endl;
-    true_positives += torch::dot(cmp.to(torch::kInt), elems_of_class.to(torch::kInt)).item<long>();
-    total_positives += torch::sum(y_pred_max.eq(label)).item<long>();
+    true_positives += torch::dot(cmp.to(torch::kInt), elems_of_class.to(torch::kInt));
+    total_positives += torch::sum(y_pred_max.eq(label));
 
-    if (total_positives.item<long>() == 0){
+    if (total_positives.item<int64_t>() == 0){
         return total_positives;
     } else {
        return true_positives.div(total_positives);
@@ -45,8 +45,8 @@ torch::Tensor recall(torch::Tensor &y_pred, torch::Tensor &y_true, int label){
     torch::Tensor y_pred_max = torch::argmax(y_pred, 1);
     torch::Tensor cmp = torch::eq(y_pred_max, y_true);
     torch::Tensor elems_of_class = y_true.eq(label);
-    true_positives += torch::dot(cmp.to(torch::kInt), elems_of_class.to(torch::kInt)).item<long>();
-    actual_positives += torch::sum(elems_of_class).item<long>();
+    true_positives += torch::dot(cmp.to(torch::kInt), elems_of_class.to(torch::kInt));
+    actual_positives += torch::sum(elems_of_class);
     return true_positives.div(actual_positives);
 }
 
