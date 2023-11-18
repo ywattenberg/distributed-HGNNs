@@ -8,6 +8,7 @@
 struct ModelProperties
 {
     int classes;
+    bool learnable_w;
     std::vector<int> hidden_dims;
     double dropout_rate;
     bool with_bias;
@@ -34,6 +35,8 @@ struct LRSchedulerProperties
 struct DataProperties
 {
     std::string g_path;
+    std::string dvh_path;
+    std::string invde_ht_dvh_path;
     std::string labels_path;
     std::string features_path;
     long test_idx;

@@ -11,6 +11,7 @@ ConfigProperties ParseConfig(const std::string& config_path){
 
     // model properties
     config_properties.model_properties.classes = config["model"]["classes"].as<int>();
+    config_properties.model_properties.learnable_w = config["model"]["learnable_w"].as<bool>();
     config_properties.model_properties.hidden_dims = config["model"]["hidden_dims"].as<std::vector<int>>();
     config_properties.model_properties.dropout_rate = config["model"]["dropout_rate"].as<double>();
     config_properties.model_properties.with_bias = config["model"]["with_bias"].as<bool>();
@@ -31,6 +32,8 @@ ConfigProperties ParseConfig(const std::string& config_path){
 
     // data properties
     config_properties.data_properties.g_path = config["data"]["g_path"].as<std::string>();
+    config_properties.data_properties.dvh_path = config["data"]["dvh_path"].as<std::string>();
+    config_properties.data_properties.invde_ht_dvh_path = config["data"]["invde_ht_dvh_path"].as<std::string>();
     config_properties.data_properties.labels_path = config["data"]["labels_path"].as<std::string>();
     config_properties.data_properties.features_path = config["data"]["features_path"].as<std::string>();
     config_properties.data_properties.test_idx = config["data"]["test_idx"].as<long>();

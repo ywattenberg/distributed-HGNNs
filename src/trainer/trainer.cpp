@@ -12,7 +12,7 @@
 using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&);
 
 
-void train_model(const ConfigProperties& config, torch::Tensor &labels, torch::Tensor &input_features, LossFunction loss_fn, Model *model){
+void train_model(const ConfigProperties& config, torch::Tensor &labels, torch::Tensor &input_features, LossFunction loss_fn, BaseModel *model){
     
     double lr = config.trainer_properties.learning_rate;
     int n_epochs = config.trainer_properties.epochs;

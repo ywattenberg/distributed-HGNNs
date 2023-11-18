@@ -1,5 +1,6 @@
 model:
   classes: 40
+  learnable_w: true
   hidden_dims: [128]
   dropout_rate: 0.5
   with_bias: true
@@ -14,7 +15,9 @@ lr_schedule:
   gamma: 0.9
 task_type: "classification"
 data:
-  G_path: "../data/m_g_ms_gs/G_coo.csv"
-  labels_path: "../data/m_g_ms_gs/lbls_m_g_ms_gs.csv"
-  features_path: "../data/m_g_ms_gs/fts_m_g_ms_gs.csv"
-  test_idx: 9345
+  g_path: "../data/m_g_ms_gs/G_coo.csv"
+  dvh_path: "../data/m_g_ms_gs/DVH_coo.csv"
+  invde_ht_dvh_path: "../data/m_g_ms_gs/invDE_HT_DVH_coo.csv"
+  labels_path: "../data/m_g_ms_gs/labels.csv"
+  features_path: "../data/m_g_ms_gs/features.csv"
+  test_idx: 9842
