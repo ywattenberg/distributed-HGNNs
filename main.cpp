@@ -67,7 +67,7 @@ int main(int argc, char** argv){
   std::ofstream outFile("../timing_info.txt", std::ios::app);
   outFile << i << "_t" << std::endl;
   outFile.close();
-  torch::set_num_interop_threads(i);
+  at::set_num_threads(i);
   train_model(config, labels, features, ce_loss_fn, model);
   
   
