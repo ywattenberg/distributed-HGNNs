@@ -29,16 +29,16 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BLAS_CXX_FLAGS}")
 # set_property(TARGET example PROPERTY CXX_STANDARD 17)
 
 set(SOURCES
-    main.cpp
-    model/model.h
-    model/model.cpp
-    trainer/trainer.h
-    trainer/trainer.cpp
-    utils/fileParse.h
-    utils/scores.h
-    utils/scores.cpp
-    utils/configParse.h
-    utils/configParse.cpp
+    src/main.cpp
+    src/model/model.h
+    src/model/model.cpp
+    src/trainer/trainer.h
+    src/trainer/trainer.cpp
+    src/utils/fileParse.h
+    src/utils/scores.h
+    src/utils/scores.cpp
+    src/utils/configParse.h
+    src/utils/configParse.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})

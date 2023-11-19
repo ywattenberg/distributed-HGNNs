@@ -1,8 +1,18 @@
+# ignore Matlab files
+*.mat
+
+# ignore .npy files
+*.npy
+
+# ignore python cache
+__pycache__/
+
 # ignore log directory
 log
 
 # Ignore fts matrix
 data/*/fts*.csv
+features.csv
 
 # Ignore MACOS
 .DS_Store
