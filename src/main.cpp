@@ -82,10 +82,14 @@ int main(int argc, char** argv){
   // read command line arguments
   int opt;
   std::string config_path;
-  while((opt = getopt(argc, argv, "c:")) != -1){
+  std::string tmp_dir = "";
+  while((opt = getopt(argc, argv, "c:t:")) != -1){
     switch(opt){
       case 'c':
         config_path = optarg;
+        break;
+      case 't':
+        tmp_dir = optarg;
         break;
       default:
         std::cerr << "Usage: " << argv[0] << " -c <config_path>" << std::endl;
@@ -95,6 +99,12 @@ int main(int argc, char** argv){
 
   // load config
   ConfigProperties config = ParseConfig(config_path);
+
+  if (!tmp_dir.empty()) {
+    config.data_properties.g_path = config.data_properties.g_path.replace(config.data_properties.g_path.find(".."), 2, tmp_dir);
+    config.data_properties.labels_path = config.data_properties.labels_path.replace(config.data_properties.labels_path.find(".."), 2, tmp_dir);
+    config.data_properties.features_path = config.data_properties.features_path.replace(config.data_properties.features_path.find(".."), 2, tmp_dir);
+  }
 
   if (config.model_properties.learnable_w) {
     return learnable_w(config);
