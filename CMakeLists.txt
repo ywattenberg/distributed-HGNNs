@@ -36,15 +36,9 @@ FetchContent_Declare(
 		GIT_SHALLOW	ON
 		GIT_TAG 0.8.0
 	)
-FetchContent_GetProperties(yaml-cpp)
-if(NOT yaml-cpp_POPULATED)
-	message(STATUS "Populating yaml-cpp...")
-	FetchContent_Populate(yaml-cpp)
-	# Add here options for yaml-cpp building
-    set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "disable yaml tests")
-	add_subdirectory(${yaml-cpp_SOURCE_DIR} ${yaml-cpp_BINARY_DIR})
-	message(STATUS "Done.")
-endif()
+FetchContent_MakeAvailable(yaml-cpp)
+
+
 include_directories(BEFORE SYSTEM ${yaml-cpp_SOURCE_DIR} ${yaml-cpp_BINARY_DIR}/include)
 
 include(FetchContent)
@@ -53,15 +47,7 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/PASSIONLab/CombBLAS.git
         # GIT_TAG v2.0.0
     )
-FetchContent_GetProperties(CombBLAS)
-if(NOT CombBLAS_POPULATED)
-    message(STATUS "Populating combblas...")
-    FetchContent_Populate(CombBLAS)
-    # Add here options for combblas building
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-    add_subdirectory(${CombBLAS_SOURCE_DIR} ${CombBLAS_BINARY_DIR})
-    message(STATUS "Done.")
-endif()
+FetchContent_MakeAvailable(CombBLAS)
 message(STATUS "combblas source dir: ${combblas_SOURCE_DIR}")
 message(STATUS "combblas binary dir: ${combblas_BINARY_DIR}")
 include_directories(BEFORE SYSTEM ${CombBLAS_SOURCE_DIR} ${CombBLAS_BINARY_DIR}/include)
