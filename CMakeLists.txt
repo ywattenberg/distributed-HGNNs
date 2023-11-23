@@ -52,6 +52,25 @@ message(STATUS "combblas source dir: ${combblas_SOURCE_DIR}")
 message(STATUS "combblas binary dir: ${combblas_BINARY_DIR}")
 include_directories(BEFORE SYSTEM ${CombBLAS_SOURCE_DIR} ${CombBLAS_BINARY_DIR}/include)
 
+include(FetchContent)
+FetchContent_Declare(
+        Eigen
+        GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+)
+FetchContent_MakeAvailable(Eigen)
+message(STATUS "eigen source dir: ${eigen_SOURCE_DIR}")
+message(STATUS "eigen binary dir: ${eigen_BINARY_DIR}")
+include_directories(BEFORE SYSTEM ${eigen_SOURCE_DIR} ${eigen_BINARY_DIR})
+
+include(FetchContent)
+FetchContent_Declare(
+        distributed_sddmmm
+        GIT_REPOSITORY https://github.com/PASSIONLab/distributed_sddmm.git
+)
+message(STATUS "distributed_sddmmm source dir: ${distributed_sddmmm_SOURCE_DIR}")
+message(STATUS "distributed_sddmmm binary dir: ${distributed_sddmmm_BINARY_DIR}")
+include_directories(BEFORE SYSTEM ${distributed_sddmmm_SOURCE_DIR} ${distributed_sddmmm_BINARY_DIR})
+
 set(SOURCES
     src/main.cpp
     src/model/model.h
@@ -65,10 +84,10 @@ set(SOURCES
     src/utils/configParse.cpp
 )
 
-# add_executable(example example.cpp)
-# target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
-# set_property(TARGET example PROPERTY CXX_STANDARD 17)
+add_executable(example src/example.cpp)
+target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS Eigen distributed_sddmmm)
+set_property(TARGET example PROPERTY CXX_STANDARD 17)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
-target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
+target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS Eigen distributed_sddmmm)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
