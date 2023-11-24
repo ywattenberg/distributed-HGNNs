@@ -115,8 +115,16 @@ def convert_matrices(filename, variable_weight=True):
             for (i,j) in zip(*indexes):
                 f.write(f"{i},{j},{G[i,j]}\n")
   
+def calculate_DVH_times_invDE_HT_DVH(filename):
+    DVH = np.load(f"data/{filename}/DVH.npy")
+    invDE_HT_DVH = np.load(f"data/{filename}/invDE_HT_DVH.npy")
+    DVH_times_invDE_HT_DVH = DVH @ invDE_HT_DVH
+    mmwrite(f"data/{filename}/DVH_times_invDE_HT_DVH.mtx", coo_matrix(DVH_times_invDE_HT_DVH))
+    
 if __name__ == "__main__":
     filename = get_filename()
     # generate_matrices(filename, variable_weight=False)
-    convert_to_mm(filename, variable_weight=False)
-    convert_matrices(filename, variable_weight=False)
+    # convert_to_mm(filename, variable_weight=False)
+    # convert_matrices(filename, variable_weight=False)
+    
+    calculate_DVH_times_invDE_HT_DVH(filename)
