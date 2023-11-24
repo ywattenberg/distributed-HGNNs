@@ -13,6 +13,7 @@ log
 # Ignore fts matrix
 data/*/fts*.csv
 features.csv
+features.mtx
 
 # Ignore MACOS
 .DS_Store

@@ -1,6 +1,9 @@
 import os
 import numpy as np
 import pandas as pd
+from io import BytesIO
+from scipy.sparse import coo_matrix
+from scipy.io import mmwrite
 
 from utils import hypergraph_utils as hgut
 from config import get_config
@@ -64,6 +67,22 @@ def generate_matrices(filename, variable_weight=True):
     else:
         np.save(f"data/{filename}/G.npy", G)
 
+def convert_to_mm(filename, variable_weight=True):
+    fts = np.load(f"data/{filename}/features.npy")
+    mmwrite(f"data/{filename}/features.mtx", fts)
+    lbls = np.load(f"data/{filename}/labels.npy")
+    mmwrite(f"data/{filename}/labels.mtx", lbls)
+    
+    if variable_weight:
+        DVH = np.load(f"data/{filename}/DVH.npy")
+        mmwrite(f"data/{filename}/DVH.mtx", coo_matrix(DVH))
+        
+        invDE_HT_DVH = np.load(f"data/{filename}/invDE_HT_DVH.npy")
+        mmwrite(f"data/{filename}/invDE_HT_DVH.mtx", coo_matrix(invDE_HT_DVH))
+    else:
+        G = np.load(f"data/{filename}/G.npy")
+        mmwrite(f"data/{filename}/G.mtx", coo_matrix(G))
+    
 def convert_matrices(filename, variable_weight=True):
     
     fts = np.load(f"data/{filename}/features.npy")
@@ -99,4 +118,5 @@ def convert_matrices(filename, variable_weight=True):
 if __name__ == "__main__":
     filename = get_filename()
     # generate_matrices(filename, variable_weight=False)
-    convert_matrices(filename, variable_weight=True)
+    convert_to_mm(filename, variable_weight=False)
+    convert_matrices(filename, variable_weight=False)
