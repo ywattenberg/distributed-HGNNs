@@ -63,6 +63,8 @@ set(SOURCES
     src/main.cpp
     src/model/model.h
     src/model/model.cpp
+    src/model/dist-model.h
+    src/model/dist-model.cpp
     src/trainer/trainer.h
     src/trainer/trainer.cpp
     src/utils/fileParse.h

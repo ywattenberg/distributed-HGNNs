@@ -9,6 +9,7 @@
 #include "CombBLAS/CommGrid3D.h"
 #include "CombBLAS/SpParMat3D.h"
 #include "CombBLAS/ParFriends.h"
+#include "CombBLAS/FullyDistVec.h"
 
 using namespace std;
 using namespace combblas;
@@ -31,6 +32,7 @@ class PSpMat
 public:
     typedef SpDCCols < int64_t, NT > DCCols;
     typedef SpParMat < int64_t, NT, DCCols > MPI_DCCols;
+    typedef FullyDistVec < int64_t, NT > MPI_DenseVector;
 };
 
 int main(int argc, char* argv[])
