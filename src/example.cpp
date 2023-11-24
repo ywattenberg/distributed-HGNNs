@@ -105,12 +105,17 @@ int main(int argc, char* argv[])
 				SpParHelper::Print( "Iteration failed !!!\n") ;
 		}
 
-		PARDBMAT out;
-		PARDBMAT *D;
-		PARDBMAT *C;
+		// PARDBMAT out;
+		PARDBMAT D = *A;
+		PARDBMAT C;
 		// out = new PARDBMAT(); 
 		// auto tmpe = Mult_AnXBn_Synch(A,out);
-		out = PSpGEMM<SR, IT, NT, NT, DER, DER>(*A,*A);
+		PARDBMAT out;
+
+		if (myrank == 0){
+			out = PSpGEMM<SR, IT, NT, NT, DER, DER>(*A,D);
+		}
+		
 
 		cout << "hoi" << endl;
 
@@ -142,6 +147,8 @@ int main(int argc, char* argv[])
 
   // 	torch::Tensor tensor = torch::rand({2, 3});
  	// std::cout << tensor.item<float>() << std::endl;
+	
+	MPI_Finalize();
 	
 	return 0;
 }
