@@ -21,7 +21,7 @@ features.mtx
 .vscode
 
 build
-libs
+libs/libtorch
 
 # Prerequisites
 *.d

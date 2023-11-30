@@ -25,14 +25,14 @@ class DistConv
 {
     private:
         DPMAT_DOUBLE weights;
-        DPMAT_DOUBLE bias;
+        DPVEC_DOUBLE bias;
         DPMAT_DOUBLE G_2;
         DPMAT_DOUBLE G_3;
 
     public:
         DistConv(int in_dim, int out_dim, bool withBias);
 
-        DPMAT_DOUBLE forward(const DPMAT_DOUBLE &input);
+        DPMAT_DOUBLE forward(DPMAT_DOUBLE &input);
 };
 
 class DistModel
@@ -44,13 +44,13 @@ class DistModel
         int number_of_hid_layers;
         double dropout;
         std::vector<DistConv> layers;
-        const SPMAT_DOUBLE *dvh;
-        const SPMAT_DOUBLE *invde_ht_dvh;
+        SPMAT_DOUBLE *dvh;
+        SPMAT_DOUBLE *invde_ht_dvh;
         DPVEC_DOUBLE w;
         SPMAT_DOUBLE G_1;
 
     public:
-        DistModel(int in_dim, std::vector<int> lay_dim, int out_dim, double dropout, const SPMAT_DOUBLE *dvh, const SPMAT_DOUBLE *invde_ht_dvh, bool withBias);
+        DistModel(int in_dim, std::vector<int> lay_dim, int out_dim, double dropout, SPMAT_DOUBLE *dvh, SPMAT_DOUBLE *invde_ht_dvh, bool withBias);
 
         // forward function of the Model, it takes the features X (called input) and the constant leftSide of the expression 10 of the paper 
         // Hypergraph Neural Networks (called leftSide)

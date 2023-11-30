@@ -24,7 +24,7 @@ typedef FullyDistVec <int64_t, double> DPVEC_DOUBLE;
 
 typedef PlusTimesSRing<double, double> PTFF;
 
-DistModel::DistModel(int in_dim, std::vector<int> lay_dim, int out_dim, double dropout_value, const SPMAT_DOUBLE *dvh, const SPMAT_DOUBLE *invde_ht_dvh, bool withBias=false){
+DistModel::DistModel(int in_dim, std::vector<int> lay_dim, int out_dim, double dropout_value, SPMAT_DOUBLE *dvh, SPMAT_DOUBLE *invde_ht_dvh, bool withBias=false){
     input_dim = in_dim;
     output_dim = out_dim;
     dropout = dropout_value;
@@ -55,14 +55,14 @@ DistModel::DistModel(int in_dim, std::vector<int> lay_dim, int out_dim, double d
 
 DPMAT_DOUBLE DistModel::forward(const DPMAT_DOUBLE &input){
     // dvh times w
-    this->G_1 = SpMV<PTFF, int64_t, double, double, SpDCCols < int64_t, double >, SpDCCols <int64_t, double >>(this->dvh, this->w);
-    this->G_1 = PSpGEMM<PTFF, int64_t, double, double, SpDCCols < int64_t, double >, SpDCCols <int64_t, double >>(this->G_1, this->invde_ht_dvh);
+    // this->G_1 = SpMV<PTFF, int64_t, double, double, SpDCCols < int64_t, double >, SpDCCols <int64_t, double >>(this->dvh, this->w);
+    this->G_1 = PSpGEMM<PTFF, int64_t, double, double, SpDCCols < int64_t, double >, SpDCCols <int64_t, double >>(*this->dvh, *this->invde_ht_dvh);
 
-    this->layers[0].G_2 = this->layers[0].G_1->SpGEMM(input, false);
+    // this->layers[0].G_2 = this->layers[0].G_1->PSpGEMM(input, false);
 
-    DPMAT_DOUBLE x = this->layers[0].forward(input);
+    // DPMAT_DOUBLE x = this->layers[0].forward(input);
 
-    this->layers[0].G_2 = this->invde_ht_dvh->SpGEMM(x, false);
+    // this->layers[0].G_2 = this->invde_ht_dvh->PSpGEMM(x, false);
 }
 // torch::Tensor ModelW::forward(const torch::Tensor &input){
 //     torch::Tensor ident = torch::eye(dvh->size(1));
@@ -91,14 +91,21 @@ DPMAT_DOUBLE DistModel::forward(const DPMAT_DOUBLE &input){
 
 DistConv::DistConv(int in_dim, int out_dim, bool withBias=false){
     //TODO: correct initialization
-    weights = DPMAT_DOUBLE();
+
+    shared_ptr<CommGrid> fullWorld;
+    fullWorld.reset( new CommGrid(MPI_COMM_WORLD, out_dim, in_dim) );
+
+    this->weights = DPMAT_DOUBLE(0.0, fullWorld, out_dim, in_dim);
 
     if (withBias){
-        bias = DPMAT_DOUBLE();
-    } else {
-        bias = DPMAT_DOUBLE();
-    }
+        this->bias = DPVEC_DOUBLE(out_dim, 0.0);
+    } 
     // reset_parameters();
+}
+
+
+DPMAT_DOUBLE DistConv::forward(DPMAT_DOUBLE &input){
+    // DPMAT_DOUBLE tmp = input * this->weights;
 }
 
 // void HGNN_conv::reset_parameters(){

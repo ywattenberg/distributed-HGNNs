@@ -10,6 +10,7 @@
 #include "CombBLAS/SpParMat3D.h"
 #include "CombBLAS/ParFriends.h"
 #include "CombBLAS/FullyDistVec.h"
+#include "CombBLAS/SpParMat.h"
 
 using namespace std;
 using namespace combblas;
@@ -51,6 +52,7 @@ int main(int argc, char* argv[])
         return -1;
     }
     else {
+
         string Aname(argv[1]);
         string Bname(argv[2]);
         string CCname(argv[3]);
@@ -68,6 +70,32 @@ int main(int argc, char* argv[])
         A2D.ParallelReadMM(Aname, true, maximum<double>());
         B2D.ParallelReadMM(Bname, true, maximum<double>());
         CC2D.ParallelReadMM(CCname, true, maximum<double>());
+
+        // int64_t length = 50;
+        // FullyDistVec<int64_t, double> v = FullyDistVec(length, 2);
+        // auto tmp = v.get_values();
+
+        std::vector<double> tmp = {2.0, 2.0, 2.0, 2.0};
+
+        if (myrank == 0){
+            cout << "length of vector: " << tmp.size() << endl;
+            for (int i = 0; i < tmp.size(); i++){
+                cout << "value: " << tmp.at(i) << endl;
+            }
+        }
+
+        A2D.PrintInfo();
+
+        SpParMat<int64_t, double, SpDCCols<int64_t, double>> res = PSpSCALE<PTFF, int64_t, double, SpDCCols<int64_t, double>>(A2D, tmp);
+        res.ParallelWriteMM("../data/m_g_ms_gs/bla.mtx", true);
+
+        if (res == CC2D){
+            if (myrank == 0){
+                fprintf(stderr, "Correct\n");
+            }
+        } else{
+            if(myrank == 0) fprintf(stderr, "Not correct\n");
+        }
 
         if(myrank == 0) fprintf(stderr, "***\n");
 
@@ -99,6 +127,26 @@ int main(int argc, char* argv[])
             
             if(myrank == 0) fprintf(stderr, "***\n");
         }
+
+        double arr[4][2] = {1234.0, 56.0, 1212.0, 33.0, 1434.0, 80.0, 1312.0, 78.0};
+
+        DenseParMat<int64_t, double> test(3.0, fullWorld, 4,4);
+
+        double **arr_test = test.getArray();
+
+
+        // for(SpDCCols<int,double>::SpColIter colit = A2D.seq().begcol(); colit != A2D.seq().endcol(); ++colit)	// iterate over columns
+	    // {
+        //     for(SpDCCols<int,double>::SpColIter::NzIter nzit = A2D.seq().begnz(colit); nzit != A2D.seq().endnz(colit); ++nzit)
+        //     {	
+        //         cout << "before: " << nzit.rowid() << '\t' << colit.colid() << '\t' << nzit.value() << '\n';	
+        //         nzit.scale_value(3.0);
+        //         cout << "after: " << nzit.rowid() << '\t' << colit.colid() << '\t' << nzit.value() << '\n';	
+
+        //     }
+	    // }
+
+        
         
     }
     MPI_Finalize();

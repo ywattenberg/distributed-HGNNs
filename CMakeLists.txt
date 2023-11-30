@@ -43,15 +43,24 @@ FetchContent_MakeAvailable(yaml-cpp)
 
 include_directories(BEFORE SYSTEM ${yaml-cpp_SOURCE_DIR} ${yaml-cpp_BINARY_DIR}/include)
 
-include(FetchContent)
-FetchContent_Declare(
-        CombBLAS
-        GIT_REPOSITORY https://github.com/PASSIONLab/CombBLAS.git
-        # GIT_TAG v2.0.0
-    )
-FetchContent_MakeAvailable(CombBLAS)
-message(STATUS "combblas source dir: ${combblas_SOURCE_DIR}")
-message(STATUS "combblas binary dir: ${combblas_BINARY_DIR}")
+# include(FetchContent)
+# FetchContent_Declare(
+#         CombBLAS
+#         GIT_REPOSITORY https://github.com/PASSIONLab/CombBLAS.git
+#         # GIT_TAG v2.0.0
+#     )
+# FetchContent_MakeAvailable(CombBLAS)
+# message(STATUS "combblas source dir: ${combblas_SOURCE_DIR}")
+# message(STATUS "combblas binary dir: ${combblas_BINARY_DIR}")
+# include_directories(BEFORE SYSTEM ${CombBLAS_SOURCE_DIR} ${CombBLAS_BINARY_DIR})
+
+set(CombBLAS_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs/CombBLAS)
+set(CombBLAS_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/libs/CombBLAS)
+
+# Add the library as a subdirectory
+add_subdirectory(${CombBLAS_SOURCE_DIR} ${CombBLAS_BINARY_DIR})
+
+# Add include directories
 include_directories(BEFORE SYSTEM ${CombBLAS_SOURCE_DIR} ${CombBLAS_BINARY_DIR})
 
 # set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_LIST_DIR}/libs/eigen")
