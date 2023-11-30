@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
         // FullyDistVec<int64_t, double> v = FullyDistVec(length, 2);
         // auto tmp = v.get_values();
 
-        std::vector<double> tmp = {2.0, 2.0, 2.0, 2.0};
+        std::vector<double> tmp = {4.0, 1.0, 3.0, 2.0};
 
         if (myrank == 0){
             cout << "length of vector: " << tmp.size() << endl;

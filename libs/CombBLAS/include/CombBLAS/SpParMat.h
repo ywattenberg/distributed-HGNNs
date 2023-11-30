@@ -399,6 +399,7 @@ public:
 	friend void LocalSpMV(const SpParMat<IU,bool,UDER> & A, int rowneighs, OptBuf<int32_t, VT > & optbuf, int32_t * & indacc, VT * & numacc, int * sendcnt, int accnz);
 
 	DER * getSpSeq() {return spSeq;}
+	void GetPlaceInGlobalGrid(IT& rowOffset, IT& colOffset) const;
 
 private:
 	typedef std::array<char, MAXVERTNAME> STRASARRAY;
@@ -429,7 +430,7 @@ private:
                     const std::vector<IT> & actcolsmap, std::vector<IT> & klimits, std::vector<IT> & toretain, std::vector<std::vector<std::pair<IT,NT>>> & tmppair,
                     IT coffset, const FullyDistVec<GIT,VT> & rvec) const;
     
-    void GetPlaceInGlobalGrid(IT& rowOffset, IT& colOffset) const;
+    
 	
 	void HorizontalSend(IT * & rows, IT * & cols, NT * & vals, IT * & temprows, IT * & tempcols, NT * & tempvals, std::vector < std::tuple <IT,IT,NT> > & localtuples,
 						int * rcurptrs, int * rdispls, IT buffperrowneigh, int rowneighs, int recvcount, IT m_perproc, IT n_perproc, int rankinrow);
