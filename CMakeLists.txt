@@ -85,3 +85,7 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 add_executable(example_2 src/example_2.cpp)
 target_link_libraries(example_2 "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
 set_property(TARGET example PROPERTY CXX_STANDARD 17)
+
+add_executable(openBLAS_example src/openBLAS_example.cpp)
+target_link_libraries(openBLAS_example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
+set_property(TARGET example PROPERTY CXX_STANDARD 17)
