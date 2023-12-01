@@ -6,6 +6,7 @@
 #include <torch/torch.h>
 
 #include "model/model.h"
+#include "model/dist-model.h"
 #include "trainer/trainer.h"
 #include "utils/fileParse.h"
 #include "utils/configParse.h"
@@ -73,6 +74,29 @@ int learnable_w(ConfigProperties& config){
 
   // Train the model
   train_model(config, labels, features, ce_loss_fn, model);
+
+  return 0;
+}
+
+int dist_learning(ConfigProperties& config) {
+
+  torch::Tensor labels = tensor_from_file<float>(config.data_properties.labels_path);
+  labels = labels.index({at::indexing::Slice(), at::indexing::Slice(-1)}).squeeze().to(torch::kLong);
+  std::cout << "labels shape: " << labels.sizes() << std::endl;
+   
+  torch::Tensor features = tensor_from_file<float>(config.data_properties.features_path);
+  std::cout << "features shape: " << features.sizes() << std::endl;
+  int f_cols = features.size(1);
+
+  auto model = new DistModel(config, f_cols);
+
+  // Define the loss function
+  LossFunction ce_loss_fn = [](const torch::Tensor& predicted, const torch::Tensor& target) {
+        return torch::nn::functional::cross_entropy(predicted, target);
+    };
+
+  // Train the model
+  // train_model(config, labels, features, ce_loss_fn, model);
 
   return 0;
 }
