@@ -1,0 +1,3 @@
+[submodule "libs/CombBLAS"]
+	path = libs/CombBLAS
+	url = https://github.com/ni3do/CombBLAS.git
