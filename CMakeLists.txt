@@ -81,6 +81,8 @@ set(SOURCES
     src/utils/scores.cpp
     src/utils/configParse.h
     src/utils/configParse.cpp
+    src/utils/parDenseGEMM.h
+    src/utils/parDenseGEMM.cpp
 )
 
 add_executable(example src/example.cpp)
@@ -95,6 +97,6 @@ add_executable(example_2 src/example_2.cpp)
 target_link_libraries(example_2 "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
 set_property(TARGET example PROPERTY CXX_STANDARD 17)
 
-add_executable(openBLAS_example src/openBLAS_example.cpp)
+add_executable(openBLAS_example src/openBLAS_example.cpp src/utils/parDenseGEMM.h src/utils/parDenseGEMM.cpp)
 target_link_libraries(openBLAS_example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
 set_property(TARGET example PROPERTY CXX_STANDARD 17)
