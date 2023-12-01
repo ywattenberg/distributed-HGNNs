@@ -11,6 +11,7 @@
 #include "CombBLAS/ParFriends.h"
 #include "CombBLAS/FullyDistVec.h"
 #include "CombBLAS/SpParMat.h"
+#include "CombBLAS/DenseParMat.h"
 
 using namespace std;
 using namespace combblas;
@@ -74,6 +75,20 @@ int main(int argc, char* argv[])
         // int64_t length = 50;
         // FullyDistVec<int64_t, double> v = FullyDistVec(length, 2);
         // auto tmp = v.get_values();
+
+        int arr1[] = {2,3,4};
+        int arr2[] = {3,4,5};
+        
+        int **P = new int *[2];
+        P[0] = arr1;
+        P[1] = arr2;
+
+        if (myrank == 0){
+            cout << P[1][1] << endl;
+        }        
+
+        DenseParMat<
+        
 
         std::vector<double> tmp = {4.0, 1.0, 3.0, 2.0};
 
