@@ -13,6 +13,8 @@
 #include "CombBLAS/FullyDistVec.h"
 #include "CombBLAS/ParFriends.h"
 
+#include "../utils/configParse.h"
+
 using namespace std;
 using namespace combblas;
 
@@ -24,17 +26,28 @@ typedef FullyDistVec <int64_t, double> DPVEC_DOUBLE;
 
 typedef PlusTimesSRing<double, double> PTFF;
 
-DistModel::DistModel(int in_dim, std::vector<int> lay_dim, int out_dim, double dropout_value, SPMAT_DOUBLE *dvh, SPMAT_DOUBLE *invde_ht_dvh, bool withBias=false){
+DistModel::DistModel(ConfigProperties &config, int in_dim){
     input_dim = in_dim;
-    output_dim = out_dim;
-    dropout = dropout_value;
+    output_dim = config.model_properties.classes;
+    dropout = config.model_properties.dropout_rate;
+    vector<int> lay_dim = config.model_properties.hidden_dims;
     number_of_hid_layers = lay_dim.size();
+    bool withBias = config.model_properties.with_bias;
+
+    shared_ptr<CommGrid> fullWorld;
+    fullWorld.reset(new CommGrid(MPI_COMM_WORLD, 0, 0));
+
+    // read data
+    SPMAT_DOUBLE dvh(fullWorld);
+    SPMAT_DOUBLE invde_ht_dvh(fullWorld);
+    dvh.ParallelReadMM(config.data_properties.dvh_path, true, maximum<double>());
+    invde_ht_dvh.ParallelReadMM(config.data_properties.invde_ht_dvh_path, true, maximum<double>());
     this->dvh = dvh;
     this->invde_ht_dvh = invde_ht_dvh;
 
     //TODO: use correct dimension
-    std::vector<double> w_std(in_dim, 1.0);
-    w = DPVEC_DOUBLE(w_std, dvh->getcommgrid());
+    vector<double> w(in_dim, 1.0);
+    // w = DPVEC_DOUBLE(w_std, dvh->getcommgrid());
 
     if (number_of_hid_layers > 0){
         auto in_conv = DistConv(input_dim, lay_dim[0], withBias);
@@ -55,10 +68,12 @@ DistModel::DistModel(int in_dim, std::vector<int> lay_dim, int out_dim, double d
 
 DPMAT_DOUBLE DistModel::forward(const DPMAT_DOUBLE &input){
     // dvh times w
-    // this->G_1 = SpMV<PTFF, int64_t, double, double, SpDCCols < int64_t, double >, SpDCCols <int64_t, double >>(this->dvh, this->w);
-    this->G_1 = PSpGEMM<PTFF, int64_t, double, double, SpDCCols < int64_t, double >, SpDCCols <int64_t, double >>(*this->dvh, *this->invde_ht_dvh);
+    this->G_1 = PSpSCALE<PTFF, int64_t, double, SpDCCols<int64_t, double>>(this->dvh, this->w);
+    // G_1.ParallelWriteMM("../data/m_g_ms_gs/bla.mtx", true);
 
-    // this->layers[0].G_2 = this->layers[0].G_1->PSpGEMM(input, false);
+    this->G_1 = PSpGEMM<PTFF, int64_t, double, double, SpDCCols < int64_t, double >, SpDCCols <int64_t, double >>(this->G_1, this->invde_ht_dvh);
+
+    // this->layers[0].G_2 = PSpGEMM<PTFF, int64_t, double, double, SpDCCols < int64_t, double >, SpDCCols <int64_t, double >>(this->G_1, input);
 
     // DPMAT_DOUBLE x = this->layers[0].forward(input);
 
@@ -93,9 +108,9 @@ DistConv::DistConv(int in_dim, int out_dim, bool withBias=false){
     //TODO: correct initialization
 
     shared_ptr<CommGrid> fullWorld;
-    fullWorld.reset( new CommGrid(MPI_COMM_WORLD, out_dim, in_dim) );
+    fullWorld.reset( new CommGrid(MPI_COMM_WORLD, out_dim, in_dim));
 
-    this->weights = DPMAT_DOUBLE(0.0, fullWorld, out_dim, in_dim);
+    this->weights = DPMAT_DOUBLE(1.0, fullWorld, out_dim, in_dim);
 
     if (withBias){
         this->bias = DPVEC_DOUBLE(out_dim, 0.0);
@@ -107,9 +122,3 @@ DistConv::DistConv(int in_dim, int out_dim, bool withBias=false){
 DPMAT_DOUBLE DistConv::forward(DPMAT_DOUBLE &input){
     // DPMAT_DOUBLE tmp = input * this->weights;
 }
-
-// void HGNN_conv::reset_parameters(){
-//     // double stdv = 1.0 / sqrt(weights.grows());
-//     // weights.Apply(bind1st(std::multiplies<double>(), stdv));
-//     // bias.Apply(bind1st(std::multiplies<double>(), stdv));
-// }
