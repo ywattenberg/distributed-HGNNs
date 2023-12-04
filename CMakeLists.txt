@@ -83,6 +83,7 @@ set(SOURCES
     src/utils/configParse.cpp
     src/utils/parDenseGEMM.h
     src/utils/parDenseGEMM.cpp
+    src/utils/DenseMatrix.h
 )
 
 add_executable(example src/example.cpp)
