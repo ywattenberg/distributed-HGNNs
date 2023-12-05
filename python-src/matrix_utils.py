@@ -4,15 +4,70 @@ import numpy as np
 class commGrid:
     """
     a grid of processors
+    reimplemented from 
+    https://people.eecs.berkeley.edu/~aydin/CombBLAS/html/_comm_grid_8cpp_source.html 
     """
-    def __init__(self, comm, rows: int, cols: int) -> None:
-        self.__comm = comm
+    def __init__(self, world: MPI.Comm, rows: int, cols: int) -> None:
+        comm_world = MPI.Comm.Dup(world)
+        self.comm_world = comm_world
+                
+        myrank = comm_world.Get_rank()
+        n_proc = comm_world.Get_size()
+
+        
+        if rows == cols == 0:
+            rows = cols = int(np.sqrt(n_proc))
+            
+            if rows * cols != n_proc:
+                print("This version works on a square logical processor grid")
+                MPI.COMM_WORLD.Abort(1) # TODO: define an error code?
+
+            
+        assert n_proc == rows * cols
         self.__rows = rows
         self.__cols = cols
+        
+        myprocol = myrank % cols
+        mpprocrow = myrank // cols
+        
+        row_world = comm_world.Split(myprocol, mpprocrow)
+        col_world = comm_world.Split(mpprocrow, myprocol)
+        self.__row_world = row_world
+        self.__col_world = col_world
+        self.create_diag_world()
+        
+        row_rank =row_world.Get_rank()
+        col_rank = col_world.Get_rank()
+        assert row_rank == myprocol
+        assert col_rank == mpprocrow
+        # self.__row_rank = row_rank
+        # self.__col_rank = col_rank
+
+    def create_diag_world(self):
+        """
+        creates a communicator for the diagonal processors
+        """
+        if self.rows != self.cols:
+            print("The grid is not square! Returning diagworld to everyone instaed of the diagonal")
+            self.diag_world = self.comm_world
+            return
+        
+        process_ranks = [i * self.cols + i for i in range(self.cols)]
+            
+        group = self.comm_world.Get_group()
+        diag_group = group.Incl(process_ranks)
+        MPI.Group.Free(group)
+        
+        self.diag_world = MPI.Comm.Create(self.comm_world, diag_group)
+        MPI.Group.Free(diag_group)
+        
+    @property
+    def row_world(self):
+        return self.__row_world
     
     @property
-    def comm(self):
-        return self.__comm
+    def col_world(self):
+        return self.__col_world
     
     @property
     def rows(self):
@@ -122,7 +177,7 @@ def fox(A: DenseMatrix, B:SpParMat)-> DenseMatrix:
     https://github.com/DakaiZhou/Fox-Algorithm
     """
     comm= MPI.COMM_WORLD
-    comm_i = A.commGrid.comm # world
+    comm_i = A.commGrid.world
     size = comm_i.Get_size()
     myrank = comm_i.Get_rank()
     
