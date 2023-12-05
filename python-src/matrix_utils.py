@@ -9,7 +9,7 @@ class commGrid:
     """
     def __init__(self, world: MPI.Comm, rows: int, cols: int) -> None:
         comm_world = MPI.Comm.Dup(world)
-        self.comm_world = comm_world
+        self.__world = comm_world
                 
         myrank = comm_world.Get_rank()
         n_proc = comm_world.Get_size()
@@ -49,18 +49,22 @@ class commGrid:
         """
         if self.rows != self.cols:
             print("The grid is not square! Returning diagworld to everyone instaed of the diagonal")
-            self.diag_world = self.comm_world
+            self.diag_world = self.world
             return
         
         process_ranks = [i * self.cols + i for i in range(self.cols)]
             
-        group = self.comm_world.Get_group()
+        group = self.world.Get_group()
         diag_group = group.Incl(process_ranks)
         MPI.Group.Free(group)
         
-        self.diag_world = MPI.Comm.Create(self.comm_world, diag_group)
+        self.diag_world = MPI.Comm.Create(self.world, diag_group)
         MPI.Group.Free(diag_group)
         
+    @property
+    def world(self):
+        return self.__world   
+    
     @property
     def row_world(self):
         return self.__row_world
@@ -87,11 +91,15 @@ class SpParMat:
     """
     currently a dummy placeholder
     """
-    def __init__(self, rows: int, cols: int, values, grid) -> None:
+    def __init__(self, rows: int, cols: int, values, grid: commGrid) -> None:
         self.__localRows = rows
         self.__localCols = cols
         self.__values = values
         self.__commGrid = grid
+        
+    @property
+    def commGrid(self):
+        return self.__commGrid
 
 class DenseMatrix:
     
@@ -122,9 +130,9 @@ class DenseMatrix:
         return self.__commGrid
     
     
-def __get_sending_rank_in_row(rank: int, diag_offset: int, cols: int):
+def __get_sending_rank_in_row(rank: int, diag_offset: int, cols: int) -> int:
     row_pos = rank/cols
-    return row_pos * cols + (row_pos + diag_offset) % cols
+    return int(row_pos * cols + (row_pos + diag_offset) % cols)
 
 def __get_recv_rank(rank: int, round: int, cols: int, size: int):
     recv_rank = rank - round * cols
