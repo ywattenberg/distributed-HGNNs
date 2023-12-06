@@ -17,7 +17,7 @@ def csv_to_array(file_path, parsed_csv):
             lines += 1
             parsed_row = []
 
-            for cell in line:
+            for cell in line: 
                 parsed_row.append(cell)
 
                 try:

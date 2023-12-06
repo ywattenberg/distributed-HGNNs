@@ -15,7 +15,7 @@ EDGE_PROB = 0.0005
 
 # weight and adjacency and parameter matrices
 W = nn.Parameter(torch.eye(E, E)) 
-H = torch.bernoulli(torch.full((V, E), EDGE_PROB))
+H = torch.bernoulli(torch.full((V, E), EDGE_PROB)) 
 THETA = torch.rand(N_FEATURES, N_FEATURES)
 
 # diagonal degree matrices

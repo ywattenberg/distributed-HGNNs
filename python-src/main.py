@@ -64,7 +64,7 @@ def torch_training(config):
 
     model = TorchModel(config=config, in_dim=f_cols, left_side=left_side)
     
-    # TODO: timing
+    # TODO: timing 
     train_model(config, labels, features, model)
     
         

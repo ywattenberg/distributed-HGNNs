@@ -22,7 +22,7 @@ def train_model(config, labels, features, model):
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=5e-4) # TODO: add weight decay to config?
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
     
-    loss_fn = nn.CrossEntropyLoss()
+    loss_fn = nn.CrossEntropyLoss() 
     
     # introduce metrics
     metric_accuracy = MulticlassAccuracy(num_classes=MODELNET40_NUM_CLASSES) 
