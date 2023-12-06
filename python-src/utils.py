@@ -1,19 +1,11 @@
+from typing_extensions import deprecated
 import torch
 import csv
 import os
+import pandas as pd
 
+@deprecated("see :func:`tensor_from_file`")
 def csv_to_array(file_path, parsed_csv):
-    """
-    Args:
-        file_path (_type_): _description_
-        parsed_csv (_type_): _description_
-
-    Raises:
-        FileNotFoundError: _description_
-
-    Returns:
-        _type_: _description_
-    """
     if not (os.path.exists(file_path) and os.path.isfile(file_path)):
         raise FileNotFoundError(f"File {file_path} does not exist or is not a regular file")
 
@@ -44,18 +36,26 @@ def csv_to_array(file_path, parsed_csv):
 
     return lines, len(parsed_csv) // lines if lines > 0 else 0
     
-
+@deprecated("use tensor_from_csv instead")
 def tensor_from_file(path: str):
-    """_summary_
-
-    Args:
-        path (str): _description_
-
-    Returns:
-        _type_: _description_
+    """
+    for training in python, use :func:`tensor_from_csv` instead
     """
     data = []
     lines, cols = csv_to_array(path, data)
     data_tensor = torch.tensor(data)
     return data_tensor.view(lines, cols)
-        
+
+
+def tensor_from_csv(path: str):
+    # make sure the first row contains the column names only
+    df = pd.read_csv(path, header=0)
+    return torch.Tensor(df.values)
+
+def coo_to_sparse(coo_tensor: torch.Tensor):
+    # coo_list is a tensor of shape (n, 3) where n is the number of non-zero entries
+    index = coo_tensor[:, :2].transpose(0, 1).to(torch.int64)
+    values = coo_tensor[:, 2].squeeze()
+    s = torch.sparse_coo_tensor(index, values)
+    return s.to_dense()
+    

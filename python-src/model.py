@@ -49,6 +49,7 @@ Class for PyTorch learning
 """
 class TorchHypergraphConv(nn.Module):
     def __init__(self, in_dim: int, out_dim: int, with_bias: bool = False, t: bool = False):
+        super().__init__()
         self.weights = nn.Parameter(torch.Tensor(in_dim, out_dim))
         if with_bias:
             self.bias = nn.Parameter(torch.Tensor(out_dim))
@@ -59,23 +60,23 @@ class TorchHypergraphConv(nn.Module):
 
     def __reset_params(self):
         stdv = 1./math.sqrt(self.weights.shape[1])
-        self.weights.uniform_(-stdv, stdv)
+        nn.init.uniform_(self.weights, -stdv, stdv)
         if self.bias is not None:
-            self.bias.uniform_(-stdv, stdv)
+            nn.init.uniform_(self.bias, -stdv, stdv)
 
 
 class TorchModel(nn.Module):
     def __init__(self, config: dict, in_dim: int, left_side: torch.Tensor) -> None:
         super().__init__()
         self.input_dim = in_dim
-        self.output_dim = config["model_properties"]["classes"]
-        self.dropout = config["model_properties"]["dropout_rate"]
-        self.lay_dim = config["model_properties"]["hidden_dims"]
+        self.output_dim = config["model"]["classes"]
+        self.dropout = config["model"]["dropout_rate"]
+        self.lay_dim = config["model"]["hidden_dims"]
         self.number_of_hid_layers = len(self.lay_dim)
-        self.with_bias = config["model_properties"]["with_bias"]
+        self.with_bias = config["model"]["with_bias"]
         self.left_side = left_side
         
-        self.layers = []
+        self.layers = nn.ModuleList()
         
         if self.number_of_hid_layers > 0:
             in_conv = TorchHypergraphConv(self.input_dim, self.lay_dim[0], self.with_bias)
@@ -90,10 +91,15 @@ class TorchModel(nn.Module):
        
        
     def forward(self, x):
-        for i in range(len(self.layers)-1):
+        x = self.layers[0](x)
+        x = torch.mm(self.left_side, x)
+        x = F.relu(x)
+        x = F.dropout(x, self.dropout, training=self.training)
+        
+        for i in range(1, len(self.layers)-1):
             l = self.layers[i]
-            x = l(x)
             x = F.relu(l(x))
             x = F.dropout(x, self.dropout, training=self.training)
+            
         x = self.layers[-1](x)
         return x
