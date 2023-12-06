@@ -8,7 +8,7 @@ import torch.nn.functional as F
 
 """
 Classes for custom distributed learning 
-"""
+""" 
 class DistConv:
     def __init__(self, in_dim: int, out_dim: int, with_bias: bool = False) -> None:
         # TODO: init
