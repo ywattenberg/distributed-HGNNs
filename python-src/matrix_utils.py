@@ -1,5 +1,15 @@
+__all__ = ["fox", "PDGEMM"]
+
 from mpi4py import MPI
 import numpy as np
+
+"""
+CommGrid:
+-get col/row world
+-get elemes
+-resize
+-spseq
+"""
 
 class commGrid:
     """
