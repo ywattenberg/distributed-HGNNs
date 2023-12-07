@@ -1,7 +1,45 @@
-__all__ = ["fox", "PDGEMM"]
+__all__ = ["simple_dist_mm", "fox", "PDGEMM"]
 
 from mpi4py import MPI
 import numpy as np
+
+from mpi4py import MPI
+import numpy as np
+from scipy.sparse import csr_matrix
+
+def simple_dist_mm(A, B, comm: MPI.Comm):
+    """
+    simple matrix multiplication on distributed memory
+    """
+    # Initialize MPI
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+
+    # Broadcast the CSR matrix to all processes
+    if rank == 0:
+        comm.bcast(A, root=0)
+    else:
+        A = None
+        A = comm.bcast(A, root=0)
+
+    # Scatter the dense vector to all processes
+    local_vector = np.empty(A.shape[0] // size, dtype=float)
+    comm.Scatter(
+        B, local_vector, root=0
+    )
+    local_result = A.dot(local_vector)
+
+    result = None
+    if rank == 0:
+        result = np.empty(A.shape[0], dtype=float)
+    comm.Gather(
+        local_result, result, root=0
+    )
+
+    if rank == 0:
+        print("Result:", result)
+
+    return result
 
 """
 CommGrid:
@@ -11,7 +49,7 @@ CommGrid:
 -spseq
 """
 
-class commGrid:
+class CommGrid:
     """
     a grid of processors
     reimplemented from 
@@ -101,42 +139,46 @@ class SpParMat:
     """
     currently a dummy placeholder
     """
-    def __init__(self, rows: int, cols: int, values, grid: commGrid) -> None:
+    def __init__(self, rows: int, cols: int, values, grid: CommGrid) -> None:
         self.__localRows = rows
         self.__localCols = cols
         self.__values = values
         self.__commGrid = grid
         
     @property
-    def commGrid(self):
+    def CommGrid(self):
         return self.__commGrid
+    
+    @property
+    def ncols(self):
+        return self.__localCols # != local cols?
 
 class DenseMatrix:
     
     def __init__(self, rows: int, cols: int, values, grid=None) -> None:
-        self.__localRows = rows
-        self.__localCols = cols
+        self.__local_rows = rows
+        self.__local_cols = cols
         self.__values = values
         
         if grid is not None:
             self.__commGrid = grid
         else:
-            self.__commGrid = commGrid(MPI.COMM_WORLD, rows, cols)
+            self.__commGrid = CommGrid(MPI.COMM_WORLD, rows, cols)
     
     @property
     def values(self):
         return self.__values
     
     @property
-    def localRows(self):
-        return self.__localRows
+    def local_rows(self):
+        return self.__local_rows
     
     @property
-    def localCols(self):
-        return self.__localCols
+    def local_cols(self):
+        return self.__local_cols
     
     @property
-    def commGrid(self):
+    def CommGrid(self):
         return self.__commGrid
     
     
@@ -154,10 +196,10 @@ def __local_matrix_mult(A: DenseMatrix, B: SpParMat, clear_A: bool=False, clear_
     # TODO: use a parallel matrix format
     B_elems = B.getSpSeq()
     nnz = B_elems.getnnz()
-    cols_spars = B_elemes.getncol()
-    rows_spars = B_elems.getnrow()
-    local_cols = A.localCols()
-    local_rows = A.localRows()
+    cols_spars = B_elems.ncols
+    rows_spars = B_elems.nrows
+    local_cols = A.local_cols
+    local_rows = A.local_rows
     values = A.values
     
     if (local_cols != rows_spars):
@@ -195,15 +237,15 @@ def fox(A: DenseMatrix, B:SpParMat)-> DenseMatrix:
     https://github.com/DakaiZhou/Fox-Algorithm
     """
     comm= MPI.COMM_WORLD
-    comm_i = A.commGrid.world
+    comm_i = A.CommGrid.world
     size = comm_i.Get_size()
     myrank = comm_i.Get_rank()
     
-    row_dense = A.commGrid.rows
-    col_dense = A.commGrid.cols
+    row_dense = A.CommGrid.rows
+    col_dense = A.CommGrid.cols
     
-    row_sparse = B.commGrid.rows # TODO: use an appropritate SpMat format and do the correct calls
-    col_sparse = B.commGrid.cols
+    row_sparse = B.CommGrid.rows # TODO: use an appropritate SpMat format and do the correct calls
+    col_sparse = B.CommGrid.cols
     
     if myrank == 0:
         if row_dense != row_dense or col_dense != col_sparse or row_dense != col_dense:
@@ -220,12 +262,12 @@ def fox(A: DenseMatrix, B:SpParMat)-> DenseMatrix:
         size_vec = A.values.size_vec # TODO: what is the size_vec of a grid?
         buffer_A = A.values
         
-    A.commGrid.row_world.Bcast([size_vec, MPI.INT], root=sending_rank)#TODO: define row/col world
+    A.CommGrid.row_world.Bcast([size_vec, MPI.INT], root=sending_rank)#TODO: define row/col world
     buffer_A.resize(size_vec) # TODO: rewrite
     if isinstance(buffer_A, float):
-        A.commGrid.row_world.Bcast([buffer_A, MPI.DOUBLE], root=sending_rank)
+        A.CommGrid.row_world.Bcast([buffer_A, MPI.DOUBLE], root=sending_rank)
     
-    A_tmp = DenseMatrix(row_dense, col_dense, buffer_A, A.commGrid)
+    A_tmp = DenseMatrix(row_dense, col_dense, buffer_A, A.CommGrid)
     results.append(__local_matrix_mult(A_tmp, B))
     
     # other rounds
@@ -237,10 +279,10 @@ def fox(A: DenseMatrix, B:SpParMat)-> DenseMatrix:
             size_vec = A.values.size_vec # TODO: what is the size_vec of a grid?
             buffer_A = A.values
             
-        A.commGrid.row_world.Bcast([size_vec, MPI.INT], root=sending_rank) 
+        A.CommGrid.row_world.Bcast([size_vec, MPI.INT], root=sending_rank) 
         buffer_A.resize(size_vec)
         if isinstance(buffer_A, float):
-            A.commGrid.row_world.Bcast([buffer_A, MPI.DOUBLE], root=sending_rank)
+            A.CommGrid.row_world.Bcast([buffer_A, MPI.DOUBLE], root=sending_rank)
             
         recv_rank = __get_recv_rank(myrank, round, col_dense, size)
         size_sparse = B_elems.getnnz()
