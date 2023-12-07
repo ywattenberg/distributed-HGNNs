@@ -1,24 +1,45 @@
 import math
+from typing import Any
+import numpy as np
 
 from mpi4py import MPI
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from matrix_utils import *
+
 
 """
-Classes for custom distributed learning 
+Classes for custom distributed learning wihtout sparse format
 """ 
 class DistConv:
-    def __init__(self, in_dim: int, out_dim: int, with_bias: bool = False) -> None:
-        # TODO: init
-        pass
+    def __init__(self, in_dim: int, out_dim: int, comm: MPI.Comm, with_bias: bool = False) -> None:
+        self.comm = comm
+        
+        self.weights = np.zeros((in_dim, out_dim))
+        if with_bias:
+            self.bias = np.zeros((out_dim))
+        self.__reset_params()
+        
+    def __reset_params(self):
+        stdv = 1./math.sqrt(self.weights.shape[1])
+        np.random.uniform(-stdv, stdv, self.weights.shape)
+        if self.bias is not None:
+             np.random.uniform(-stdv, stdv, self.bias.shape)
     
-    def forward(self):
-        pass
+    def __call__(self, x) -> Any:
+        x = simple_dist_mm(self.weights, x, self.comm)
+        if self.bias is not None:
+            x += self.bias
+        return x
+        
+    
 
 class DistModel:
     def __init__(self, config: dict, in_dim: int) -> None:
+        self.fwd_only = config["experiment"]["fwd_only"]
+        
         self.input_dim = in_dim
         self.output_dim = config["model_properties"]["classes"]
         self.dropout = config["model_properties"]["dropout_rate"]
@@ -27,7 +48,6 @@ class DistModel:
         self.with_bias = config["model_properties"]["with_bias"]
         
         self.layers = []
-        
         if self.number_of_hid_layers > 0:
             in_conv = DistConv(self.input_dim, self.lay_dim[0], self.with_bias)
             self.layers.append(in_conv)
@@ -40,9 +60,24 @@ class DistModel:
             self.layers.append(out_conv)
        
        
-    def forward(self):
-        pass 
+    def forward(self, x):
+        x = self.layers[0](x)
+        x = torch.mm(self.left_side, x)
+        x = F.relu(x)
+        x = F.dropout(x, self.dropout, training=self.training)
+        
+        for i in range(1, len(self.layers)-1):
+            l = self.layers[i]
+            x = F.relu(l(x))
+            x = F.dropout(x, self.dropout, training=self.training)
+            
+        x = self.layers[-1](x)
+        return x
     
+    def backward(self):
+        pass
+        
+ 
     
 """
 Class for PyTorch learning
@@ -68,6 +103,9 @@ class TorchHypergraphConv(nn.Module):
 class TorchModel(nn.Module):
     def __init__(self, config: dict, in_dim: int, left_side: torch.Tensor) -> None:
         super().__init__()
+        
+        self.fwd_only = config["experiment"]["fwd_only"]
+        
         self.input_dim = in_dim
         self.output_dim = config["model"]["classes"]
         self.dropout = config["model"]["dropout_rate"]
@@ -77,7 +115,6 @@ class TorchModel(nn.Module):
         self.left_side = left_side
         
         self.layers = nn.ModuleList()
-        
         if self.number_of_hid_layers > 0:
             in_conv = TorchHypergraphConv(self.input_dim, self.lay_dim[0], self.with_bias)
             self.layers.append(in_conv)
