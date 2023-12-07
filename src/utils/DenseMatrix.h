@@ -10,6 +10,7 @@
 
 #include "CombBLAS/CombBLAS.h"
 #include "CombBLAS/SpParMat.h"
+#include "CombBLAS/SpParHelper.h"
 
 
 namespace combblas{
@@ -47,12 +48,29 @@ int getSendingRankInRow(int rank, int diagOffset, int cols){
   return rowPos * cols + (rowPos + diagOffset) % cols;
 }
 
+
 int getRecvRank(int rank, int round, int cols, int size){
   int RecvRank = rank - (round * cols);
   if (RecvRank < 0){
     RecvRank = size + rank - (round * cols);
   }
   return RecvRank;
+}
+
+
+template<typename IT, typename NT>	
+static void BCastMatrixDense(MPI_Comm & comm1d, std::vector<NT> * values, std::vector<IT> * essentials, int sendingRank)
+{
+  int myrank;
+  MPI_Comm_rank(comm1d, &myrank);
+
+  MPI_Bcast(essentials, essentials.size(), MPIType<IT>(), sendingRank, comm1d);
+
+  if (myrank != sendingRank){
+    values.resize(essentials[0]);
+  }
+
+  MPI_Bcast(values, essentials[0], MPIType<NT>(), sendingRank, comm1d); 
 }
 
 
@@ -73,7 +91,7 @@ template<typename SR, typename IT, typename NT2, typename DER>
       } 
 
       if (nnz == 0){
-        std::vector<NT2> outValues =  std::vector<NT2>(localCols * localRows, 0);
+        std::vector<NT2> * outValues =  new std::vector<NT2>(localCols * localRows, 0);
         DenseMatrix<NT2> * out = new DenseMatrix<NT2>(localRows, localCols, outValues);
         return out;
       }
@@ -182,7 +200,43 @@ DenseMatrix<NT> fox(DenseMatrix<NT> &A, SpParMat<IT, NT, DER> &B)
 
 }
 
+template<typename SR, typename IT, typename NT, typename DER>
+DenseMatrix<NT> fox2(DenseMatrix<NT> &A, SpParMat<IT, NT, DER> &B){
+    int myrank;
+    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+    int rowDense = A.getCommGrid().GetGridRows();
+    int colDense = A.getCommGrid().GetGridCols();
 
+    int stages, dummy;
+    std::shared_ptr<CommGrid> GridC = ProductGrid((A.getCommGrid()).get(), (B.getcommgrid()).get(), stages, dummy, dummy);		
+    
+
+    IT ** BRecvSizes = SpHelper::allocate2D<IT>(DER::esscount, stages);
+
+    std::vector<NT> * bufferA;
+    std::vector<IT> essentialsA(3); // saves rows, cols and total number of elements of block
+    MPI_Comm RowWorldA = A.getCommGrid()->GetRowWorld;
+    int rankAinRow = A.getCommGrid()->GetRankInProcRow();
+    int rankAinCol = A.getCommGrid()->GetRankInProcCol();
+    
+    //First Iteration: Matrix B already in Place
+    int sendingRank = rankAinCol;
+
+    if (rankAinRow == sendingRank){
+      bufferA = A.getValues();
+      essentialsA[1] = A.getLocalRows();
+      essentialsA[2] = A.getLocalCols();
+      essentialsA[0] = essentialsA[1] * essentialsA[2];
+    }
+
+    BCastMatrixDense(RowWorldA, bufferA, essentialsA, sendingRank);
+
+    
+
+
+    return A;
+
+}
 
 }
 

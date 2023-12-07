@@ -11,7 +11,6 @@
 #include "CombBLAS/ParFriends.h"
 #include "CombBLAS/FullyDistVec.h"
 #include "CombBLAS/SpParMat.h"
-#include "CombBLAS/DenseParMat.h"
 #include "utils/DenseMatrix.h"
 
 using namespace std;
@@ -77,61 +76,7 @@ int main(int argc, char* argv[])
         // FullyDistVec<int64_t, double> v = FullyDistVec(length, 2);
         // auto tmp = v.get_values();
 
-        double arr1[] = {2,3,4,5};
-        double arr2[] = {7,8,9,10};
-        double arr3[] = {2,3,4,5};
-        double arr4[] = {7,8,9,10};
-        
-        int rows_dense = 4;
-        int cols_dense = 4;
-        double **P;
-        
-        if (myrank == 0){
-            P = new double *[rows_dense];
-            P[0] = arr1;
-            P[1] = arr2;
-            P[2] = arr3;
-            P[3] = arr4;
-        }
-        
-        std::vector<double> s = {0.4, 4.0, 0.9, 2.1};
-        DenseMatrix<double> dm = DenseMatrix<double>(2,2,&s,fullWorld);
-
-        std::vector<double> val = *dm.getValues();
-
-        
-
-        // MPI_Scatter(P,
-        //     16,
-        //     double,
-        //     P,
-        //     4,
-        //     double,
-        //     0,
-        //     MPI_COMM_WORLD
-        // )
-
-        if (myrank == 3){
-            cout << val[2] << endl;
-        }        
-        
-        shared_ptr<CommGrid> grid_dense;
-        grid_dense.reset(new CommGrid(MPI_COMM_WORLD, 0, 0));
-        DenseParMat<int64_t, double> test_dense = DenseParMat<int64_t, double>(P, grid_dense, 2, 3);
-
-        if (myrank == 3) {
-            double **elems = test_dense.getArray();
-
-             for (int i = 0; i < 2; ++i) {
-                for (int j = 0; j < 2; ++j) {
-                    std::cout << elems[i][j] << " ";
-                }
-                std::cout << std::endl;
-            }
-        }
-        
-
-        std::vector<double> tmp = {4.0, 1.0, 3.0, 2.0};
+        std::vector<double> tmp = {4.0, 1.0, 3.0, 2.0, 1.0};
 
         if (myrank == 0){
             cout << "length of vector: " << tmp.size() << endl;
@@ -139,23 +84,21 @@ int main(int argc, char* argv[])
                 cout << "value: " << tmp.at(i) << endl;
             }
         }
-        
-        SpParHelper::Print("Say hello");
 
-        // A2D.PrintInfo();
+        A2D.PrintInfo();
 
-        // SpParMat<int64_t, double, SpDCCols<int64_t, double>> res = PSpSCALE<PTFF, int64_t, double, SpDCCols<int64_t, double>>(A2D, tmp);
-        // res.ParallelWriteMM("../data/m_g_ms_gs/bla.mtx", true);
+        SpParMat<int64_t, double, SpDCCols<int64_t, double>> res = PSpSCALE<PTFF, int64_t, double, SpDCCols<int64_t, double>>(A2D, tmp);
+        res.ParallelWriteMM("../data/m_g_ms_gs/bla.mtx", true);
 
-        // if (res == CC2D){
-        //     if (myrank == 0){
-        //         fprintf(stderr, "Correct\n");
-        //     }
-        // } else{
-        //     if(myrank == 0) fprintf(stderr, "Not correct\n");
-        // }
+        if (res == CC2D){
+            if (myrank == 0){
+                fprintf(stderr, "Correct\n");
+            }
+        } else{
+            if(myrank == 0) fprintf(stderr, "Not correct\n");
+        }
 
-        // if(myrank == 0) fprintf(stderr, "***\n");
+        if(myrank == 0) fprintf(stderr, "***\n");
 
         auto out =  PSpGEMM<PTFF, int64_t, double, double, SpDCCols < int64_t, double >, SpDCCols <int64_t, double >>(A2D,B2D);
 
