@@ -34,6 +34,12 @@ class DenseMatrix
       commGrid.reset(new CommGrid(MPI_COMM_WORLD, rows, cols));
     }
 
+    // ~DenseMatrix<NT>()
+    // {
+
+    //   delete values;
+    // }
+
     
 
   private:
@@ -73,55 +79,36 @@ static void BCastMatrixDense(MPI_Comm & comm1d, std::vector<NT> * values, std::v
   MPI_Bcast(values, essentials[0], MPIType<NT>(), sendingRank, comm1d); 
 }
 
+template<typename SR, typename IT, typename NT, typename DER>
+std::vector<NT> * localMatrixMult(std::vector<NT>* dense_A, size_t dense_rows, size_t dense_cols, DER* sparse_B){
+  IT nnz = sparse_B->getnnz();
+  IT cols_spars = sparse_B->getncol();
+  IT rows_spars = sparse_B->getnrow();
 
-template<typename SR, typename IT, typename NT2, typename DER>
-    DenseMatrix<NT2> * localMatrixMult(DenseMatrix<NT2> &A, SpParMat<IT, NT2, DER> &B, bool clearA=false, bool clearB=false)
-    {
-      DER B_elems = *B.getSpSeq();
-      IT nnz = B_elems.getnnz();
-      IT colsSpars = B_elems.getncol();
-      IT rowsSpars = B_elems.getnrow();
-      int localCols = A.getLocalCols();
-      int localRows = A.getLocalRows();
-      std::vector<NT2> * values = A.getValues();
+  if (dense_cols != rows_spars) {
+    throw std::invalid_argument( "DIMENSIONS DON'T MATCH" );        
+  }
 
-      if (localCols != rowsSpars) {
-        cout << "DIMENSIONS DONT MATCH";
-        return -1;
-      } 
+  std::vector<NT> * outValues =  new std::vector<NT>(dense_rows * cols_spars, 0);
+  if (nnz == 0){
+    return outValues;
+  }
 
-      if (nnz == 0){
-        std::vector<NT2> * outValues =  new std::vector<NT2>(localCols * localRows, 0);
-        DenseMatrix<NT2> * out = new DenseMatrix<NT2>(localRows, localCols, outValues);
-        return out;
+  Dcsc<IT, NT>* Bdcsc = sparse_B->GetDCSC();
+  for(size_t i = 0; i < dense_rows; i++){
+    for (size_t j = 0; j < Bdcsc->nzc; j++){
+      IT col = Bdcsc->jc[j];
+      size_t nnzInCol = Bdcsc->cp[j+1] - Bdcsc->cp[j];
+      for(size_t k =0; k < nnzInCol; k++){
+        IT sparseRow = Bdcsc->ir[Bdcsc->cp[j]+ k];
+        NT elem = Bdcsc->numx[Bdcsc->cp[j]+ k];
+        outValues->at(i * cols_spars + col) += SR::multiply(dense_A->at(i * dense_cols + sparseRow), elem);
       }
 
-      Dcsc<IT, NT2>* Bdcsc = B_elems.GetDCSC();
-      std::vector<NT2> outValues =  std::vector<NT2>(localCols * localRows, 0);
-
-      for (size_t i = 0; i < B->nzc; ++i){
-        IT col = Bdcsc->jc[i];
-        size_t nnzInCol = Bdcsc->cp[i+1] - Bdcsc->cp[i];
-
-
-        for (size_t row = 0; row < localRows; row++){ //loop over rows of the block of the dense matrix
-          NT2 sum = 0;
-          size_t offset = row * localCols;
-          for (size_t k = Bdcsc->cp[i]; k < Bdcsc->cp[i] + nnzInCol; k++){
-            IT sparseRow = Bdcsc->ir[k];
-            NT2 elem = Bdcsc->numx[k];
-            sum += SR::multiply(*values[offset + sparseRow], elem);
-          }
-          outValues[offset + col] = sum;
-        }
-        
-      } 
-      DenseMatrix<NT2> * out = new DenseMatrix<NT2>(localRows, localCols, outValues);
-
-      return out;
-
-      
     }
+  }
+  return outValues;
+}
 
 
 template<typename SR, typename IT, typename NT, typename DER>
