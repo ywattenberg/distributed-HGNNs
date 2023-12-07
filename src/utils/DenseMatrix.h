@@ -63,6 +63,28 @@ int getRecvRank(int rank, int round, int cols, int size){
   return RecvRank;
 }
 
+template<typename IT, typename NT, typename DER>	
+static void SendAndReceive(MPI_Comm & comm1d, , std::vector<IT> * essentials, int dest, int source)
+{
+  int myrank;
+  MPI_Comm_rank(comm1d, &myrank);
+
+  if(myrank != root)
+	{
+		Matrix.Create(essentials);		// allocate memory for arrays		
+	}
+
+	Arr<IT,NT> arrinfo = Matrix.GetArrays();
+	for(unsigned int i=0; i< arrinfo.indarrs.size(); ++i)	// get index arrays
+	{
+		MPI_Bcast(arrinfo.indarrs[i].addr, arrinfo.indarrs[i].count, MPIType<IT>(), root, comm1d);
+	}
+	for(unsigned int i=0; i< arrinfo.numarrs.size(); ++i)	// get numerical arrays
+	{
+		MPI_Bcast(arrinfo.numarrs[i].addr, arrinfo.numarrs[i].count, MPIType<NT>(), root, comm1d);
+	}
+}
+
 
 template<typename IT, typename NT>	
 static void BCastMatrixDense(MPI_Comm & comm1d, std::vector<NT> * values, std::vector<IT> * essentials, int sendingRank)
@@ -202,21 +224,41 @@ DenseMatrix<NT> fox2(DenseMatrix<NT> &A, SpParMat<IT, NT, DER> &B){
 
     std::vector<NT> * bufferA;
     std::vector<IT> essentialsA(3); // saves rows, cols and total number of elements of block
+    std::vector<DenseMatrix<NT>*> out;
     MPI_Comm RowWorldA = A.getCommGrid()->GetRowWorld;
     int rankAinRow = A.getCommGrid()->GetRankInProcRow();
     int rankAinCol = A.getCommGrid()->GetRankInProcCol();
     
     //First Iteration: Matrix B already in Place
-    int sendingRank = rankAinCol;
+    // int sendingRank = rankAinCol;
 
-    if (rankAinRow == sendingRank){
-      bufferA = A.getValues();
-      essentialsA[1] = A.getLocalRows();
-      essentialsA[2] = A.getLocalCols();
-      essentialsA[0] = essentialsA[1] * essentialsA[2];
+    // if (rankAinRow == sendingRank){
+    //   bufferA = A.getValues();
+    //   essentialsA[1] = A.getLocalRows();
+    //   essentialsA[2] = A.getLocalCols();
+    //   essentialsA[0] = essentialsA[1] * essentialsA[2];
+    // }
+
+    // BCastMatrixDense(RowWorldA, bufferA, essentialsA, sendingRank);
+    // out.push(localMatrixMult(bufferA, B));
+
+    //other stages:
+    for (int i = 0; i < stages; i++){
+      sendingRank = (rankAinCol + 1) % colDense;
+      
+      if (rankAinRow == sendingRank){
+        bufferA = A.getValues();
+        essentialsA[1] = A.getLocalRows();
+        essentialsA[2] = A.getLocalCols();
+        essentialsA[0] = essentialsA[1] * essentialsA[2];
+      }
+
+      BCastMatrixDense(RowWorldA, bufferA, essentialsA, sendingRank);
+      out.push(localMatrixMult(bufferA, B));
+      
+      // ship matrix B one up
+
     }
-
-    BCastMatrixDense(RowWorldA, bufferA, essentialsA, sendingRank);
 
     
 
