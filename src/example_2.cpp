@@ -100,52 +100,134 @@ int main(int argc, char* argv[])
 
         if(myrank == 0) fprintf(stderr, "***\n");
 
-        auto out =  PSpGEMM<PTFF, int64_t, double, double, SpDCCols < int64_t, double >, SpDCCols <int64_t, double >>(A2D,B2D);
+        // auto out =  PSpGEMM<PTFF, int64_t, double, double, SpDCCols < int64_t, double >, SpDCCols <int64_t, double >>(A2D,B2D);
 
-        
-        // Increase number of layers 1 -> 4 -> 16
-        for(int layers = 1; layers <= 16; layers = layers * 4){
-            
-            if(myrank == 0) fprintf(stderr, "Trying %d layers\n", layers);
+        // int N = 4;
+        // int M = 4;
+        // double *matrix_data = NULL;
+        // if (myrank == 0) {
+        //     matrix_data = (double *)malloc(N * N * sizeof(double));
+        //     // Initialize matrix_data with some values
+        //     for (int i = 0; i < N * N; i++) {
+        //         matrix_data[i] = i + 1; // Just an example initialization
+        //     }
+        // }
 
-            
+        // // Allocate memory for the local block
+        // int local_size = N / M;
+        // double *local_block = (double *)malloc(local_size * N * sizeof(double));
 
-            // Convert 2D matrices to 3D
-            SpParMat3D<int64_t, double, SpDCCols < int64_t, double >> A3D(A2D, layers, true, false);
-            SpParMat3D<int64_t, double, SpDCCols < int64_t, double >> B3D(B2D, layers, false, false);
+        // // Scatter the matrix data
+        // MPI_Scatter(matrix_data, local_size * N, MPI_INT, local_block, local_size * N, MPI_INT, 0, MPI_COMM_WORLD);
 
-            SpParMat3D<int64_t, double, SpDCCols < int64_t, double >> C3D = 
-                Mult_AnXBn_SUMMA3D<PTFF, double, SpDCCols<int64_t, double>, int64_t, double, double, SpDCCols<int64_t, double>, SpDCCols<int64_t, double> >
-                (A3D, B3D);
-            SpParMat<int64_t, double, SpDCCols < int64_t, double >> C3D2D = C3D.Convert2D();
-
-            if(CC2D == C3D2D){
-                if(myrank == 0) fprintf(stderr, "Correct\n");
-            }
-            else{
-                if(myrank == 0) fprintf(stderr, "Not correct\n");
-            }
-            
-            if(myrank == 0) fprintf(stderr, "***\n");
-        }
-
-        double arr[4][2] = {1234.0, 56.0, 1212.0, 33.0, 1434.0, 80.0, 1312.0, 78.0};
-
-        DenseParMat<int64_t, double> test(3.0, fullWorld, 4,4);
-
-        double **arr_test = test.getArray();
-
-
-        // for(SpDCCols<int,double>::SpColIter colit = A2D.seq().begcol(); colit != A2D.seq().endcol(); ++colit)	// iterate over columns
-	    // {
-        //     for(SpDCCols<int,double>::SpColIter::NzIter nzit = A2D.seq().begnz(colit); nzit != A2D.seq().endnz(colit); ++nzit)
-        //     {	
-        //         cout << "before: " << nzit.rowid() << '\t' << colit.colid() << '\t' << nzit.value() << '\n';	
-        //         nzit.scale_value(3.0);
-        //         cout << "after: " << nzit.rowid() << '\t' << colit.colid() << '\t' << nzit.value() << '\n';	
+        // std::vector<double> test;
+        // // Scatter the matrix data
+        //     if (myrank == 0){
+        //         test = { 16,0.6,6,7,
+        //                  1,3.6,0,4.1,
+        //                  1,5,9.5,0,
+        //                  13, 6, 0.2, 3.5};
 
         //     }
-	    // }
+
+        std::vector<double> test = { 16,0.6,6,7,
+                1,3.6,0,4.1,
+                1,5,9.5,0,
+                13, 6, 0.2, 3.5};
+        
+
+        std::vector<double> dist = std::vector<double>(4, 0.0);
+
+        switch(myrank){
+            case 0: 
+                dist = {16,0.6,1,3.6};
+                break;
+            case 1:
+                dist = {6,7,0,4.1};
+                break;
+            case 2:
+                dist = {1,5,13,6};
+                break;
+            case 3:
+                dist = {9.5,0,0.2,3.5};
+                break;
+        }
+
+        // for (int i = 0; i < 4; i++){
+        //     dist[i] = local_block[i];
+        // }
+
+        // cout << "hello from rank " << myrank << endl;
+        int rows = 4;
+        int cols = 4;
+        
+        DenseMatrix<double> denseTest = DenseMatrix<double>(2,2,&dist, fullWorld);
+        
+        // if (myrank == 2){
+        //     cout << "from rank " << myrank << " ";
+        //     vector<double> forPrint = *denseTest.getValues();
+        //     for (int i = 0; i < 4; i++){
+        //         cout << forPrint[i] << " ";
+        //     }
+
+        // }
+        
+        DenseMatrix<double> output = fox2<PTFF, int64_t, double, SpDCCols < int64_t, double >>(denseTest, res);
+        std::vector<double> outValuesLocal = *output.getValues();
+
+
+        if (myrank == 3){
+            for (int i = 0; i < output.getLocalRows(); i++){
+                for (int j = 0; j < output.getLocalCols(); j++){
+                    cout << outValuesLocal[i*output.getLocalCols() + j] << " ";
+                }
+                cout << endl;
+            }
+        }
+        
+    //     // Increase number of layers 1 -> 4 -> 16
+    //     // for(int layers = 1; layers <= 16; layers = layers * 4){
+            
+    //     //     if(myrank == 0) fprintf(stderr, "Trying %d layers\n", layers);
+
+            
+
+    //     //     // Convert 2D matrices to 3D
+    //     //     SpParMat3D<int64_t, double, SpDCCols < int64_t, double >> A3D(A2D, layers, true, false);
+    //     //     SpParMat3D<int64_t, double, SpDCCols < int64_t, double >> B3D(B2D, layers, false, false);
+
+    //     //     SpParMat3D<int64_t, double, SpDCCols < int64_t, double >> C3D = 
+    //     //         Mult_AnXBn_SUMMA3D<PTFF, double, SpDCCols<int64_t, double>, int64_t, double, double, SpDCCols<int64_t, double>, SpDCCols<int64_t, double> >
+    //     //         (A3D, B3D);
+    //     //     SpParMat<int64_t, double, SpDCCols < int64_t, double >> C3D2D = C3D.Convert2D();
+
+    //     //     if(CC2D == C3D2D){
+    //     //         if(myrank == 0) fprintf(stderr, "Correct\n");
+    //     //     }
+    //     //     else{
+    //     //         if(myrank == 0) fprintf(stderr, "Not correct\n");
+    //     //     }
+            
+    //     //     if(myrank == 0) fprintf(stderr, "***\n");
+    //     // }
+
+    //     // double arr[4][2] = {1234.0, 56.0, 1212.0, 33.0, 1434.0, 80.0, 1312.0, 78.0};
+
+    //     // DenseParMat<int64_t, double> test(3.0, fullWorld, 4,4);
+
+    //     // double **arr_test = test.getArray();
+
+
+    //     // for(SpDCCols<int,double>::SpColIter colit = A2D.seq().begcol(); colit != A2D.seq().endcol(); ++colit)	// iterate over columns
+	//     // {
+    //     //     for(SpDCCols<int,double>::SpColIter::NzIter nzit = A2D.seq().begnz(colit); nzit != A2D.seq().endnz(colit); ++nzit)
+    //     //     {	
+    //     //         cout << "before: " << nzit.rowid() << '\t' << colit.colid() << '\t' << nzit.value() << '\n';	
+    //     //         nzit.scale_value(3.0);
+    //     //         cout << "after: " << nzit.rowid() << '\t' << colit.colid() << '\t' << nzit.value() << '\n';	
+
+    //     //     }
+	//     // }
 
         
         
