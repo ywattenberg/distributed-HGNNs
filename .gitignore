@@ -1,3 +1,5 @@
+.vscode
+
 # ignore Matlab files
 *.mat
 
