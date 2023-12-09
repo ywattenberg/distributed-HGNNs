@@ -24,8 +24,6 @@ struct array_matrix {
     vector<double> vals;       // or int64_t, float, std::complex<double>, etc.
 } mat;
 
-vector<double>* vals;
-
 const int ROWS_A = 4;  // Adjust this based on the actual size of your matrix
 const int COLS_A = 4;  // Adjust this based on the actual size of your matrix
 const int MATRIX_SIZE = ROWS_A * COLS_A;
@@ -44,16 +42,14 @@ int main(int argc, char* argv[]) {
     const std::string filename = "../data/m_g_ms_gs/dense-test.mtx";
 	shared_ptr<CommGrid> fullWorld;
 	fullWorld.reset(new CommGrid(MPI_COMM_WORLD, std::sqrt(size), std::sqrt(size)));
-    DenseMatrix<double> A(ROWS_A, COLS_B, vals, fullWorld);
+    DenseMatrix<double> A(ROWS_A, COLS_B, fullWorld);
     A.ParallelReadDMM(filename, false);
     MPI_Barrier(MPI_COMM_WORLD);
-    std::cout << "rank " << rank << " read dense matrix" << std::endl;
     // print local matrix A
-    std::vector<double>* vals = A.getValues();
-    for (int i = 0; i < vals->size(); i++) {
-        std::cout << "rank " << rank << " local matrix A[" << i << "] = " << vals->at(i) << std::endl;
+    if (rank == 0) {
+        A.printLocalMatrix();
     }
-    
+
     MPI_Finalize();
     return 0;
 }

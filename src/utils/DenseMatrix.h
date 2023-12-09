@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <string>
 #include <cmath>
 #include <mpi.h>
 #include <vector>
@@ -21,9 +22,17 @@ template<class NT>
 class DenseMatrix 
 {
   public:
-    std::vector<NT> *getValues() {return values;}
-    void setValues(std::vector<NT> *vals) {values = vals;}
-    void push_back(NT val) {values->push_back(val);}
+    void printLocalMatrix(){
+      int myrank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+      std::cout << "local matrix A:" << std::endl;
+      for (int i = 0; i < localRows * localCols; i++) {
+          std::cout << "rank " << myrank << " local matrix A[" << i << "] = " << values.at(i) << std::endl;
+      }
+    }
+    std::vector<NT>* getValues() {return values;}
+    void setValues(std::vector<NT> vals) {values = vals;}
+    void push_back(NT val) {values.push_back(val);}
     int getLocalRows() {return localRows;}
     int getLocalCols() {return localCols;}
     void setLocalRows(int rows) {localRows = rows;}
@@ -31,7 +40,12 @@ class DenseMatrix
     std::shared_ptr<CommGrid> getCommGrid() {return commGrid;}
     auto getCommWorld() {return commGrid->GetWorld();}
 
-    DenseMatrix<NT>(int rows, int cols, std::vector<NT> *values, std::shared_ptr<CommGrid> grid): values(values), localRows(rows), localCols(cols)
+    DenseMatrix<NT>(int rows, int cols, std::vector<NT> values, std::shared_ptr<CommGrid> grid): values(values), localRows(rows), localCols(cols)
+    {
+      commGrid = grid;
+    }
+
+    DenseMatrix<NT>(int rows, int cols, std::shared_ptr<CommGrid> grid): localRows(rows), localCols(cols)
     {
       commGrid = grid;
     }
@@ -59,7 +73,7 @@ class DenseMatrix
   private:
     int localRows;
     int localCols;
-    std::vector<NT> *values;
+    std::vector<NT> values;
     std::shared_ptr<CommGrid> commGrid; 
 };
 
@@ -344,7 +358,7 @@ DenseMatrix<NT> fox2(DenseMatrix<NT> &A, SpParMat<IT, NT, DER> &B) {
 
 // helper function for ParallelReadDMM
 template <class NT>
-void processLines(std::vector<std::string> lines, int type, std::vector<NT> * vals) {
+void processLines(std::vector<std::string> lines, int type, std::vector<NT> * vals, int myrank) {
    if(type == 0)   // real
     {
         double vv;
@@ -353,6 +367,7 @@ void processLines(std::vector<std::string> lines, int type, std::vector<NT> * va
             // string::c_str() -> Returns a pointer to an array that contains a null-terminated sequence of characters (i.e., a C-string)
             sscanf(itr->c_str(), "%lg", &vv);
             // print read values
+            // std::cout << "process " << myrank << " read value " << vv << std::endl;
             vals->push_back(vv);
         }
     }
@@ -369,6 +384,16 @@ void processLines(std::vector<std::string> lines, int type, std::vector<NT> * va
     {
         std::cout << "COMBBLAS: Unrecognized matrix market scalar type" << std::endl;
     }
+}
+
+int getOwner(int nrows, int ncols, int row, int col, int grid_len) {
+    int rows_per_proc = nrows / grid_len;
+    int cols_per_proc = ncols / grid_len;
+    int rowid = row / rows_per_proc;
+    int colid = col / cols_per_proc;
+    int rank = rowid * grid_len + colid;
+    std::cout << "row " << row << " col " << col << " is owned by rank " << rank << std::endl;
+    return rank;
 }
 
 //! Handles all sorts of orderings, even duplicates (what happens to them is determined by BinOp)
@@ -440,6 +465,12 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
     MPI_Bcast(&nrows, 1, MPIType<int64_t>(), 0, getCommWorld());
     MPI_Bcast(&ncols, 1, MPIType<int64_t>(), 0, getCommWorld());
 
+    int rows_per_proc = (nrows / nprocs);
+    int row_start = myrank * rows_per_proc;
+
+    // std::cout << "nrows: " << nrows << std::endl;
+    // std::cout << "rows per proc: " << rows_per_proc << std::endl;
+    // std::cout << "row start: " << row_start << std::endl;
     // Use fseek again to go backwards two bytes and check that byte with fgetc
     struct stat st;     // get file size
     if (stat(filename.c_str(), &st) == -1) {
@@ -455,39 +486,48 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
         fpos = ftell(f);
         endofheader =  fpos;
     	  MPI_Bcast(&endofheader, 1, MPIType<MPI_Offset>(), 0, getCommWorld());
+        std::cout << "End of header is " << endofheader << " bytes" << std::endl;
+        // std::string line;
+        // std::getline(f, line);
+        // int secondpos = ftell(f);
+        // // calc the number of bytes in a line
+        // int bytes_per_line = secondpos - fpos;
+        // std::cout << "Bytes per line is " << bytes_per_line << std::endl;
         fclose(f);
     } else {
     	MPI_Bcast(&endofheader, 1, MPIType<MPI_Offset>(), 0, getCommWorld());  // receive the file loc at the end of header
-	    fpos = endofheader + myrank * (file_size-endofheader) / nprocs;
+	    // fpos = endofheader + myrank * (file_size-endofheader) / nprocs;
+      // give each process a number of rows to read
+      fpos = endofheader + myrank * rows_per_proc * ncols * 14;
     }
 
     if(myrank != (nprocs-1)) {
-      end_fpos = endofheader + (myrank + 1) * (file_size-endofheader) / nprocs;
+      // end_fpos = endofheader + (myrank + 1) * (file_size-endofheader) / nprocs;
+      end_fpos = endofheader + (myrank + 1) * rows_per_proc * ncols * 14;
     } else {
       end_fpos = file_size;
     }
-
+    // std::cout << "Process " << myrank << " will read from " << fpos << " to " << end_fpos << std::endl;
     MPI_File mpi_fh;
     MPI_File_open(getCommWorld(), const_cast<char*>(filename.c_str()), MPI_MODE_RDONLY, MPI_INFO_NULL, &mpi_fh);
 	 
     typedef typename SpDCCols<int, NT>::LocalIT LIT;
     // TODO: set size of vector
-    std::vector<NT>* vals = new std::vector<NT>();
+    std::vector<NT> vals;
 
     std::vector<std::string> lines;
     bool finished = SpParHelper::FetchBatch(mpi_fh, fpos, end_fpos, true, lines, myrank);
     int64_t entriesread = lines.size();
 
-    processLines(lines, type, vals);   
+    processLines(lines, type, &vals, myrank);   
 
-    MPI_Barrier(commGrid->commWorld);
+    MPI_Barrier(getCommWorld());
 
-    while(!finished)
-    {
+    while(!finished) {
         finished = SpParHelper::FetchBatch(mpi_fh, fpos, end_fpos, false, lines, myrank);
         entriesread += lines.size();
         // SpHelper::ProcessLines(rows, cols, vals, lines, symmetric, type, onebased);
-        processLines(lines, type, vals);
+        processLines(lines, type, &vals, myrank);
     }
 
     int64_t allentriesread;
@@ -500,25 +540,86 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
     this->setValues(vals);
     // SpParMat<int, NT, Sp>()::SparseCommon(data, allentriesread, nrows, ncols, PlusTimesSRxing<NT,NT>());
     MPI_File_close(&mpi_fh);
-    std::vector<NT>().swap(*vals);
+    // std::vector<NT>().swap(&vals);
+
+    int rows_read = entriesread / ncols;
+    std::cout << "process " << myrank << " read " << entriesread << " rows" << std::endl;
 
     int grid_len = std::sqrt(nprocs);
     int localRows = nrows / grid_len;
     int localCols = ncols / grid_len;
 
-    int procCol = commGrid->getRankInProcCol();
-    int procRow = commGrid->getRankInProcRow();
+    int procCol = commGrid->GetRankInProcCol();
+    int procRow = commGrid->GetRankInProcRow();
 
-    if (procCol == grid_len - 1){
+    if (procCol == grid_len - 1) {
       localCols += ncols % grid_len;
     }
-    if (procRow == grid_len - 1){
+    if (procRow == grid_len - 1) {
       localRows += nrows % grid_len;
     }
 
     this->setLocalRows(localRows);
     this->setLocalCols(localCols);
     
+    MPI_Barrier(getCommWorld());
+    // std::cout << "process " << myrank << " local rows: " << localRows << " " << " local cols: " << localCols << std::endl;
+    std::vector<std::vector<NT>> data = std::vector<std::vector<NT>>(nprocs);
+    // std::cout << "process " << myrank << " vals size: " << vals.size() << std::endl;
+
+    for (int i = 0; i < rows_read; i++) {
+      for (int j = 0; j < ncols; j++) {
+        int recvRank = getOwner(nrows, ncols, (myrank * rows_per_proc) + i, j, grid_len);
+        data[recvRank].push_back(vals.at(i * ncols + j));
+      }
+    }
+
+    // send data to correct processors
+    int * sendcnt = new int[nprocs];
+    int * recvcnt = new int[nprocs];
+    for(int i=0; i<nprocs; ++i)
+      sendcnt[i] = data[i].size();	// sizes are all the same
+
+    MPI_Alltoall(sendcnt, 1, MPI_INT, recvcnt, 1, MPI_INT, commGrid->GetWorld()); // share the counts
+    int * sdispls = new int[nprocs]();
+    int * rdispls = new int[nprocs]();
+    std::partial_sum(sendcnt, sendcnt+nprocs-1, sdispls+1);
+    std::partial_sum(recvcnt, recvcnt+nprocs-1, rdispls+1);
+    int totrecv = std::accumulate(recvcnt,recvcnt+nprocs, static_cast<int>(0));
+    int totsent = std::accumulate(sendcnt,sendcnt+nprocs, static_cast<int>(0));	
+    
+    assert((totsent < std::numeric_limits<int>::max()));	
+    assert((totrecv < std::numeric_limits<int>::max()));
+
+
+    int locsize = vals.size();
+  	NT * senddata = new NT[locsize];	// re-used for both rows and columns
+    for(int i=0; i<nprocs; ++i)
+    {
+      std::copy(data[i].begin(), data[i].end(), senddata+sdispls[i]);
+      data[i].clear();	// clear memory
+      data[i].shrink_to_fit();
+    }
+    MPI_Datatype MPI_NT;
+    MPI_Type_contiguous(sizeof(NT), MPI_CHAR, &MPI_NT);
+    MPI_Type_commit(&MPI_NT);
+
+    NT * recvdata = new NT[totrecv];	
+    MPI_Alltoallv(senddata, sendcnt, sdispls, MPI_NT, recvdata, recvcnt, rdispls, MPI_NT, commGrid->GetWorld());
+
+    DeleteAll(senddata, sendcnt, recvcnt, sdispls, rdispls);
+    MPI_Type_free(&MPI_NT);
+
+    std::vector<NT>().swap(vals);	// clear memory
+    // print received data
+    for (int i = 0; i < totrecv; i++) {
+      // std::cout << "process " << myrank << " received value " << recvdata[i] << std::endl;
+      vals.push_back(recvdata[i]);
+    }
+
+    this->setValues(vals);
+    
+    MPI_Barrier(getCommWorld());
 
 
 }
