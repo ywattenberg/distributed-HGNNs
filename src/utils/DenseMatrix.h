@@ -480,8 +480,7 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
 
     processLines(lines, type, vals);   
 
-    SpParHelper::Print("Reading matrix market file finished\n");
-    lines.clear();
+    MPI_Barrier(commGrid->commWorld);
 
     while(!finished)
     {
@@ -503,25 +502,25 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
     MPI_File_close(&mpi_fh);
     std::vector<NT>().swap(*vals);
 
-//     std::vector< std::vector < std::tuple<LIT,LIT,NT> > > data(nprocs);
-    
-//     LIT locsize = rows.size();   // remember: locsize != entriesread (unless the matrix is unsymmetric)
-//     for(LIT i=0; i<locsize; ++i)
-//     {
-//         LIT lrow, lcol;
-//         int owner = Owner(nrows, ncols, rows[i], cols[i], lrow, lcol);
-//         data[owner].push_back(std::make_tuple(lrow,lcol,vals[i]));
-//     }
-//     std::vector<LIT>().swap(rows);
-//     std::vector<LIT>().swap(cols);
-//     std::vector<NT>().swap(vals);	
+    int grid_len = std::sqrt(nprocs);
+    int localRows = nrows / grid_len;
+    int localCols = ncols / grid_len;
 
-// #ifdef COMBBLAS_DEBUG
-//     if(myrank == 0)
-//         std::cout << "Packing to recepients finished, about to send..." << std::endl;
-// #endif
+    int procCol = commGrid->getRankInProcCol();
+    int procRow = commGrid->getRankInProcRow();
+
+    if (procCol == grid_len - 1){
+      localCols += ncols % grid_len;
+    }
+    if (procRow == grid_len - 1){
+      localRows += nrows % grid_len;
+    }
+
+    this->setLocalRows(localRows);
+    this->setLocalCols(localCols);
     
-//     SparseCommon(data, locsize, nrows, ncols, BinOp);
+
+
 }
 
 }
