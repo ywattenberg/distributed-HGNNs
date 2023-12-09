@@ -1,5 +1,5 @@
 #ifndef _DENSE_MATRIX_H_
-#define _DENSE_Matrix_H_
+#define _DENSE_MATRIX_H_
 
 
 #include <iostream>
@@ -10,6 +10,7 @@
 
 #include "CombBLAS/CombBLAS.h"
 #include "CombBLAS/SpParMat.h"
+#include "CombBLAS/ParFriends.h"
 #include "CombBLAS/SpParHelper.h"
 #include "CombBLAS/SpDCCols.h"
 
@@ -21,9 +22,14 @@ class DenseMatrix
 {
   public:
     std::vector<NT> *getValues() {return values;}
+    void setValues(std::vector<NT> *vals) {values = vals;}
+    void push_back(NT val) {values->push_back(val);}
     int getLocalRows() {return localRows;}
     int getLocalCols() {return localCols;}
+    void setLocalRows(int rows) {localRows = rows;}
+    void setLocalCols(int cols) {localCols = cols;}
     std::shared_ptr<CommGrid> getCommGrid() {return commGrid;}
+    auto getCommWorld() {return commGrid->GetWorld();}
 
     DenseMatrix<NT>(int rows, int cols, std::vector<NT> *values, std::shared_ptr<CommGrid> grid): values(values), localRows(rows), localCols(cols)
     {
@@ -41,6 +47,13 @@ class DenseMatrix
     //   delete values;
     // }
 
+    // ~DenseMatrix<NT>()
+    // {
+
+    //   delete values;
+    // }
+
+    void ParallelReadDMM (const std::string & filename, bool onebased);
     
 
   private:
@@ -152,6 +165,7 @@ DenseMatrix<NT> fox(DenseMatrix<NT> &A, SpParMat<IT, NT, DER> &B)
 
   if (myrank == 0){
     if (rowDense != rowSparse || colDense != colSparse || rowDense != colDense){
+      std::cout << "DIMENSIONS DONT MATCH" << std::endl;
       MPI_Abort(commi, 1);
     }
   }
@@ -213,7 +227,7 @@ DenseMatrix<NT> fox(DenseMatrix<NT> &A, SpParMat<IT, NT, DER> &B)
 }
 
 template<typename SR, typename IT, typename NT, typename DER>
-DenseMatrix<NT> fox2(DenseMatrix<NT> &A, SpParMat<IT, NT, DER> &B){
+DenseMatrix<NT> fox2(DenseMatrix<NT> &A, SpParMat<IT, NT, DER> &B) {
     int myrank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
     int rowDense = A.getCommGrid()->GetGridRows();
@@ -326,6 +340,188 @@ DenseMatrix<NT> fox2(DenseMatrix<NT> &A, SpParMat<IT, NT, DER> &B){
     }
 
     return DenseMatrix<NT>(denseLocalRows, sparseLocalCols, localOut, GridC);
+}
+
+// helper function for ParallelReadDMM
+template <class NT>
+void processLines(std::vector<std::string> lines, int type, std::vector<NT> * vals) {
+   if(type == 0)   // real
+    {
+        double vv;
+        for (auto itr=lines.begin(); itr != lines.end(); ++itr)
+        {
+            // string::c_str() -> Returns a pointer to an array that contains a null-terminated sequence of characters (i.e., a C-string)
+            sscanf(itr->c_str(), "%lg", &vv);
+            // print read values
+            vals->push_back(vv);
+        }
+    }
+    else if(type == 1) // integer
+    {
+        int64_t ii, jj, vv;
+        for (auto itr=lines.begin(); itr != lines.end(); ++itr)
+        {
+            sscanf(itr->c_str(), "%lld", &vv);
+            vals->push_back(vv);
+        }
+    }
+    else
+    {
+        std::cout << "COMBBLAS: Unrecognized matrix market scalar type" << std::endl;
+    }
+}
+
+//! Handles all sorts of orderings, even duplicates (what happens to them is determined by BinOp)
+//! Requires proper matrix market banner at the moment
+//! Replaces ReadDistribute for properly load balanced input in matrix market format
+template <class NT>
+void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool onebased) {
+    int32_t type = -1;
+    int32_t symmetric = 0;
+    int32_t nrows, ncols;
+    int32_t linesread = 0;
+    
+    FILE *f;
+    int myrank = commGrid->GetRank();
+    int nprocs = commGrid->GetSize();
+
+    // get info about file
+    if(myrank == 0) { // only the root processor reads the file{
+        MM_typecode matcode;
+        if ((f = fopen(filename.c_str(), "r")) == NULL)
+        {
+            printf("COMBBLAS: Matrix-market file %s can not be found\n", filename.c_str());
+            std::cout << "COMBBLAS: Matrix-market file " << filename << " can not be found" << std::endl;
+            SpParHelper::Print("COMBBLAS: Matrix-market file " + filename + " can not be found");
+            MPI_Abort(MPI_COMM_WORLD, NOFILE);
+        }
+        if (mm_read_banner(f, &matcode) != 0)
+        {
+            printf("Could not process Matrix Market banner.\n");
+            exit(1);
+        }
+        linesread++;
+        
+        if (mm_is_complex(matcode))
+        {
+            printf("Sorry, this application does not support complex types");
+            printf("Market Market type: [%s]\n", mm_typecode_to_str(matcode));
+        }
+        else if(mm_is_real(matcode))
+        {
+            std::cout << "Matrix is Float" << std::endl;
+            type = 0;
+        }
+        else if(mm_is_integer(matcode))
+        {
+            std::cout << "Matrix is Integer" << std::endl;
+            type = 1;
+        }
+        else if(mm_is_pattern(matcode))
+        {
+            std::cout << "Matrix is Boolean" << std::endl;
+            type = 2;
+        }
+        if(mm_is_symmetric(matcode) || mm_is_hermitian(matcode))
+        {
+            std::cout << "Matrix is symmetric" << std::endl;
+            symmetric = 1;
+        }
+        int ret_code;
+        if ((ret_code = mm_read_mtx_array_size(f, &nrows, &ncols)) !=0)  // ABAB: mm_read_mtx_crd_size made 64-bit friendly
+            exit(1);
+    
+        std::cout << "Total number of rows, columns expected across all processors is " << nrows << ", " << ncols << std::endl;
+    }
+
+    // broadcast matrix info
+    MPI_Bcast(&type, 1, MPI_INT, 0, getCommWorld());
+    MPI_Bcast(&symmetric, 1, MPI_INT, 0, getCommWorld());
+    MPI_Bcast(&nrows, 1, MPIType<int64_t>(), 0, getCommWorld());
+    MPI_Bcast(&ncols, 1, MPIType<int64_t>(), 0, getCommWorld());
+
+    // Use fseek again to go backwards two bytes and check that byte with fgetc
+    struct stat st;     // get file size
+    if (stat(filename.c_str(), &st) == -1) {
+        std::cout << "COMBBLAS: Could not determine file size" << std::endl;
+        MPI_Abort(MPI_COMM_WORLD, NOFILE);
+    }
+
+    // distribute file offsets to all processes
+    int64_t file_size = st.st_size;
+    MPI_Offset fpos, end_fpos, endofheader;
+    if(commGrid->GetRank() == 0) { // the offset needs to be for this rank
+        std::cout << "File is " << file_size << " bytes" << std::endl;
+        fpos = ftell(f);
+        endofheader =  fpos;
+    	  MPI_Bcast(&endofheader, 1, MPIType<MPI_Offset>(), 0, getCommWorld());
+        fclose(f);
+    } else {
+    	MPI_Bcast(&endofheader, 1, MPIType<MPI_Offset>(), 0, getCommWorld());  // receive the file loc at the end of header
+	    fpos = endofheader + myrank * (file_size-endofheader) / nprocs;
+    }
+
+    if(myrank != (nprocs-1)) {
+      end_fpos = endofheader + (myrank + 1) * (file_size-endofheader) / nprocs;
+    } else {
+      end_fpos = file_size;
+    }
+
+    MPI_File mpi_fh;
+    MPI_File_open(getCommWorld(), const_cast<char*>(filename.c_str()), MPI_MODE_RDONLY, MPI_INFO_NULL, &mpi_fh);
+	 
+    typedef typename SpDCCols<int, NT>::LocalIT LIT;
+    // TODO: set size of vector
+    std::vector<NT>* vals = new std::vector<NT>();
+
+    std::vector<std::string> lines;
+    bool finished = SpParHelper::FetchBatch(mpi_fh, fpos, end_fpos, true, lines, myrank);
+    int64_t entriesread = lines.size();
+
+    processLines(lines, type, vals);   
+
+    SpParHelper::Print("Reading matrix market file finished\n");
+    lines.clear();
+
+    while(!finished)
+    {
+        finished = SpParHelper::FetchBatch(mpi_fh, fpos, end_fpos, false, lines, myrank);
+        entriesread += lines.size();
+        // SpHelper::ProcessLines(rows, cols, vals, lines, symmetric, type, onebased);
+        processLines(lines, type, vals);
+    }
+
+    int64_t allentriesread;
+    MPI_Reduce(&entriesread, &allentriesread, 1, MPIType<int64_t>(), MPI_SUM, 0, getCommWorld());
+// #ifdef COMBBLAS_DEBUG
+    if(myrank == 0)
+        std::cout << "Reading finished. Total number of entries read across all processors is " << allentriesread << std::endl;
+// #endif
+
+    this->setValues(vals);
+    // SpParMat<int, NT, Sp>()::SparseCommon(data, allentriesread, nrows, ncols, PlusTimesSRxing<NT,NT>());
+    MPI_File_close(&mpi_fh);
+    std::vector<NT>().swap(*vals);
+
+//     std::vector< std::vector < std::tuple<LIT,LIT,NT> > > data(nprocs);
+    
+//     LIT locsize = rows.size();   // remember: locsize != entriesread (unless the matrix is unsymmetric)
+//     for(LIT i=0; i<locsize; ++i)
+//     {
+//         LIT lrow, lcol;
+//         int owner = Owner(nrows, ncols, rows[i], cols[i], lrow, lcol);
+//         data[owner].push_back(std::make_tuple(lrow,lcol,vals[i]));
+//     }
+//     std::vector<LIT>().swap(rows);
+//     std::vector<LIT>().swap(cols);
+//     std::vector<NT>().swap(vals);	
+
+// #ifdef COMBBLAS_DEBUG
+//     if(myrank == 0)
+//         std::cout << "Packing to recepients finished, about to send..." << std::endl;
+// #endif
+    
+//     SparseCommon(data, locsize, nrows, ncols, BinOp);
 }
 
 }
