@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
 
 
 
-        std::vector<double> tmp = {4.0, 1.0, 3.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+        std::vector<double> tmp = {4.0, 1.0, 3.0, 2.0};
 
         if (myrank == 0){
             cout << "length of vector: " << tmp.size() << endl;
@@ -99,12 +99,8 @@ int main(int argc, char* argv[])
         A2D.PrintInfo();
         MPI_Barrier(MPI_COMM_WORLD);
 
-        cout << "before function" << endl;
-
         SpParMat<int64_t, double, SpDCCols<int64_t, double>> res = PSpSCALE<PTFF, int64_t, double, SpDCCols<int64_t, double>>(A2D, tmp);
-        cout << " huhu" << endl;
-        cout << " after write" << endl;
-        // res.ParallelWriteMM("../data/m_g_ms_gs/bla.mtx", true); 
+        res.ParallelWriteMM("../data/m_g_ms_gs/bla.mtx", true); 
 
         // if (res == CC2D){
         //     if (myrank == 0){
@@ -177,9 +173,6 @@ int main(int argc, char* argv[])
         int rows = 4;
         int cols = 4;
 
-        cout << "before finalizing from "  << myrank << endl;
-
-        
 
         DenseMatrix<double> denseTest = DenseMatrix<double>(2,2,&dist, fullWorld);
         
@@ -192,9 +185,9 @@ int main(int argc, char* argv[])
 
         // }
 
-
         
-        DenseMatrix<double> output = fox<PTFF, int64_t, double, SpDCCols < int64_t, double >>(denseTest, res);
+        
+        DenseMatrix<double> output = SpDenseMult<PTFF, int64_t, double, SpDCCols < int64_t, double >>(res, denseTest);
         std::vector<double> outValuesLocal = *output.getValues();
 
 

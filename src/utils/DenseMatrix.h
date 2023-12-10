@@ -40,7 +40,7 @@ class DenseMatrix
     std::shared_ptr<CommGrid> getCommGrid() {return commGrid;}
     auto getCommWorld() {return commGrid->GetWorld();}
 
-    DenseMatrix<NT>(int rows, int cols, std::vector<NT> values, std::shared_ptr<CommGrid> grid): values(values), localRows(rows), localCols(cols)
+    DenseMatrix<NT>(int rows, int cols, std::vector<NT> * values, std::shared_ptr<CommGrid> grid): values(values), localRows(rows), localCols(cols)
     {
       commGrid = grid;
     }
@@ -282,7 +282,6 @@ void blockSparseDense(size_t dense_rows, size_t dense_cols, DER* sparse_B, std::
         outValues->at(sparseRow * dense_cols + k) += SR::multiply(elem, dense_A->at(Col * dense_cols + k));
       }
     }
-
   }
 }
 
@@ -301,7 +300,7 @@ DenseMatrix<NT> SpDenseMult(SpParMat<IT, NT, DER> &B, DenseMatrix<NT> &A)
   
 
   IT ** BRecvSizes = SpHelper::allocate2D<IT>(DER::esscount, stages);
-  SpParHelper::GetSetSizes( *(B.getSpSeq()), BRecvSizes, (B.getcommgrid())->GetColWorld());
+  SpParHelper::GetSetSizes( *(B.getSpSeq()), BRecvSizes, (B.getcommgrid())->GetRowWorld());
 
 
   std::vector<NT> * bufferA = new std::vector<NT>();
@@ -323,9 +322,8 @@ DenseMatrix<NT> SpDenseMult(SpParMat<IT, NT, DER> &B, DenseMatrix<NT> &A)
 
   std::vector<NT> * localOut = new std::vector<NT>(sparseLocalRows * denseLocalCols);
   
-
   //other stages:
-  for (int i = 0; i < stages; i++){
+  for (int i = 0; i < stages; i++){    
     int sendingRank = i;
     
     if (rankAinCol == sendingRank){
@@ -354,9 +352,11 @@ DenseMatrix<NT> SpDenseMult(SpParMat<IT, NT, DER> &B, DenseMatrix<NT> &A)
     
     SpParHelper::BCastMatrix<IT, NT, DER>(GridC->GetRowWorld(), *bufferB, ess, sendingRank);
 
-    blockSparseDense(denseLocalRows, denseLocalCols, bufferB, bufferA, localOut);
-
+    blockSparseDense<SR, IT, NT, DER>(denseLocalRows, denseLocalCols, bufferB, bufferA, localOut);
   }
+
+  return DenseMatrix<NT>(denseLocalRows, sparseLocalCols, localOut, GridC);
+
 }
 
 // helper function for ParallelReadDMM
