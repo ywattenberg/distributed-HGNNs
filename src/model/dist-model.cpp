@@ -71,7 +71,7 @@ DistModel::DistModel(ConfigProperties &config, int in_dim){
     }
 };
 
-DenseMatrix DistModel::forward(const DenseMatrix &input){
+DPMAT_DOUBLE DistModel::forward(const DPMAT_DOUBLE &input){
     // dvh times w
     this->G_1 = PSpSCALE<PTFF, int64_t, double, SpDCCols<int64_t, double>>(this->dvh, this->w);
     // G_1.ParallelWriteMM("../data/m_g_ms_gs/bla.mtx", true);

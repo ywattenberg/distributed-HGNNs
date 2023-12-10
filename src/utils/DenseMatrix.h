@@ -77,42 +77,6 @@ class DenseMatrix
     std::shared_ptr<CommGrid> commGrid; 
 };
 
-int getSendingRankInRow(int rank, int diagOffset, int cols){
-  int rowPos = rank / cols;
-  return rowPos * cols + (rowPos + diagOffset) % cols;
-}
-
-
-int getRecvRank(int rank, int round, int cols, int size){
-  int RecvRank = rank - (round * cols);
-  if (RecvRank < 0){
-    RecvRank = size + rank - (round * cols);
-  }
-  return RecvRank;
-}
-
-// template<typename IT, typename NT, typename DER>	
-// static void SendAndReceive(MPI_Comm & comm1d, , std::vector<IT> * essentials, int dest, int source)
-// {
-//   int myrank;
-//   MPI_Comm_rank(comm1d, &myrank);
-
-//   if(myrank != root)
-// 	{
-// 		Matrix.Create(essentials);		// allocate memory for arrays		
-// 	}
-
-// 	Arr<IT,NT> arrinfo = Matrix.GetArrays();
-// 	for(unsigned int i=0; i< arrinfo.indarrs.size(); ++i)	// get index arrays
-// 	{
-// 		MPI_Bcast(arrinfo.indarrs[i].addr, arrinfo.indarrs[i].count, MPIType<IT>(), root, comm1d);
-// 	}
-// 	for(unsigned int i=0; i< arrinfo.numarrs.size(); ++i)	// get numerical arrays
-// 	{
-// 		MPI_Bcast(arrinfo.numarrs[i].addr, arrinfo.numarrs[i].count, MPIType<NT>(), root, comm1d);
-// 	}
-// }
-
 
 template<typename IT, typename NT>	
 static void BCastMatrixDense(MPI_Comm & comm1d, std::vector<NT> * values, std::vector<IT> essentials, int sendingRank)
@@ -131,7 +95,7 @@ static void BCastMatrixDense(MPI_Comm & comm1d, std::vector<NT> * values, std::v
 }
 
 template<typename SR, typename IT, typename NT, typename DER>
-void localMatrixMult(size_t dense_rows, size_t dense_cols, std::vector<NT>* dense_A, DER* sparse_B, std::vector<NT> * outValues){
+void blockDenseSparse(size_t dense_rows, size_t dense_cols, std::vector<NT>* dense_A, DER* sparse_B, std::vector<NT> * outValues){
   int myrank;
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
   
@@ -163,7 +127,7 @@ void localMatrixMult(size_t dense_rows, size_t dense_cols, std::vector<NT>* dens
 
 
 template<typename SR, typename IT, typename NT, typename DER>
-DenseMatrix<NT> fox(DenseMatrix<NT> &A, SpParMat<IT, NT, DER> &B) {
+DenseMatrix<NT> DenseSpMult(DenseMatrix<NT> &A, SpParMat<IT, NT, DER> &B) {
     int myrank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
     int rowDense = A.getCommGrid()->GetGridRows();
@@ -223,15 +187,121 @@ DenseMatrix<NT> fox(DenseMatrix<NT> &A, SpParMat<IT, NT, DER> &B) {
         }	
         bufferB = new DER();
       }
-      int rankOfColWorld;
-      MPI_Comm_rank(GridC->GetColWorld(),&rankOfColWorld);
+      
       SpParHelper::BCastMatrix<IT, NT, DER>(GridC->GetColWorld(), *bufferB, ess, sendingRank);
 
-      localMatrixMult<SR, IT, NT, DER>(denseLocalRows, denseLocalCols, bufferA, bufferB, localOut);
+      blockDenseSparse<SR, IT, NT, DER>(denseLocalRows, denseLocalCols, bufferA, bufferB, localOut);
 
     }
 
     return DenseMatrix<NT>(denseLocalRows, sparseLocalCols, localOut, GridC);
+}
+
+template<typename SR, typename IT, typename NT, typename DER>
+void blockSparseDense(size_t dense_rows, size_t dense_cols, DER* sparse_B, std::vector<NT>* dense_A, std::vector<NT> * outValues){
+  int myrank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+  
+  IT nnz = sparse_B->getnnz();
+  IT cols_spars = sparse_B->getncol();
+  IT rows_spars = sparse_B->getnrow();
+
+  if (cols_spars != dense_rows) {
+    throw std::invalid_argument( "DIMENSIONS DON'T MATCH" );        
+  }
+
+  if (nnz == 0){
+    return;
+  }
+
+  Dcsc<IT, NT>* Bdcsc = sparse_B->GetDCSC();
+
+  for (size_t i = 0; i < Bdcsc->nzc; i++){
+    IT Col = Bdcsc->jc[i];
+    size_t nnzInCol = Bdcsc->cp[i+1] - Bdcsc->cp[i];
+    for (size_t j = 0; j < nnzInCol; j++){
+      IT sparseRow = Bdcsc->ir[Bdcsc->cp[i]+ j];
+      NT elem = Bdcsc->numx[Bdcsc->cp[i]+ j];
+
+      for (size_t k = 0; k < dense_cols; k++){
+        outValues->at(sparseRow * dense_cols + k) += SR::multiply(elem, dense_A->at(Col * dense_cols + k));
+      }
+    }
+
+  }
+}
+
+
+// computes B*A, where B is a sparse matrix and A a dense matrix
+template<typename SR, typename IT, typename NT, typename DER>
+DenseMatrix<NT> SpDenseMult(SpParMat<IT, NT, DER> &B, DenseMatrix<NT> &A) 
+{
+  int myrank;
+  MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+  int rowDense = A.getCommGrid()->GetGridRows();
+  int colDense = A.getCommGrid()->GetGridCols();
+
+  int stages, dummy;
+  std::shared_ptr<CommGrid> GridC = ProductGrid((B.getcommgrid()).get(), (A.getCommGrid()).get(), stages, dummy, dummy);		
+  
+
+  IT ** BRecvSizes = SpHelper::allocate2D<IT>(DER::esscount, stages);
+  SpParHelper::GetSetSizes( *(B.getSpSeq()), BRecvSizes, (B.getcommgrid())->GetColWorld());
+
+
+  std::vector<NT> * bufferA = new std::vector<NT>();
+  std::vector<IT> essentialsA(3); // saves rows, cols and total number of elements of block
+  std::vector<IT> ess = std::vector<IT>();
+  std::vector<NT> * out;
+  DER * bufferB;
+
+  int rankAinRow = A.getCommGrid()->GetRankInProcRow();
+  int rankAinCol = A.getCommGrid()->GetRankInProcCol();
+  int rankBinRow = B.getcommgrid()->GetRankInProcRow();
+  int rankBinCol = B.getcommgrid()->GetRankInProcCol();
+
+  int denseLocalRows = A.getLocalRows();
+  int denseLocalCols = A.getLocalCols();
+
+  int sparseLocalRows = B.getlocalrows();
+  int sparseLocalCols = B.getlocalcols();
+
+  std::vector<NT> * localOut = new std::vector<NT>(sparseLocalRows * denseLocalCols);
+  
+
+  //other stages:
+  for (int i = 0; i < stages; i++){
+    int sendingRank = i;
+    
+    if (rankAinCol == sendingRank){
+      bufferA = A.getValues();
+
+      essentialsA[1] = A.getLocalRows();
+      essentialsA[2] = A.getLocalCols();
+      essentialsA[0] = essentialsA[1] * essentialsA[2];
+    }
+
+    BCastMatrixDense(GridC->GetColWorld(), bufferA, essentialsA, sendingRank);
+
+    if(rankBinRow == sendingRank)
+    {
+      bufferB = B.getSpSeq();
+    }
+    else
+    {
+      ess.resize(DER::esscount);		
+      for(int j=0; j< DER::esscount; ++j)	
+      {
+        ess[j] = BRecvSizes[j][i];
+      }	
+      bufferB = new DER();
+    }
+    
+    SpParHelper::BCastMatrix<IT, NT, DER>(GridC->GetRowWorld(), *bufferB, ess, sendingRank);
+
+    blockSparseDense(denseLocalRows, denseLocalCols, bufferB, bufferA, localOut);
+
+  }
 }
 
 // helper function for ParallelReadDMM
@@ -264,7 +334,7 @@ void processLines(std::vector<std::string> lines, int type, std::vector<NT> * va
     }
 }
 
-int getOwner(int nrows, int ncols, int row, int col, int grid_len) {
+inline int getOwner(int nrows, int ncols, int row, int col, int grid_len) {
     int rows_per_proc = nrows / grid_len;
     int cols_per_proc = ncols / grid_len;
     int rowid = row / rows_per_proc;

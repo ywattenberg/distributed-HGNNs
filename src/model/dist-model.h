@@ -58,7 +58,7 @@ class DistModel
 
         // forward function of the Model, it takes the features X (called input) and the constant leftSide of the expression 10 of the paper 
         // Hypergraph Neural Networks (called leftSide)
-        DenseMatrix forward(const DenseMatrix &input);
+        DPMAT_DOUBLE forward(const DPMAT_DOUBLE &input);
 
 
 };
