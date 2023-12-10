@@ -72,11 +72,22 @@ int main(int argc, char* argv[])
         B2D.ParallelReadMM(Bname, true, maximum<double>());
         CC2D.ParallelReadMM(CCname, true, maximum<double>());
 
+
+        SpTuples<int64_t, double>* tuples = new SpTuples<int64_t, double>(0, 4, 4);
+        std::cout << "rank " << myrank << " has no work" << std::endl;
+        SpDCCols<int64_t, double> * out =  new SpDCCols<int64_t, double>(*tuples, false);
+        std::cout << "rank " << myrank << " has  still no work" << std::endl;
+        SpParMat<int64_t, double, SpDCCols<int64_t, double>> blabla = SpParMat<int64_t, double, SpDCCols<int64_t, double>> (out, fullWorld);
+
         // int64_t length = 50;
         // FullyDistVec<int64_t, double> v = FullyDistVec(length, 2);
         // auto tmp = v.get_values();
 
-        std::vector<double> tmp = {4.0, 1.0, 3.0, 2.0, 1.0};
+        // auto out =  PSpGEMM<PTFF, int64_t, double, double, SpDCCols < int64_t, double >, SpDCCols <int64_t, double >>(A2D,B2D);
+
+
+
+        std::vector<double> tmp = {4.0, 1.0, 3.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0};
 
         if (myrank == 0){
             cout << "length of vector: " << tmp.size() << endl;
@@ -86,19 +97,24 @@ int main(int argc, char* argv[])
         }
 
         A2D.PrintInfo();
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        cout << "before function" << endl;
 
         SpParMat<int64_t, double, SpDCCols<int64_t, double>> res = PSpSCALE<PTFF, int64_t, double, SpDCCols<int64_t, double>>(A2D, tmp);
-        res.ParallelWriteMM("../data/m_g_ms_gs/bla.mtx", true);
+        cout << " huhu" << endl;
+        cout << " after write" << endl;
+        // res.ParallelWriteMM("../data/m_g_ms_gs/bla.mtx", true); 
 
-        if (res == CC2D){
-            if (myrank == 0){
-                fprintf(stderr, "Correct\n");
-            }
-        } else{
-            if(myrank == 0) fprintf(stderr, "Not correct\n");
-        }
+        // if (res == CC2D){
+        //     if (myrank == 0){
+        //         fprintf(stderr, "Correct\n");
+        //     }
+        // } else{
+        //     if(myrank == 0) fprintf(stderr, "Not correct\n");
+        // }
 
-        if(myrank == 0) fprintf(stderr, "***\n");
+        if(myrank == 1) fprintf(stderr, "***\n");
 
         // auto out =  PSpGEMM<PTFF, int64_t, double, double, SpDCCols < int64_t, double >, SpDCCols <int64_t, double >>(A2D,B2D);
 
@@ -160,7 +176,11 @@ int main(int argc, char* argv[])
         // cout << "hello from rank " << myrank << endl;
         int rows = 4;
         int cols = 4;
+
+        cout << "before finalizing from "  << myrank << endl;
+
         
+
         DenseMatrix<double> denseTest = DenseMatrix<double>(2,2,&dist, fullWorld);
         
         // if (myrank == 2){
@@ -171,12 +191,14 @@ int main(int argc, char* argv[])
         //     }
 
         // }
+
+
         
-        DenseMatrix<double> output = fox2<PTFF, int64_t, double, SpDCCols < int64_t, double >>(denseTest, res);
+        DenseMatrix<double> output = fox<PTFF, int64_t, double, SpDCCols < int64_t, double >>(denseTest, res);
         std::vector<double> outValuesLocal = *output.getValues();
 
 
-        if (myrank == 3){
+        if (myrank == 0){
             for (int i = 0; i < output.getLocalRows(); i++){
                 for (int j = 0; j < output.getLocalCols(); j++){
                     cout << outValuesLocal[i*output.getLocalCols() + j] << " ";
