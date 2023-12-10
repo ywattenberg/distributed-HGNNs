@@ -390,9 +390,11 @@ int getOwner(int nrows, int ncols, int row, int col, int grid_len) {
     int rows_per_proc = nrows / grid_len;
     int cols_per_proc = ncols / grid_len;
     int rowid = row / rows_per_proc;
+    rowid = std::min(rowid, grid_len - 1);
     int colid = col / cols_per_proc;
+    colid = std::min(colid, grid_len - 1);
     int rank = rowid * grid_len + colid;
-    std::cout << "row " << row << " col " << col << " is owned by rank " << rank << std::endl;
+    // std::cout << "row " << row << " col " << col << " is owned by rank " << rank << std::endl;
     return rank;
 }
 
@@ -486,7 +488,7 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
         fpos = ftell(f);
         endofheader =  fpos;
     	  MPI_Bcast(&endofheader, 1, MPIType<MPI_Offset>(), 0, getCommWorld());
-        std::cout << "End of header is " << endofheader << " bytes" << std::endl;
+        // std::cout << "End of header is " << endofheader << " bytes" << std::endl;
         // std::string line;
         // std::getline(f, line);
         // int secondpos = ftell(f);
@@ -498,12 +500,12 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
     	MPI_Bcast(&endofheader, 1, MPIType<MPI_Offset>(), 0, getCommWorld());  // receive the file loc at the end of header
 	    // fpos = endofheader + myrank * (file_size-endofheader) / nprocs;
       // give each process a number of rows to read
-      fpos = endofheader + myrank * rows_per_proc * ncols * 14;
+      fpos = endofheader + myrank * rows_per_proc * ncols * 15;
     }
 
     if(myrank != (nprocs-1)) {
       // end_fpos = endofheader + (myrank + 1) * (file_size-endofheader) / nprocs;
-      end_fpos = endofheader + (myrank + 1) * rows_per_proc * ncols * 14;
+      end_fpos = endofheader + (myrank + 1) * rows_per_proc * ncols * 15;
     } else {
       end_fpos = file_size;
     }
@@ -519,6 +521,7 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
     bool finished = SpParHelper::FetchBatch(mpi_fh, fpos, end_fpos, true, lines, myrank);
     int64_t entriesread = lines.size();
 
+    // std::cout << "Process " << myrank << " lines size " << entriesread << std::endl;
     processLines(lines, type, &vals, myrank);   
 
     MPI_Barrier(getCommWorld());
@@ -543,7 +546,7 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
     // std::vector<NT>().swap(&vals);
 
     int rows_read = entriesread / ncols;
-    std::cout << "process " << myrank << " read " << entriesread << " rows" << std::endl;
+    // std::cout << "process " << myrank << " read " << entriesread << " entries" << std::endl;
 
     int grid_len = std::sqrt(nprocs);
     int localRows = nrows / grid_len;
