@@ -51,6 +51,9 @@ DistModel::DistModel(ConfigProperties &config, int in_dim){
     this->dvh = dvh;
     this->invde_ht_dvh = invde_ht_dvh;
 
+    // Calculate the product L*R for the backwardpass of W 
+    this->LR = PSpGEMM<PTFF, int64_t, double, double, DCCols, DCCols>(this->dvh, this->invde_ht_dvh);
+
     //TODO: use correct dimension
     vector<double> w(in_dim, 1.0);
     this->layers = vector<DistConv>();
@@ -74,34 +77,76 @@ DistModel::DistModel(ConfigProperties &config, int in_dim){
 
 DistModel::~DistModel(){};
 
+
+void DistModel::comp_layer(const DENSE_DOUBLE* X, const DistConv* curr, bool last_layer=false){
+    // Compute Xt (X * theta or G_2) where both are dense matrices
+    curr->Xt = PDGEMM(X, curr->weights); //TODO: write wrapper for DenseDenseMult (distributed)
+    if (this->withBias){
+        // Compute XTb (X * Theta + b or G_2) where both are dense matrices
+        curr->XtB = DenseDenseAdd(curr->Xt, curr->bias);
+    }
+    // Compute G_3 (LWR * XTb) with bias and (LWR * XT) without, where LWR is a sparse matrix and XTb/XT are dense matrices
+    curr->G_3 = SpDenseMult<PTFF, int64_t, double, DCCols>(this->LWR, this->withBias ? curr->XtB : curr->Xt);
+    // Compute X (ReLU(G_3) or G_4) if not last layer
+    curr->G_4 = last_layer ? NULL : DenseReLU(curr->G_3);
+}
+
 DENSE_DOUBLE* DistModel::forward(const DENSE_DOUBLE* input){
     // First compute LWR or G_1 (will be the same for all layers)
     this->LWR = PSpSCALE<PTFF, int64_t, double, DCCols>(this->dvh, this->w);
     this->LWR = PSpGEMM<PTFF, int64_t, double, double, DCCols, DCCols>(this->LWR, this->invde_ht_dvh);
     DENSE_DOUBLE* X = input;
     // All other calculations are have to be done for each layer
-    for(int i = 1; i < this->layers.size(); i++){
+    for(int i = 0; i < this->layers.size()-1; i++){
         DistConv curr = this->layers[i];
-        // Compute Xt (X * theta or G_2) where both are dense matrices
-        curr.Xt = PDGEMM(X, curr.weights);
-        if (this->withBias){
-            // Compute XTb (X * Theta + b or G_2) where both are dense matrices
-            curr.XtB = DenseDenseAdd(curr.Xt, curr.bias);
-        }
-        // Compute G_3 (LWR * XTb) with bias and (LWR * XT) without, where both are dense matrices
-        curr.G_3 = fox<PTFF, int64_t, double, DCCols>(this->LWR, this->withBias ? curr.XtB : curr.Xt);
-        // Compute X (ReLU(G_3) or G_4) where both are dense matrices
-        curr.G_4 = DenseReLU(curr.G_3);
+        curr.X = X;
+        // Compute each layer
+        comp_layer(X, &curr);
         // Set X to G_4 for next iteration
         X = &curr.G_4;
     }
+    // Last layer is different as we do not use ReLU
+    X = this->layers[this->layers.size()-1].G_3;
     return X;
-    // this->layers[0].G_2 = PSpGEMM<PTFF, int64_t, double, double, SpDCCols < int64_t, double >, SpDCCols <int64_t, double >>(this->G_1, input);
-
-    // DPMAT_DOUBLE x = this->layers[0].forward(input);
-
-    // this->layers[0].G_2 = this->invde_ht_dvh->PSpGEMM(x, false);
 }
+
+DENSE_DOUBLE* DistModel::backward(const DENSE_DOUBLE* input, const DENSE_DOUBLE* labels, double learning_rate){
+    //TODO: Calculate loss and direct loss gradients
+
+
+    // Assume we have calculated the loss and gradients up to $\frac{\partial L}{\partial G_3^{L}}$ where $G_3^{L}$ is the output of the last layer
+    // Given in the variable dL/dX
+    DENSE_DOUBLE dL_dX = NULL;
+
+    // Last layer is different as we do not use ReLU
+    // Derivative of loss with respect to \theta = dL_dX * dG_3/dG_2 * dG2_d\theta
+    DENSE_DOUBLE dL_dG3 = ReLU_derivative(dL_dX);
+    DENSE_DOUBLE dL_dt = SpDenseMult<PTFF, int64_t, double, DCCols>()
+    
+    for(int i = this->layers.size()-2; i >= 1; i--){
+        DistConv curr = this->layers[i];
+        // Compute the gradients for each layer
+        // We are given dL_dX from the previous layer
+
+        DENSE_DOUBLE dX_dG3 = ReLU_derivative(curr->G_3);
+        DENSE_DOUBLE dL_dG3 = PDGEMM(dL_dX, dX_dG3); //TODO: write wrapper for DenseDenseMult (distributed)
+        DENSE_DOUBLE dL_dG1 = PDGEMM(dL_dG3, this->withBias ? curr->XtB : curr->Xt); //TODO: write wrapper for DenseDenseMult (distributed)
+        DENSE_DOUBLE dL_dw  = DenseSpMult<PTFF, int64_t, double, DCCols>(dL_dG1, this->LR);
+        DENSE_DOUBLE dL_dG2 = DenseSpMult<PTFF, int64_t, double, DCCols>(dL_dG3, this->LWR);
+        DENSE_DOUBLE dL_dt  = PDGEMM(dL_dG2, curr->X);
+        // Set dL_dX for next iteration
+        DENSE_DOUBLE dL_dX  = PDGEMM(dL_dG2, curr->weights);
+        // Derivate of loss with respect to bias B is just dL_dG2 
+
+        // Update weights and bias
+        curr->weights = DenseGradientStep(&curr->weights, &dL_dt, learning_rate);
+        if (this->withBias){
+            curr->bias = DenseGradientStep(&curr->bias, &dL_dG2, learning_rate);
+        }
+    }
+}
+
+
 
 
 DistConv::DistConv(int in_dim, int out_dim, bool withBias=false){

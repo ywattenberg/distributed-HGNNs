@@ -138,7 +138,7 @@ inline DenseMatrix<NT> DenseDenseAdd(DenseMatrix<NT> &A, DenseMatrix<NT> &B){
   std::transform(dense_A->begin(), dense_A->end(), dense_B->begin(), out->begin(), SR::add);
   return DenseMatrix<NT>(rows, cols, out, A.getCommGrid()); 
 }
-
+// TODO: Parallelize 
 template<typename SR, typename IT, typename NT>
 inline DenseMatrix<NT> DenseReLU(DenseMatrix<NT> &A){
   size_t rows = A.getLocalRows(); 
@@ -149,6 +149,20 @@ inline DenseMatrix<NT> DenseReLU(DenseMatrix<NT> &A){
     out->at(i) = dense_A->at(i) > 0 ? dense_A->at(i) : static_cast<NT>(0.0);
   }
   return DenseMatrix<NT>(rows, cols, out, A.getCommGrid());
+}
+
+template<typename SR, typename IT, typename NT>
+inline void DenseGradientStep(DenseMatrix<NT>* parameter, DenseMatrix<NT>* gradient, double lr){
+  size_t rows = parameter->getLocalRows(); 
+  size_t cols = parameter->getLocalCols();
+  if (rows != gradient->getLocalRows() || cols != gradient->getLocalCols()) {
+    throw std::invalid_argument( "DIMENSIONS DON'T MATCH" );        
+  }
+  auto dense_parameter = parameter->getValues();
+  auto dense_gradient = gradient->getValues();
+  for(int i = 0; i < rows * cols; i++){
+    dense_parameter->at(i) = SR::add(dense_parameter->at(i), SR::multiply(static_cast<NT>(-lr), dense_gradient->at(i)));
+  }
 }
 
 template<typename SR, typename IT, typename NT, typename DER>

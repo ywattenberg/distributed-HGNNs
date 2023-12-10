@@ -31,9 +31,11 @@ class DistConv
         DPVEC_DOUBLE bias;
 
     public:
+        DENSE_DOUBLE* X; // This will hold the input X
         DENSE_DOUBLE Xt; // This will hold the result of X*\theta (or G_2) 
         DENSE_DOUBLE XtB; // This will hold the result of X*\theta + b (also G_2) if bias is used
-        DENSE_DOUBLE G_3; 
+        DENSE_DOUBLE G_3; // This will hold the result of G_2 * LWR (or G_3)
+        DENSE_DOUBLE G_4; // This will hold the result of ReLU(G_3) (or G_4)
 
         DistConv(int in_dim, int out_dim, bool withBias);
         ~DistConv();
@@ -55,6 +57,8 @@ class DistModel
         SPMAT_DOUBLE invde_ht_dvh;
         vector<double> w;
         SPMAT_DOUBLE LWR;
+        SPMAT_DOUBLE LR;
+
 
     public:
         DistModel(ConfigProperties &config, int in_dim);
