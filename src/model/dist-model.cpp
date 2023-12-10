@@ -13,6 +13,7 @@
 #include "CombBLAS/FullyDistVec.h"
 #include "CombBLAS/ParFriends.h"
 
+#include "../utils/DenseMatrix.h"
 #include "../utils/configParse.h"
 #include "../utils/parDenseGEMM.h"
 #include "../utils/DenseMatrix.h"
@@ -35,8 +36,12 @@ DistModel::DistModel(ConfigProperties &config, int in_dim){
     number_of_hid_layers = lay_dim.size();
     this->withBias = config.model_properties.with_bias;
 
+    int size, rank;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
     shared_ptr<CommGrid> fullWorld;
-    fullWorld.reset(new CommGrid(MPI_COMM_WORLD, 0, 0));
+	fullWorld.reset(new CommGrid(MPI_COMM_WORLD, std::sqrt(size), std::sqrt(size)));
 
     // read data
     SPMAT_DOUBLE dvh(fullWorld);
