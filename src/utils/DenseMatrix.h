@@ -161,6 +161,31 @@ void localMatrixMult(size_t dense_rows, size_t dense_cols, std::vector<NT>* dens
   }
 }
 
+template<typename SR, typename IT, typename NT>
+inline DenseMatrix<NT> DenseDenseAdd(DenseMatrix<NT> &A, DenseMatrix<NT> &B){
+  size_t rows = A.getLocalRows(); 
+  size_t cols = A.getLocalCols();
+  if (rows != B.getLocalRows() || cols != B.getLocalCols()) {
+    throw std::invalid_argument( "DIMENSIONS DON'T MATCH" );        
+  }
+  std::vector<NT> out = new std::vector<NT>(rows * cols);
+  auto dense_A = A.getValues();
+  auto dense_B = B.getValues();
+  std::transform(dense_A->begin(), dense_A->end(), dense_B->begin(), out->begin(), SR::add);
+  return DenseMatrix<NT>(rows, cols, out, A.getCommGrid()); 
+}
+
+template<typename SR, typename IT, typename NT>
+inline DenseMatrix<NT> DenseReLU(DenseMatrix<NT> &A){
+  size_t rows = A.getLocalRows(); 
+  size_t cols = A.getLocalCols();
+  std::vector<NT> out = new std::vector<NT>(rows * cols);
+  auto dense_A = A.getValues();
+  for(int i = 0; i < rows * cols; i++){
+    out->at(i) = dense_A->at(i) > 0 ? dense_A->at(i) : static_cast<NT>(0.0);
+  }
+  return DenseMatrix<NT>(rows, cols, out, A.getCommGrid());
+}
 
 template<typename SR, typename IT, typename NT, typename DER>
 DenseMatrix<NT> fox(DenseMatrix<NT> &A, SpParMat<IT, NT, DER> &B) {

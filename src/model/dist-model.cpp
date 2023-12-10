@@ -14,6 +14,8 @@
 #include "CombBLAS/ParFriends.h"
 
 #include "../utils/configParse.h"
+#include "../utils/parDenseGEMM.h"
+#include "../utils/DenseMatrix.h"
 
 using namespace std;
 using namespace combblas;
@@ -21,8 +23,7 @@ using namespace combblas;
 typedef SpDCCols <int64_t, double> DCCols;
 typedef SpParMat <int64_t, double, DCCols> MPI_DCCols;
 typedef SpParMat<int64_t, double, SpDCCols<int64_t, double>> SPMAT_DOUBLE;
-typedef DenseParMat<int64_t, double> DPMAT_DOUBLE;
-typedef FullyDistVec <int64_t, double> DPVEC_DOUBLE;
+typedef DenseMatrix<double> DENSE_DOUBLE;
 
 typedef PlusTimesSRing<double, double> PTFF;
 
@@ -32,7 +33,7 @@ DistModel::DistModel(ConfigProperties &config, int in_dim){
     dropout = config.model_properties.dropout_rate;
     vector<int> lay_dim = config.model_properties.hidden_dims;
     number_of_hid_layers = lay_dim.size();
-    bool withBias = config.model_properties.with_bias;
+    this->withBias = config.model_properties.with_bias;
 
     shared_ptr<CommGrid> fullWorld;
     fullWorld.reset(new CommGrid(MPI_COMM_WORLD, 0, 0));
@@ -47,62 +48,56 @@ DistModel::DistModel(ConfigProperties &config, int in_dim){
 
     //TODO: use correct dimension
     vector<double> w(in_dim, 1.0);
-    // w = DPVEC_DOUBLE(w_std, dvh->getcommgrid());
-
+    this->layers = vector<DistConv>();
+    this->layers.reserve(number_of_hid_layers);
     if (number_of_hid_layers > 0){
-        auto in_conv = DistConv(input_dim, lay_dim[0], withBias);
-        layers.push_back(in_conv);
+        auto in_conv = DistConv(input_dim, lay_dim[0], this->withBias);
+        this->layers.push_back(in_conv);
         for (int i = 1; i < number_of_hid_layers; i++){
-            auto conv = DistConv(lay_dim[i-1], lay_dim[i], withBias);
-            layers.push_back(conv);
-            // layers.push_back(new HGNN_conv(lay_dim[i-1], lay_dim[i], withBias));
+            auto conv = DistConv(lay_dim[i-1], lay_dim[i], this->withBias);
+            this->layers.push_back(conv);
+            // layers.push_back(new HGNN_conv(lay_dim[i-1], lay_dim[i], this->withBias));
         }
-        auto out_conv = DistConv(lay_dim[number_of_hid_layers-1], output_dim, withBias);
-        layers.push_back(out_conv);
+        auto out_conv = DistConv(lay_dim[number_of_hid_layers-1], output_dim, this->withBias);
+        this->layers.push_back(out_conv);
     } else {
         // no hidden layers
-        auto out_conv = DistConv(input_dim, output_dim, withBias);
-        layers.push_back(out_conv);
+        auto out_conv = DistConv(input_dim, output_dim, this->withBias);
+        this->layers.push_back(out_conv);
     }
 };
 
-DPMAT_DOUBLE DistModel::forward(const DPMAT_DOUBLE &input){
-    // dvh times w
-    this->G_1 = PSpSCALE<PTFF, int64_t, double, SpDCCols<int64_t, double>>(this->dvh, this->w);
-    // G_1.ParallelWriteMM("../data/m_g_ms_gs/bla.mtx", true);
+DistModel::~DistModel(){};
 
-    this->G_1 = PSpGEMM<PTFF, int64_t, double, double, SpDCCols < int64_t, double >, SpDCCols <int64_t, double >>(this->G_1, this->invde_ht_dvh);
-
+DENSE_DOUBLE* DistModel::forward(const DENSE_DOUBLE* input){
+    // First compute LWR or G_1 (will be the same for all layers)
+    this->LWR = PSpSCALE<PTFF, int64_t, double, DCCols>(this->dvh, this->w);
+    this->LWR = PSpGEMM<PTFF, int64_t, double, double, DCCols, DCCols>(this->LWR, this->invde_ht_dvh);
+    DENSE_DOUBLE* X = input;
+    // All other calculations are have to be done for each layer
+    for(int i = 1; i < this->layers.size(); i++){
+        DistConv curr = this->layers[i];
+        // Compute Xt (X * theta or G_2) where both are dense matrices
+        curr.Xt = PDGEMM(X, curr.weights);
+        if (this->withBias){
+            // Compute XTb (X * Theta + b or G_2) where both are dense matrices
+            curr.XtB = DenseDenseAdd(curr.Xt, curr.bias);
+        }
+        // Compute G_3 (LWR * XTb) with bias and (LWR * XT) without, where both are dense matrices
+        curr.G_3 = fox<PTFF, int64_t, double, DCCols>(this->LWR, this->withBias ? curr.XtB : curr.Xt);
+        // Compute X (ReLU(G_3) or G_4) where both are dense matrices
+        curr.G_4 = DenseReLU(curr.G_3);
+        // Set X to G_4 for next iteration
+        X = &curr.G_4;
+    }
+    return X;
     // this->layers[0].G_2 = PSpGEMM<PTFF, int64_t, double, double, SpDCCols < int64_t, double >, SpDCCols <int64_t, double >>(this->G_1, input);
 
     // DPMAT_DOUBLE x = this->layers[0].forward(input);
 
     // this->layers[0].G_2 = this->invde_ht_dvh->PSpGEMM(x, false);
 }
-// torch::Tensor ModelW::forward(const torch::Tensor &input){
-//     torch::Tensor ident = torch::eye(dvh->size(1));
-//     torch::Tensor w_tmp = torch::diagonal_scatter(ident, w);
-//     torch::Tensor x = layers[0]->forward(input);
-//     x = invde_ht_dvh->mm(x);
-//     x = w_tmp.mm(x);
-//     x = dvh->mm(x);
-//     x = torch::relu(x);
-//     x = torch::dropout(x, this->dropout, true);
-//     for (int i = 1; i < number_of_hid_layers; i++){
-//         x = layers[i]->forward(x);
-//         x = invde_ht_dvh->mm(x);
-//         x = w_tmp.mm(x);
-//         x = dvh->mm(x);
-//         x = torch::relu(x);
-//         x = torch::dropout(x, this->dropout, true);
-//     }
-//     x = layers[layers.size()-1]->forward(x);
-//     x = invde_ht_dvh->mm(x);
-//     x = w_tmp.mm(x);
-//     x = dvh->mm(x);
-//     return x;
-//     // return torch::nn::functional::softmax(x, torch::nn::functional::SoftmaxFuncOptions(1));
-// }
+
 
 DistConv::DistConv(int in_dim, int out_dim, bool withBias=false){
     //TODO: correct initialization
@@ -110,7 +105,7 @@ DistConv::DistConv(int in_dim, int out_dim, bool withBias=false){
     shared_ptr<CommGrid> fullWorld;
     fullWorld.reset( new CommGrid(MPI_COMM_WORLD, out_dim, in_dim));
 
-    this->weights = DPMAT_DOUBLE(1.0, fullWorld, out_dim, in_dim);
+    this->weights = DENSE_DOUBLE(1.0, fullWorld, out_dim, in_dim);
 
     if (withBias){
         this->bias = DPVEC_DOUBLE(out_dim, 0.0);
@@ -118,7 +113,18 @@ DistConv::DistConv(int in_dim, int out_dim, bool withBias=false){
     // reset_parameters();
 }
 
+DistConv::~DistConv(){
+    delete this->weights;
+    delete this->bias;
+    if (this->Xt != NULL){
+        delete this->Xt;
+    }
+    if (this->G_3 != NULL){
+        delete this->G_3;
+    }
+}
 
-DPMAT_DOUBLE DistConv::forward(DPMAT_DOUBLE &input){
+
+DENSE_DOUBLE DistConv::forward(DENSE_DOUBLE &input){
     // DPMAT_DOUBLE tmp = input * this->weights;
 }
