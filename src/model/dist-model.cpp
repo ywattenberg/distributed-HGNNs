@@ -120,7 +120,6 @@ DENSE_DOUBLE* DistModel::backward(const DENSE_DOUBLE* input, const DENSE_DOUBLE*
 
     // Last layer is different as we do not use ReLU
     // Derivative of loss with respect to \theta = dL_dX * dG_3/dG_2 * dG2_d\theta
-    DENSE_DOUBLE dL_dG3 = ReLU_derivative(dL_dX);
     DENSE_DOUBLE dL_dt = SpDenseMult<PTFF, int64_t, double, DCCols>()
     
     for(int i = this->layers.size()-2; i >= 1; i--){
@@ -128,7 +127,7 @@ DENSE_DOUBLE* DistModel::backward(const DENSE_DOUBLE* input, const DENSE_DOUBLE*
         // Compute the gradients for each layer
         // We are given dL_dX from the previous layer
 
-        DENSE_DOUBLE dX_dG3 = ReLU_derivative(curr->G_3);
+        DENSE_DOUBLE dX_dG3 = DerivativeDenseReLU(curr->G_3);
         DENSE_DOUBLE dL_dG3 = PDGEMM(dL_dX, dX_dG3); //TODO: write wrapper for DenseDenseMult (distributed)
         DENSE_DOUBLE dL_dG1 = PDGEMM(dL_dG3, this->withBias ? curr->XtB : curr->Xt); //TODO: write wrapper for DenseDenseMult (distributed)
         DENSE_DOUBLE dL_dw  = DenseSpMult<PTFF, int64_t, double, DCCols>(dL_dG1, this->LR);

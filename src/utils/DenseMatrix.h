@@ -124,7 +124,7 @@ void blockDenseSparse(size_t dense_rows, size_t dense_cols, std::vector<NT>* den
     }
   }
 }
-
+// TODO: Parallelize 
 template<typename SR, typename IT, typename NT>
 inline DenseMatrix<NT> DenseDenseAdd(DenseMatrix<NT> &A, DenseMatrix<NT> &B){
   size_t rows = A.getLocalRows(); 
@@ -151,6 +151,20 @@ inline DenseMatrix<NT> DenseReLU(DenseMatrix<NT> &A){
   return DenseMatrix<NT>(rows, cols, out, A.getCommGrid());
 }
 
+// TODO: Parallelize 
+template<typename SR, typename IT, typename NT>
+inline DenseMatrix<NT> DerivativeDenseReLU(DenseMatrix<NT> &A){
+  size_t rows = A.getLocalRows(); 
+  size_t cols = A.getLocalCols();
+  std::vector<NT> out = new std::vector<NT>(rows * cols);
+  auto dense_A = A.getValues();
+  for(int i = 0; i < rows * cols; i++){
+    out->at(i) = dense_A->at(i) > 0 ?  static_cast<NT>(1.0) : static_cast<NT>(0.0);
+  }
+  return DenseMatrix<NT>(rows, cols, out, A.getCommGrid());
+}
+
+// TODO: Parallelize 
 template<typename SR, typename IT, typename NT>
 inline void DenseGradientStep(DenseMatrix<NT>* parameter, DenseMatrix<NT>* gradient, double lr){
   size_t rows = parameter->getLocalRows(); 
@@ -164,6 +178,8 @@ inline void DenseGradientStep(DenseMatrix<NT>* parameter, DenseMatrix<NT>* gradi
     dense_parameter->at(i) = SR::add(dense_parameter->at(i), SR::multiply(static_cast<NT>(-lr), dense_gradient->at(i)));
   }
 }
+
+
 
 template<typename SR, typename IT, typename NT, typename DER>
 DenseMatrix<NT> DenseSpMult(DenseMatrix<NT> &A, SpParMat<IT, NT, DER> &B) {
