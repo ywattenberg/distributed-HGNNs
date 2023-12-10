@@ -25,7 +25,7 @@ struct array_matrix {
 } mat;
 
 const int ROWS_A = 4;  // Adjust this based on the actual size of your matrix
-const int COLS_A = 4;  // Adjust this based on the actual size of your matrix
+const int COLS_A = 5;  // Adjust this based on the actual size of your matrix
 const int MATRIX_SIZE = ROWS_A * COLS_A;
 const int ROWS_B = COLS_A;
 const int COLS_B = 4;  // Adjust this based on the actual size of your matrix
@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     const std::string filename = "../data/m_g_ms_gs/dense-test.mtx";
 	shared_ptr<CommGrid> fullWorld;
 	fullWorld.reset(new CommGrid(MPI_COMM_WORLD, std::sqrt(size), std::sqrt(size)));
-    DenseMatrix<double> A(ROWS_A, COLS_B, fullWorld);
+    DenseMatrix<double> A(ROWS_A, COLS_A, fullWorld);
     A.ParallelReadDMM(filename, false);
     MPI_Barrier(MPI_COMM_WORLD);
     // print local matrix A

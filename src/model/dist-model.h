@@ -12,6 +12,7 @@
 #include "CombBLAS/FullyDistVec.h"
 #include "CombBLAS/ParFriends.h"
 
+#include "../utils/DenseMatrix.h"
 #include "../utils/configParse.h"
 
 using namespace std;
@@ -57,7 +58,7 @@ class DistModel
 
         // forward function of the Model, it takes the features X (called input) and the constant leftSide of the expression 10 of the paper 
         // Hypergraph Neural Networks (called leftSide)
-        DPMAT_DOUBLE forward(const DPMAT_DOUBLE &input);
+        DenseMatrix forward(const DenseMatrix &input);
 
 
 };

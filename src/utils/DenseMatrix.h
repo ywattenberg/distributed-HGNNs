@@ -27,11 +27,11 @@ class DenseMatrix
       MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
       std::cout << "local matrix A:" << std::endl;
       for (int i = 0; i < localRows * localCols; i++) {
-          std::cout << "rank " << myrank << " local matrix A[" << i << "] = " << values.at(i) << std::endl;
+          std::cout << "rank " << myrank << " local matrix A[" << i << "] = " << values->at(i) << std::endl;
       }
     }
     std::vector<NT>* getValues() {return values;}
-    void setValues(std::vector<NT> vals) {values = vals;}
+    void setValues(std::vector<NT>* vals) {values = vals;}
     void push_back(NT val) {values.push_back(val);}
     int getLocalRows() {return localRows;}
     int getLocalCols() {return localCols;}
@@ -276,9 +276,9 @@ int getOwner(int nrows, int ncols, int row, int col, int grid_len) {
     return rank;
 }
 
-! Handles all sorts of orderings, even duplicates (what happens to them is determined by BinOp)
-! Requires proper matrix market banner at the moment
-! Replaces ReadDistribute for properly load balanced input in matrix market format
+// ! Handles all sorts of orderings, even duplicates (what happens to them is determined by BinOp)
+// ! Requires proper matrix market banner at the moment
+// ! Replaces ReadDistribute for properly load balanced input in matrix market format
 template <class NT>
 void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool onebased) {
     int32_t type = -1;
@@ -392,7 +392,8 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
     MPI_File_open(getCommWorld(), const_cast<char*>(filename.c_str()), MPI_MODE_RDONLY, MPI_INFO_NULL, &mpi_fh);
 	 
     typedef typename SpDCCols<int, NT>::LocalIT LIT;
-    // TODO: set size of vector
+
+    int number_of_elems_to_read = (end_fpos - fpos) / 15;
     std::vector<NT> vals;
 
     std::vector<std::string> lines;
@@ -418,7 +419,6 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
         std::cout << "Reading finished. Total number of entries read across all processors is " << allentriesread << std::endl;
 // #endif
 
-    this->setValues(vals);
     // SpParMat<int, NT, Sp>()::SparseCommon(data, allentriesread, nrows, ncols, PlusTimesSRxing<NT,NT>());
     MPI_File_close(&mpi_fh);
     // std::vector<NT>().swap(&vals);
@@ -491,14 +491,14 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
     DeleteAll(senddata, sendcnt, recvcnt, sdispls, rdispls);
     MPI_Type_free(&MPI_NT);
 
-    std::vector<NT>().swap(vals);	// clear memory
+    std::vector<NT>* tmp = new std::vector<NT>(recvdata, recvdata + totrecv);
     // print received data
     for (int i = 0; i < totrecv; i++) {
-      // std::cout << "process " << myrank << " received value " << recvdata[i] << std::endl;
-      vals.push_back(recvdata[i]);
+      std::cout << "process " << myrank << " received value " << recvdata[i] << std::endl;
+      tmp->push_back(recvdata[i]);
     }
 
-    this->setValues(vals);
+    this->setValues(tmp);
     
     MPI_Barrier(getCommWorld());
 
