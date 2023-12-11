@@ -78,20 +78,20 @@ DistModel::DistModel(ConfigProperties &config, int in_dim){
 DistModel::~DistModel(){};
 
 
-void DistModel::comp_layer(const DENSE_DOUBLE* X, const DistConv* curr, bool last_layer=false){
+void DistModel::comp_layer(DENSE_DOUBLE* X, DistConv* curr, bool last_layer=false){
     // Compute Xt (X * theta or G_2) where both are dense matrices
-    curr->Xt = PDGEMM(X, curr->weights); //TODO: write wrapper for DenseDenseMult (distributed)
+    curr->Xt = DenseDenseMult<PTFF, double>(*X, curr->weights);
     if (this->withBias){
         // Compute XTb (X * Theta + b or G_2) where both are dense matrices
-        curr->XtB = DenseDenseAdd(curr->Xt, curr->bias);
+        curr->XtB = DenseVecAdd<PTFF, int64_t, double>(curr->Xt, curr->bias);
     }
     // Compute G_3 (LWR * XTb) with bias and (LWR * XT) without, where LWR is a sparse matrix and XTb/XT are dense matrices
     curr->G_3 = SpDenseMult<PTFF, int64_t, double, DCCols>(this->LWR, this->withBias ? curr->XtB : curr->Xt);
     // Compute X (ReLU(G_3) or G_4) if not last layer
-    curr->G_4 = last_layer ? NULL : DenseReLU(curr->G_3);
+    curr->G_4 = last_layer ? DENSE_DOUBLE() : DenseReLU<PTFF, double>(curr->G_3);
 }
 
-DENSE_DOUBLE* DistModel::forward(const DENSE_DOUBLE* input){
+DENSE_DOUBLE* DistModel::forward(DENSE_DOUBLE* input){
     // First compute LWR or G_1 (will be the same for all layers)
     this->LWR = PSpSCALE<PTFF, int64_t, double, DCCols>(this->dvh, this->w);
     this->LWR = PSpGEMM<PTFF, int64_t, double, double, DCCols, DCCols>(this->LWR, this->invde_ht_dvh);
@@ -106,41 +106,46 @@ DENSE_DOUBLE* DistModel::forward(const DENSE_DOUBLE* input){
         X = &curr.G_4;
     }
     // Last layer is different as we do not use ReLU
-    X = this->layers[this->layers.size()-1].G_3;
+    X = &this->layers[this->layers.size()-1].G_3;
     return X;
 }
 
-DENSE_DOUBLE* DistModel::backward(const DENSE_DOUBLE* input, const DENSE_DOUBLE* labels, double learning_rate){
+void DistModel::backward(DENSE_DOUBLE* input, DENSE_DOUBLE* labels, double learning_rate){
     //TODO: Calculate loss and direct loss gradients
 
 
     // Assume we have calculated the loss and gradients up to $\frac{\partial L}{\partial G_3^{L}}$ where $G_3^{L}$ is the output of the last layer
     // Given in the variable dL/dX
-    DENSE_DOUBLE dL_dX = NULL;
-
-    // Last layer is different as we do not use ReLU
-    // Derivative of loss with respect to \theta = dL_dX * dG_3/dG_2 * dG2_d\theta
-    DENSE_DOUBLE dL_dt = SpDenseMult<PTFF, int64_t, double, DCCols>();
+    DENSE_DOUBLE dL_dX = DENSE_DOUBLE();
+    
+    DistConv* curr = &(this->layers[this->layers.size()-1]);
+    // Last layer is different as we do not use ReLU this means dL_dG3 is just dL_dX
+    DENSE_DOUBLE dL_dG1 = DenseDenseMult<PTFF, double>(dL_dX, this->withBias ? curr->XtB : curr->Xt);
+    DENSE_DOUBLE dL_dw  = DenseSpMult<PTFF, int64_t, double, DCCols>(dL_dG1, this->LR);
+    DENSE_DOUBLE dL_dG2 = DenseSpMult<PTFF, int64_t, double, DCCols>(dL_dX, this->LWR);
+    DENSE_DOUBLE dL_dt  = DenseDenseMult<PTFF, double>(dL_dG2, *curr->X);
+    // Set dL_dX for next iteration
+    dL_dX  = DenseDenseMult<PTFF, double>(dL_dG2, curr->weights);
     
     for(int i = this->layers.size()-2; i >= 1; i--){
-        DistConv * curr = &(this->layers[i]);
+        curr = &(this->layers[i]);
         // Compute the gradients for each layer
         // We are given dL_dX from the previous layer
 
-        DENSE_DOUBLE dX_dG3 = DerivativeDenseReLU(curr->G_3);
-        DENSE_DOUBLE dL_dG3 = PDGEMM(dL_dX, dX_dG3); //TODO: write wrapper for DenseDenseMult (distributed)
-        DENSE_DOUBLE dL_dG1 = PDGEMM(dL_dG3, this->withBias ? curr->XtB : curr->Xt); //TODO: write wrapper for DenseDenseMult (distributed)
+        DENSE_DOUBLE dX_dG3 = DerivativeDenseReLU<PTFF, double>(curr->G_3);
+        DENSE_DOUBLE dL_dG3 = DenseDenseMult<PTFF, double>(dL_dX, dX_dG3);
+        DENSE_DOUBLE dL_dG1 = DenseDenseMult<PTFF, double>(dL_dG3, this->withBias ? curr->XtB : curr->Xt);
         DENSE_DOUBLE dL_dw  = DenseSpMult<PTFF, int64_t, double, DCCols>(dL_dG1, this->LR);
         DENSE_DOUBLE dL_dG2 = DenseSpMult<PTFF, int64_t, double, DCCols>(dL_dG3, this->LWR);
-        DENSE_DOUBLE dL_dt  = PDGEMM(dL_dG2, curr->X);
+        DENSE_DOUBLE dL_dt  = DenseDenseMult<PTFF, double>(dL_dG2, *curr->X);
         // Set dL_dX for next iteration
-        DENSE_DOUBLE dL_dX  = PDGEMM(dL_dG2, curr->weights);
+        dL_dX = DenseDenseMult<PTFF, double>(dL_dG2, curr->weights);
         // Derivate of loss with respect to bias B is just dL_dG2 
 
         // Update weights and bias
-        curr->weights = DenseGradientStep<SR, IT, NT>(&curr->weights, &dL_dt, learning_rate);
+        DenseGradientStep<PTFF, int64_t, double>(&curr->weights, &dL_dt, learning_rate);
         if (this->withBias){
-            curr->bias = DenseGradientStep<SR, IT, NT>(&curr->bias, &dL_dG2, learning_rate);
+            VecGradientStep<PTFF, int64_t, double>(&curr->bias, &dL_dG2, learning_rate);
         }
     }
 }
@@ -194,6 +199,42 @@ std::vector<NT>* CrossEntropyLoss(DENSE_DOUBLE* pred, const std::vector<NT>* tar
     return loss;
 }
 
+
+// TODO: Parallelize 
+template<typename SR, typename IT, typename NT>
+void DenseGradientStep(DenseMatrix<NT>* parameter, DenseMatrix<NT>* gradient, double lr){
+    size_t rows = parameter->getLocalRows(); 
+    size_t cols = parameter->getLocalCols();
+    if (rows != gradient->getLocalRows() || cols != gradient->getLocalCols()) {
+        throw std::invalid_argument( "DIMENSIONS DON'T MATCH" );        
+    }
+    auto dense_parameter = parameter->getValues();
+    auto dense_gradient = gradient->getValues();
+    for(int i = 0; i < rows * cols; i++){
+        dense_parameter->at(i) = SR::add(dense_parameter->at(i), SR::multiply(static_cast<NT>(-lr), dense_gradient->at(i)));
+    }
+}
+//TODO: FIX when we know how FullyDistVec is implemented and Parallelize
+template<typename SR, typename IT, typename NT>
+void VecGradientStep(FullyDistVec<IT, NT>* parameter, DenseMatrix<NT>* gradient, double lr){
+    int rows = gradient->getLocalRows(); 
+    int cols = gradient->getLocalCols();
+    if (rows != gradient->getLocalRows() || cols != gradient->getLocalCols()) {
+        throw std::invalid_argument( "DIMENSIONS DON'T MATCH" );        
+    }
+    auto dense_parameter = parameter->get_values();
+    auto dense_gradient = gradient->getValues();
+    for(int i = 0; i < rows; i++){
+        //Accumulate the gradient over the columns and adjust the parameter vector accordingly
+        NT avg = static_cast<NT>(0);
+        for(int j = 0; j < cols; j++){
+            avg = SR::add(avg, dense_gradient->at(j + i * cols));
+        }
+        avg = SR::multiply(avg, static_cast<NT>(1.0/cols));
+        dense_parameter.at(i) = SR::add(dense_parameter.at(i), SR::multiply(static_cast<NT>(-lr), avg));
+    }
+    
+}
 
 // template <typename NT>
 // std::vector<NT>* CrossEntropyLossDerivative(const std::vector<NT>* pred, const std::vector<NT>* target)

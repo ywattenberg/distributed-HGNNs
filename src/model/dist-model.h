@@ -25,11 +25,9 @@ typedef FullyDistVec <int64_t, double> DPVEC_DOUBLE;
 
 class DistConv
 {
-    private:
+    public:
         DENSE_DOUBLE weights;
         DPVEC_DOUBLE bias;
-
-    public:
         DENSE_DOUBLE* X; // This will hold the input X
         DENSE_DOUBLE Xt; // This will hold the result of X*\theta (or G_2) 
         DENSE_DOUBLE XtB; // This will hold the result of X*\theta + b (also G_2) if bias is used
@@ -37,7 +35,6 @@ class DistConv
         DENSE_DOUBLE G_4; // This will hold the result of ReLU(G_3) (or G_4)
 
         DistConv(int in_dim, int out_dim, bool withBias);
-        ~DistConv();
         DENSE_DOUBLE forward(DENSE_DOUBLE &input);
 };
 
@@ -64,8 +61,9 @@ class DistModel
         ~DistModel();
         // forward function of the Model, it takes the features X (called input) and the constant leftSide of the expression 10 of the paper 
         // Hypergraph Neural Networks (called leftSide)
-        DENSE_DOUBLE* forward(const DENSE_DOUBLE &input);
-        DENSE_DOUBLE* backward(const DENSE_DOUBLE* input, const DENSE_DOUBLE* labels, double learning_rate);
+        DENSE_DOUBLE* forward(DENSE_DOUBLE* input);
+        void backward(DENSE_DOUBLE* input, DENSE_DOUBLE* labels, double learning_rate);
+        void comp_layer(DENSE_DOUBLE* X, DistConv* curr, bool last_layer);
 
         
 
@@ -77,6 +75,14 @@ class DistModel
 // TODO: Parallelize this function
 template <typename NT>
 std::vector<NT>* CrossEntropyLoss(const std::vector<NT>* pred, const std::vector<NT>* target);
+
+template<typename SR, typename IT, typename NT>
+void DenseGradientStep(DenseMatrix<NT>* parameter, DenseMatrix<NT>* gradient, double lr);
+
+
+template<typename SR, typename IT, typename NT>
+void VecGradientStep(FullyDistVec<IT, NT>* parameter, DenseMatrix<NT>* gradient, double lr);
+
 
 // //TODO: Parallelize this function
 // template <typename NT>
