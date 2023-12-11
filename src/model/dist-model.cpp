@@ -1,5 +1,5 @@
 #include "dist-model.h"
-#include <torch/torch.h>
+// #include <torch/torch.h>
 
 #include <vector>
 #include <iostream>
@@ -120,10 +120,10 @@ DENSE_DOUBLE* DistModel::backward(const DENSE_DOUBLE* input, const DENSE_DOUBLE*
 
     // Last layer is different as we do not use ReLU
     // Derivative of loss with respect to \theta = dL_dX * dG_3/dG_2 * dG2_d\theta
-    DENSE_DOUBLE dL_dt = SpDenseMult<PTFF, int64_t, double, DCCols>()
+    DENSE_DOUBLE dL_dt = SpDenseMult<PTFF, int64_t, double, DCCols>();
     
     for(int i = this->layers.size()-2; i >= 1; i--){
-        DistConv curr = this->layers[i];
+        DistConv * curr = &(this->layers[i]);
         // Compute the gradients for each layer
         // We are given dL_dX from the previous layer
 
@@ -138,9 +138,9 @@ DENSE_DOUBLE* DistModel::backward(const DENSE_DOUBLE* input, const DENSE_DOUBLE*
         // Derivate of loss with respect to bias B is just dL_dG2 
 
         // Update weights and bias
-        curr->weights = DenseGradientStep(&curr->weights, &dL_dt, learning_rate);
+        curr->weights = DenseGradientStep<SR, IT, NT>(&curr->weights, &dL_dt, learning_rate);
         if (this->withBias){
-            curr->bias = DenseGradientStep(&curr->bias, &dL_dG2, learning_rate);
+            curr->bias = DenseGradientStep<SR, IT, NT>(&curr->bias, &dL_dG2, learning_rate);
         }
     }
 }
