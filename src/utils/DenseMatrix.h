@@ -40,6 +40,10 @@ class DenseMatrix
     std::shared_ptr<CommGrid> getCommGrid() {return commGrid;}
     auto getCommWorld() {return commGrid->GetWorld();}
 
+    DenseMatrix<NT>(): values(nullptr), localRows(-1), localCols(-1), commGrid(nullptr){
+      
+    }
+
     DenseMatrix<NT>(int rows, int cols, std::vector<NT> * values, std::shared_ptr<CommGrid> grid): values(values), localRows(rows), localCols(cols)
     {
       commGrid = grid;
