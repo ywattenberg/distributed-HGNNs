@@ -168,19 +168,7 @@ inline DenseMatrix<NT> DerivativeDenseReLU(DenseMatrix<NT> &A){
   return DenseMatrix<NT>(rows, cols, out, A.getCommGrid());
 }
 
-// TODO: Parallelize 
-template<typename SR, typename IT, typename NT>
-inline void DenseGradientStep(DenseMatrix<NT>* parameter, DenseMatrix<NT>* gradient, double lr){
-  size_t rows = parameter->getLocalRows(); 
-  size_t cols = parameter->getLocalCols();
-  if (rows != gradient->getLocalRows() || cols != gradient->getLocalCols()) {
-    throw std::invalid_argument( "DIMENSIONS DON'T MATCH" );        
-  }
-  auto dense_parameter = parameter->getValues();
-  auto dense_gradient = gradient->getValues();
-  for(int i = 0; i < rows * cols; i++){
-    dense_parameter->at(i) = SR::add(dense_parameter->at(i), SR::multiply(static_cast<NT>(-lr), dense_gradient->at(i)));
-  }
+
 }
 
 
