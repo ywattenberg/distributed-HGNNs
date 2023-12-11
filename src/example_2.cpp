@@ -165,6 +165,24 @@ int main(int argc, char* argv[])
                 break;
         }
 
+        std::vector<double> dist2 = std::vector<double>(4, 0.0);
+
+        switch(myrank){
+            case 0: 
+                dist2 = {16,0.6,1,3.6};
+                break;
+            case 1:
+                dist2 = {6,7,0,4.1};
+                break;
+            case 2:
+                dist2 = {1,5,13,6};
+                break;
+            case 3:
+                dist2 = {9.5,0,0.2,3.5};
+                break;
+        }
+
+
         // for (int i = 0; i < 4; i++){
         //     dist[i] = local_block[i];
         // }
@@ -175,7 +193,8 @@ int main(int argc, char* argv[])
 
 
         DenseMatrix<double> denseTest = DenseMatrix<double>(2,2,&dist, fullWorld);
-        
+        DenseMatrix<double> denseTest2 = DenseMatrix<double>(2,2,&dist2, fullWorld);
+
         // if (myrank == 2){
         //     cout << "from rank " << myrank << " ";
         //     vector<double> forPrint = *denseTest.getValues();
@@ -185,13 +204,14 @@ int main(int argc, char* argv[])
 
         // }
 
+        DenseMatrix<double> output = DenseDenseMult<PTFF, double>(denseTest, denseTest2);
         
         
-        DenseMatrix<double> output = SpDenseMult<PTFF, int64_t, double, SpDCCols < int64_t, double >>(res, denseTest);
+        // DenseMatrix<double> output = SpDenseMult<PTFF, int64_t, double, SpDCCols < int64_t, double >>(res, denseTest);
         std::vector<double> outValuesLocal = *output.getValues();
 
 
-        if (myrank == 0){
+        if (myrank == 2){
             for (int i = 0; i < output.getLocalRows(); i++){
                 for (int j = 0; j < output.getLocalCols(); j++){
                     cout << outValuesLocal[i*output.getLocalCols() + j] << " ";

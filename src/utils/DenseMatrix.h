@@ -630,6 +630,85 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
 
 }
 
+template<typename SR, typename NT>
+void blockDenseDense(size_t rowsA, size_t colsA, size_t rowsB, size_t colsB, std::vector<NT>* dense_A, std::vector<NT>* dense_B, std::vector<NT>* outValues)
+{
+  int myrank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
+  if (colsA != rowsB) {
+    throw std::invalid_argument("DIMENSIONS DON'T MATCH");
+  }
+
+  for (size_t i = 0; i < rowsA; i++){
+    for (size_t j = 0; j < colsB; j++){
+      for (size_t k = 0; k < colsA; k++){
+        // // std::cout << "index out: " << i * colsB + j << std::endl;
+        // // std::cout << "index in: " << i * colsA + k << std::endl;
+        // std::cout << "index in 2: " << k* colsB + j << std::endl;
+        // std::cout << "size: " << dense_B->size() << std::endl;
+
+        outValues->at(i * colsB + j) += SR::multiply(dense_A->at(i * colsA + k), dense_B->at(k* colsB + j));
+      }
+    }
+  }
+}
+
+
+template<typename SR, typename NT>
+DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
+{
+  int myrank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
+  int stages, dummy;
+  std::shared_ptr<CommGrid> GridC = ProductGrid((A.getCommGrid()).get(), (B.getCommGrid()).get(), stages, dummy, dummy);		
+
+  std::vector<NT> * bufferA = new std::vector<NT>();
+  std::vector<int> essentialsA(3);
+  std::vector<NT> * bufferB = new std::vector<NT>();
+  std::vector<int> essentialsB(3);
+
+  int rankAinRow = A.getCommGrid()->GetRankInProcRow();
+  int rankBinCol = A.getCommGrid()->GetRankInProcCol();
+
+  int localRowsA = A.getLocalRows();
+  int localColsA = A.getLocalCols();
+  int localRowsB = B.getLocalRows();
+  int localColsB = B.getLocalCols();
+
+  std::vector<NT> * localOut = new std::vector<NT>(localRowsA * localColsB);
+
+  for (int i = 0; i < stages; i++){
+    int sendingRank = i;
+    
+    if (rankAinRow == sendingRank){
+      bufferA = A.getValues();
+
+      essentialsA[1] = localRowsA;
+      essentialsA[2] = localColsA;
+      essentialsA[0] = essentialsA[1] * essentialsA[2];
+    }
+
+    BCastMatrixDense(GridC->GetRowWorld(), bufferA, essentialsA, sendingRank);
+
+      
+    if (rankBinCol == sendingRank){
+      bufferB = B.getValues();
+
+      essentialsB[1] = localRowsB;
+      essentialsB[2] = localColsB;
+      essentialsB[0] = essentialsB[1] * essentialsB[2];
+    }
+
+    BCastMatrixDense(GridC->GetColWorld(), bufferB, essentialsB, sendingRank);
+
+    blockDenseDense<SR, NT>(localRowsA, localColsA, localRowsB, localColsB, bufferA, bufferB, localOut);
+  
+  }
+    
+  return DenseMatrix<NT>(localRowsA, localColsB, localOut, GridC);
+}
 }
 
 
