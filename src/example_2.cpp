@@ -102,6 +102,12 @@ int main(int argc, char* argv[])
         SpParMat<int64_t, double, SpDCCols<int64_t, double>> res = PSpSCALE<PTFF, int64_t, double, SpDCCols<int64_t, double>>(A2D, tmp);
         res.ParallelWriteMM("../data/m_g_ms_gs/bla.mtx", true); 
 
+        const std::string filename = "../data/m_g_ms_gs/dense-test.mtx";
+        DenseMatrix<double> simi(4, 5, fullWorld);
+
+        simi.ParallelReadDMM(filename, false);
+        simi.printLocalMatrix();
+
         // if (res == CC2D){
         //     if (myrank == 0){
         //         fprintf(stderr, "Correct\n");
