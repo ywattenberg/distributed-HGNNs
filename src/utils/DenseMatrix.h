@@ -361,7 +361,7 @@ DenseMatrix<NT> SpDenseMult(SpParMat<IT, NT, DER> &B, DenseMatrix<NT> &A)
 
 // helper function for ParallelReadDMM
 template <class NT>
-void processLines(std::vector<std::string> lines, int type, std::vector<NT> * vals, int myrank) {
+void processLines(std::vector<std::string>& lines, int type, std::vector<NT>& vals, int myrank) {
    if(type == 0)   // real
     {
         double vv;
@@ -371,22 +371,23 @@ void processLines(std::vector<std::string> lines, int type, std::vector<NT> * va
             sscanf(itr->c_str(), "%lg", &vv);
             // print read values
             // std::cout << "process " << myrank << " read value " << vv << std::endl;
-            vals->push_back(vv);
+            vals.push_back(vv);
         }
     }
     else if(type == 1) // integer
     {
-        int64_t ii, jj, vv;
+        int64_t vv;
         for (auto itr=lines.begin(); itr != lines.end(); ++itr)
         {
             sscanf(itr->c_str(), "%lld", &vv);
-            vals->push_back(vv);
+            vals.push_back(vv);
         }
     }
     else
     {
         std::cout << "COMBBLAS: Unrecognized matrix market scalar type" << std::endl;
     }
+    lines.clear();
 }
 
 inline int getOwner(int nrows, int ncols, int row, int col, int grid_len) {
@@ -501,18 +502,18 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
         fclose(f);
     } else {
     	MPI_Bcast(&endofheader, 1, MPIType<MPI_Offset>(), 0, getCommWorld());  // receive the file loc at the end of header
-	    // fpos = endofheader + myrank * (file_size-endofheader) / nprocs;
+	    fpos = endofheader + myrank * (file_size-endofheader) / nprocs;
       // give each process a number of rows to read
-      fpos = endofheader + myrank * rows_per_proc * ncols * 15;
+      // fpos = endofheader + myrank * rows_per_proc * ncols * 15;
     }
 
     if(myrank != (nprocs-1)) {
-      // end_fpos = endofheader + (myrank + 1) * (file_size-endofheader) / nprocs;
-      end_fpos = endofheader + (myrank + 1) * rows_per_proc * ncols * 15;
+      end_fpos = endofheader + (myrank + 1) * (file_size-endofheader) / nprocs;
+      // end_fpos = endofheader + (myrank + 1) * rows_per_proc * ncols * 15;
     } else {
       end_fpos = file_size;
     }
-    // std::cout << "Process " << myrank << " will read from " << fpos << " to " << end_fpos << std::endl;
+    std::cout << "Process " << myrank << " will read from " << fpos << " to " << end_fpos << std::endl;
     MPI_File mpi_fh;
     MPI_File_open(getCommWorld(), const_cast<char*>(filename.c_str()), MPI_MODE_RDONLY, MPI_INFO_NULL, &mpi_fh);
 	 
@@ -520,21 +521,24 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
 
     int number_of_elems_to_read = (end_fpos - fpos) / 15;
     std::vector<NT> vals;
-
     std::vector<std::string> lines;
     bool finished = SpParHelper::FetchBatch(mpi_fh, fpos, end_fpos, true, lines, myrank);
     int64_t entriesread = lines.size();
 
     // std::cout << "Process " << myrank << " lines size " << entriesread << std::endl;
-    processLines(lines, type, &vals, myrank);   
+    processLines(lines, type, vals, myrank);   
 
     MPI_Barrier(getCommWorld());
+    if (myrank == 0) {
+      std::cout << "First batch finished" << std::endl;
+    }
 
     while(!finished) {
+        // std::cout << "Process " << myrank << " reading from " << fpos << std::endl;
         finished = SpParHelper::FetchBatch(mpi_fh, fpos, end_fpos, false, lines, myrank);
         entriesread += lines.size();
         // SpHelper::ProcessLines(rows, cols, vals, lines, symmetric, type, onebased);
-        processLines(lines, type, &vals, myrank);
+        processLines(lines, type, vals, myrank);
     }
 
     int64_t allentriesread;
@@ -619,7 +623,7 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
     std::vector<NT>* tmp = new std::vector<NT>(recvdata, recvdata + totrecv);
     // print received data
     for (int i = 0; i < totrecv; i++) {
-      std::cout << "process " << myrank << " received value " << recvdata[i] << std::endl;
+      // std::cout << "process " << myrank << " received value " << recvdata[i] << std::endl;
       tmp->push_back(recvdata[i]);
     }
 
