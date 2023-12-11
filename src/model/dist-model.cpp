@@ -145,8 +145,7 @@ DENSE_DOUBLE* DistModel::backward(const DENSE_DOUBLE* input, const DENSE_DOUBLE*
     }
 }
 
-
-
+//TODO: write implementation of weight initialization
 
 DistConv::DistConv(int in_dim, int out_dim, bool withBias=false){
     //TODO: correct initialization
@@ -154,26 +153,51 @@ DistConv::DistConv(int in_dim, int out_dim, bool withBias=false){
     shared_ptr<CommGrid> fullWorld;
     fullWorld.reset( new CommGrid(MPI_COMM_WORLD, out_dim, in_dim));
 
-    this->weights = DENSE_DOUBLE(1.0, fullWorld, out_dim, in_dim);
 
-    if (withBias){
-        this->bias = DPVEC_DOUBLE(out_dim, 0.0);
-    } 
+
+    // this->weights = DENSE_DOUBLE(1.0, fullWorld, out_dim, in_dim);
+
+    // if (withBias){
+    //     this->bias = DPVEC_DOUBLE(out_dim, 0.0);
+    // } 
     // reset_parameters();
 }
 
-DistConv::~DistConv(){
-    delete this->weights;
-    delete this->bias;
-    if (this->Xt != NULL){
-        delete this->Xt;
+
+template <typename NT>
+std::vector<NT>* CrossEntropyLoss(DENSE_DOUBLE* pred, const std::vector<NT>* target)
+{   
+    // Calculate the Cross Entropy Loss without averaging over the graph
+    // We assume that the pred vector are input logits and not probabilities
+    // For definition of Cross Entropy Loss see: https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
+    // Where we don't have a weight or ignore_index parameter
+    std::vector<NT>* prediction_matrix = pred->getValues();
+    int num_classes = pred->getLocalCols();
+    int num_samples = pred->getLocalRows();
+
+    if(num_classes != target->size())
+    {
+        throw std::invalid_argument("Number of classes in prediction and target do not match");
     }
-    if (this->G_3 != NULL){
-        delete this->G_3;
+
+    std::vector<NT>* loss = new std::vector<NT>(target->size());
+    for (int i = 0; i < target->size(); i++)
+    {
+        // Calculate the log over sum of all exponential of logits
+        for (int j = 0; j < num_classes; j++)
+        {
+            loss->at(i) += std::exp(prediction_matrix->at(j + i * num_classes));
+        }
+        loss->at(i) = std::log(loss->at(i));
+        loss->at(i) = -prediction_matrix->at(target->at(i) + i * num_classes) + loss->at(i);
     }
+    return loss;
 }
 
 
-DENSE_DOUBLE DistConv::forward(DENSE_DOUBLE &input){
-    // DPMAT_DOUBLE tmp = input * this->weights;
-}
+// template <typename NT>
+// std::vector<NT>* CrossEntropyLossDerivative(const std::vector<NT>* pred, const std::vector<NT>* target)
+// {
+//     // Calculate the Cross Entropy Loss derivative given the 
+//     return loss;
+// }

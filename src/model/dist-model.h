@@ -1,7 +1,6 @@
 #ifndef DIST_MODEL_H
 #define DIST_MODEL_H
 
-#include <torch/torch.h>
 #include <vector>
 #include <iostream>
 
@@ -70,4 +69,12 @@ class DistModel
 
 
 };
-#endif
+
+// TODO: Parallelize this function
+template <typename NT>
+std::vector<NT>* CrossEntropyLoss(const std::vector<NT>* pred, const std::vector<NT>* target);
+
+// //TODO: Parallelize this function
+// template <typename NT>
+// std::vector<NT>* CrossEntropyLossDerivative(const std::vector<NT>* pred, const std::vector<NT>* target)
+// #endif
