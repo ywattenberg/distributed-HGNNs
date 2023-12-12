@@ -40,8 +40,7 @@ class DenseMatrix
     std::shared_ptr<CommGrid> getCommGrid() {return commGrid;}
     auto getCommWorld() {return commGrid->GetWorld();}
 
-    DenseMatrix<NT>(): values(nullptr), localRows(-1), localCols(-1), commGrid(nullptr){
-      
+    DenseMatrix<NT>(): values(nullptr), localRows(-1), localCols(-1), commGrid(nullptr) {
     }
 
     DenseMatrix<NT>(int rows, int cols, std::vector<NT> * values, std::shared_ptr<CommGrid> grid): values(values), localRows(rows), localCols(cols)
@@ -49,7 +48,7 @@ class DenseMatrix
       commGrid = grid;
     }
 
-    DenseMatrix<NT>(int rows, int cols, std::shared_ptr<CommGrid> grid): localRows(rows), localCols(cols)
+    DenseMatrix<NT>(int rows, int cols, std::shared_ptr<CommGrid> grid): localRows(rows), localCols(cols), values(nullptr)
     {
       commGrid = grid;
     }
@@ -59,17 +58,13 @@ class DenseMatrix
       commGrid.reset(new CommGrid(MPI_COMM_WORLD, rows, cols));
     }
 
-    // ~DenseMatrix<NT>()
-    // {
-
-    //   delete values;
-    // }
-
-    // ~DenseMatrix<NT>()
-    // {
-
-    //   delete values;
-    // }
+    ~DenseMatrix<NT>()
+    {
+      if (values != nullptr) {
+        delete values;
+      }
+      this->values = nullptr;
+    }
 
     void ParallelReadDMM (const std::string & filename, bool onebased);
     
@@ -615,16 +610,13 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
 
     DeleteAll(senddata, sendcnt, recvcnt, sdispls, rdispls);
     MPI_Type_free(&MPI_NT);
-
     std::vector<NT>* tmp = new std::vector<NT>(recvdata, recvdata + totrecv);
     // print received data
     for (int i = 0; i < totrecv; i++) {
       // std::cout << "process " << myrank << " received value " << recvdata[i] << std::endl;
       tmp->push_back(recvdata[i]);
     }
-
     this->setValues(tmp);
-    
     MPI_Barrier(getCommWorld());
 
 
