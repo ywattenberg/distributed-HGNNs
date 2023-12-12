@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
 
 
 
-        std::vector<double> tmp = {4.0, 1.0, 3.0, 2.0};
+        std::vector<double> tmp = {4.0, 1.0, 3.0, 2.0, 5.0 ,1.0, 4.0, 1.0, 0.0};
 
         if (myrank == 0){
             cout << "length of vector: " << tmp.size() << endl;
@@ -100,6 +100,7 @@ int main(int argc, char* argv[])
         MPI_Barrier(MPI_COMM_WORLD);
 
         SpParMat<int64_t, double, SpDCCols<int64_t, double>> res = PSpSCALE<PTFF, int64_t, double, SpDCCols<int64_t, double>>(A2D, tmp);
+
         res.ParallelWriteMM("../data/m_g_ms_gs/bla.mtx", true); 
 
         const std::string filename = "../data/m_g_ms_gs/dense-test.mtx";
@@ -107,7 +108,6 @@ int main(int argc, char* argv[])
 
         simi.ParallelReadDMM(filename, false);
         simi.printLocalMatrix();
-
         // if (res == CC2D){
         //     if (myrank == 0){
         //         fprintf(stderr, "Correct\n");
@@ -154,37 +154,46 @@ int main(int argc, char* argv[])
                 13, 6, 0.2, 3.5};
         
 
-        std::vector<double> dist = std::vector<double>(4, 0.0);
+        std::vector<double>* dist;
+        double* d_array;
 
         switch(myrank){
             case 0: 
-                dist = {16,0.6,1,3.6};
+                d_array = new double[]{16,0.6,1,3.6};
+                dist = new std::vector<double>(d_array, d_array + 4);
                 break;
             case 1:
-                dist = {6,7,0,4.1};
+                d_array = new double[]{6,7,0,4.1};
+                dist = new std::vector<double>(d_array, d_array + 4);
                 break;
             case 2:
-                dist = {1,5,13,6};
+                d_array = new double[]{1,5,13,6};
+                dist = new std::vector<double>(d_array, d_array +4);
                 break;
             case 3:
-                dist = {9.5,0,0.2,3.5};
+                d_array = new double[]{9.5,0,0.2,3.5};
+                dist = new std::vector<double>(d_array, d_array + 4);
                 break;
         }
 
-        std::vector<double> dist2 = std::vector<double>(4, 0.0);
-
+        std::vector<double>* dist2;
+        
         switch(myrank){
             case 0: 
-                dist2 = {16,0.6,1,3.6};
+                d_array = new double[]{16,0.6,1,3.6};
+                dist2 = new std::vector<double>(d_array, d_array + 4);
                 break;
             case 1:
-                dist2 = {6,7,0,4.1};
+                d_array = new double[]{6,7,0,4.1};
+                dist2 = new std::vector<double>(d_array, d_array + 4);
                 break;
             case 2:
-                dist2 = {1,5,13,6};
+                d_array = new double[]{1,5,13,6};
+                dist2 = new std::vector<double>(d_array, d_array + 4);
                 break;
             case 3:
-                dist2 = {9.5,0,0.2,3.5};
+                d_array = new double[]{9.5,0,0.2,3.5};
+                dist2 = new std::vector<double>(d_array, d_array + 4);
                 break;
         }
 
@@ -198,8 +207,8 @@ int main(int argc, char* argv[])
         int cols = 4;
 
 
-        DenseMatrix<double> denseTest = DenseMatrix<double>(2,2,&dist, fullWorld);
-        DenseMatrix<double> denseTest2 = DenseMatrix<double>(2,2,&dist2, fullWorld);
+        DenseMatrix<double> denseTest = DenseMatrix<double>(2,2,dist, fullWorld);
+        DenseMatrix<double> denseTest2 = DenseMatrix<double>(2,2,dist2, fullWorld);
 
         // if (myrank == 2){
         //     cout << "from rank " << myrank << " ";
@@ -217,7 +226,7 @@ int main(int argc, char* argv[])
         std::vector<double> outValuesLocal = *output.getValues();
 
 
-        if (myrank == 2){
+        if (myrank == 0){
             for (int i = 0; i < output.getLocalRows(); i++){
                 for (int j = 0; j < output.getLocalCols(); j++){
                     cout << outValuesLocal[i*output.getLocalCols() + j] << " ";
@@ -270,7 +279,6 @@ int main(int argc, char* argv[])
     //     //     }
 	//     // }
 
-        
         
     }
     MPI_Finalize();
