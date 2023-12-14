@@ -20,10 +20,10 @@ using namespace combblas;
 
 // TODO: Parallelize this function
 template <typename SR, typename NT>
-DenseMatrix<NT> CrossEntropyLoss(DenseMatrix<NT>& pred, const std::vector<NT>* target, bool mean);
+NT CrossEntropyLoss(DenseMatrix<NT>& pred, const std::vector<int>* target, bool sum = false);
 
 // TODO: Parallelize this function
 template <typename SR, typename NT>
-DenseMatrix<NT> DerivativeCrossEntropyLoss(DenseMatrix<NT>& pred, const std::vector<NT>* target);
+DenseMatrix<NT> DerivativeCrossEntropyLoss(DenseMatrix<NT>& pred, const std::vector<int>* target);
 
 #endif 
