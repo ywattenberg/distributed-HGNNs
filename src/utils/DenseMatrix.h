@@ -107,11 +107,8 @@ class DenseMatrix
 
       int roffset = 0;
       int coffset = 0;
-
       GetPlaceInGlobalGrid(roffset, coffset);
 
-      std::cout << "i am rank " << myrank << " with offset " << roffset << " " << coffset << std::endl;
-      
       for (int i = 0; i < localRows; i++){
         for (int j = 0; j < localCols; j++){
           values->at(i*localCols + j) += bias->at(coffset + j);
