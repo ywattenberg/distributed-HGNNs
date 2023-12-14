@@ -67,6 +67,57 @@ class DenseMatrix
 
     void ParallelReadDMM (const std::string & filename, bool onebased);
     
+    int getnrow() const
+    {
+      int totalrows = 0;  
+      MPI_Allreduce( &localRows, &totalrows, 1, MPI_INT, MPI_SUM, commGrid->GetColWorld());
+      return totalrows;  
+    }
+
+    int getncol() const
+    {
+      int totalcols = 0; 
+      MPI_Allreduce( &localCols, &totalcols, 1, MPI_INT, MPI_SUM, commGrid->GetRowWorld());
+      return totalcols;  
+    }
+
+
+    void GetPlaceInGlobalGrid(int &roffset, int &coffset){
+      int total_rows = getnrow();
+      int total_cols = getncol();
+
+      int proc_rows = commGrid->GetGridRows();
+      int proc_cols = commGrid->GetGridCols();
+
+      int rows_perproc = total_rows / proc_rows;
+	    int cols_perproc = total_cols / proc_cols;
+
+      roffset = commGrid->GetRankInProcCol()*rows_perproc;
+      coffset = commGrid->GetRankInProcRow()*cols_perproc;
+    }
+    
+    
+    void addBiasLocally(std::vector<NT>* bias)
+    {
+      int myrank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
+      int localRows = getLocalRows();
+      int localCols = getLocalCols();
+
+      int roffset = 0;
+      int coffset = 0;
+
+      GetPlaceInGlobalGrid(roffset, coffset);
+
+      std::cout << "i am rank " << myrank << " with offset " << roffset << " " << coffset << std::endl;
+      
+      for (int i = 0; i < localRows; i++){
+        for (int j = 0; j < localCols; j++){
+          values->at(i*localCols + j) += bias->at(coffset + j);
+        }
+      }
+    }
 
   private:
     int localRows;
