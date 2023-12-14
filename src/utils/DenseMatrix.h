@@ -63,11 +63,58 @@ class DenseMatrix
       if (values != nullptr) {
         delete values;
       }
-      this->values = nullptr;
     }
 
     void ParallelReadDMM (const std::string & filename, bool onebased);
     
+    int getnrow() const
+    {
+      int totalrows = 0;  
+      MPI_Allreduce( &localRows, &totalrows, 1, MPI_INT, MPI_SUM, commGrid->GetColWorld());
+      return totalrows;  
+    }
+
+    int getncol() const
+    {
+      int totalcols = 0; 
+      MPI_Allreduce( &localCols, &totalcols, 1, MPI_INT, MPI_SUM, commGrid->GetRowWorld());
+      return totalcols;  
+    }
+
+
+    void GetPlaceInGlobalGrid(int &roffset, int &coffset){
+      int total_rows = getnrow();
+      int total_cols = getncol();
+
+      int proc_rows = commGrid->GetGridRows();
+      int proc_cols = commGrid->GetGridCols();
+
+      int rows_perproc = total_rows / proc_rows;
+	    int cols_perproc = total_cols / proc_cols;
+
+      roffset = commGrid->GetRankInProcCol()*rows_perproc;
+      coffset = commGrid->GetRankInProcRow()*cols_perproc;
+    }
+    
+    
+    void addBiasLocally(std::vector<NT>* bias)
+    {
+      int myrank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
+      int localRows = getLocalRows();
+      int localCols = getLocalCols();
+
+      int roffset = 0;
+      int coffset = 0;
+      GetPlaceInGlobalGrid(roffset, coffset);
+
+      for (int i = 0; i < localRows; i++){
+        for (int j = 0; j < localCols; j++){
+          values->at(i*localCols + j) += bias->at(coffset + j);
+        }
+      }
+    }
 
   private:
     int localRows;
@@ -140,8 +187,25 @@ inline DenseMatrix<NT> DenseDenseAdd(DenseMatrix<NT> &A, DenseMatrix<NT> &B){
 
 // TODO: Write Function once we have bias and parallize
 template<typename SR, typename IT, typename NT>
-inline DenseMatrix<NT> DenseVecAdd(DenseMatrix<NT> &A, FullyDistVec<IT, NT> &B){
-  return DenseMatrix<NT>();
+inline DenseMatrix<NT> DenseVecAdd(DenseMatrix<NT> &A, std::vector<NT> &B){
+  int rows = A.getLocalRows();
+  int cols = A.getLocalCols();
+  auto commGrid = A.getCommGrid();
+
+  //Find location of local rows in overall grid
+  int rowDense = commGrid->GetGridRows();
+  int colDense = commGrid->GetGridCols();
+  int rankAinRow = commGrid->GetRankInProcRow();
+
+  std::vector<NT>* out = new std::vector<NT>(rows * cols);
+  // Add corresponding entries of B to A (offset by global pos)
+  for (int i = 0; i < rows; i++){
+    for (int j = 0; j < cols; j++){
+      out->at(i * cols + j) = SR::add(A.getValues()->at(i * cols + j), B.at(i + rankAinRow * rows));
+    }
+  }
+
+  return DenseMatrix<NT>(rows, cols, out, commGrid);
 }
 
 
