@@ -75,7 +75,12 @@
         "typeinfo": "cpp",
         "valarray": "cpp",
         "variant": "cpp",
+        "cfenv": "cpp",
         "charconv": "cpp",
-        "hash_map": "cpp"
+        "hash_map": "cpp",
+        "span": "cpp",
+        "*.expression": "cpp",
+        "alignedvector3": "cpp",
+        "fft": "cpp"
     }
 }

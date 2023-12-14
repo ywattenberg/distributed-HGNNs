@@ -12,6 +12,7 @@
 #include "CombBLAS/FullyDistVec.h"
 #include "CombBLAS/SpParMat.h"
 #include "utils/DenseMatrix.h"
+#include "utils/LossFn.h"
 
 using namespace std;
 using namespace combblas;
@@ -209,6 +210,8 @@ int main(int argc, char* argv[])
 
         DenseMatrix<double> denseTest = DenseMatrix<double>(2,2,dist, fullWorld);
         DenseMatrix<double> denseTest2 = DenseMatrix<double>(2,2,dist2, fullWorld);
+
+        CrossEntropyLoss<PTFF, double>(denseTest, dist, true);
 
         // if (myrank == 2){
         //     cout << "from rank " << myrank << " ";
