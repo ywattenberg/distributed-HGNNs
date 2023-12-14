@@ -93,7 +93,7 @@ void DistModel::comp_layer(DENSE_DOUBLE* X, DistConv* curr, bool last_layer=fals
     curr->XtB = DenseDenseMult<PTFF, double>(*X, curr->weights);
     if (this->withBias){
         // Compute XTb (X * Theta + b or G_2) where both are dense matrices
-        curr->XtB = DenseVecAdd<PTFF, int64_t, double>(curr->XtB, &curr->bias);
+        curr->XtB.addBiasLocally(&curr->bias);
     }
     // Compute G_3 (LWR * XTb) with bias and (LWR * XT) without, where LWR is a sparse matrix and XTb/XT are dense matrices
     curr->G_3 = SpDenseMult<PTFF, int64_t, double, DCCols>(this->LWR, curr->XtB);
