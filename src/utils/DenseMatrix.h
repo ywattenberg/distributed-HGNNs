@@ -63,7 +63,6 @@ class DenseMatrix
       if (values != nullptr) {
         delete values;
       }
-      this->values = nullptr;
     }
 
     void ParallelReadDMM (const std::string & filename, bool onebased);
@@ -140,8 +139,25 @@ inline DenseMatrix<NT> DenseDenseAdd(DenseMatrix<NT> &A, DenseMatrix<NT> &B){
 
 // TODO: Write Function once we have bias and parallize
 template<typename SR, typename IT, typename NT>
-inline DenseMatrix<NT> DenseVecAdd(DenseMatrix<NT> &A, FullyDistVec<IT, NT> &B){
-  return DenseMatrix<NT>();
+inline DenseMatrix<NT> DenseVecAdd(DenseMatrix<NT> &A, std::vector<NT> &B){
+  int rows = A.getLocalRows();
+  int cols = A.getLocalCols();
+  auto commGrid = A.getCommGrid();
+
+  //Find location of local rows in overall grid
+  int rowDense = commGrid->GetGridRows();
+  int colDense = commGrid->GetGridCols();
+  int rankAinRow = commGrid->GetRankInProcRow();
+
+  std::vector<NT>* out = new std::vector<NT>(rows * cols);
+  // Add corresponding entries of B to A (offset by global pos)
+  for (int i = 0; i < rows; i++){
+    for (int j = 0; j < cols; j++){
+      out->at(i * cols + j) = SR::add(A.getValues()->at(i * cols + j), B.at(i + rankAinRow * rows));
+    }
+  }
+
+  return DenseMatrix<NT>(rows, cols, out, commGrid);
 }
 
 
