@@ -107,8 +107,8 @@ set(DIST
     src/utils/LossFn.cpp
 )
 # add_executable(example src/example.cpp)
-# target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
-# set_property(TARGET example PROPERTY CXX_STANDARD 17)
+# # target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
+# # set_property(TARGET example PROPERTY CXX_STANDARD 17)
 
 # add_executable(${PROJECT_NAME} ${SOURCES})
 # target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
@@ -118,9 +118,13 @@ add_executable(example_2 src/example_2.cpp ${DIST})
 target_link_libraries(example_2 "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
 set_property(TARGET example_2 PROPERTY CXX_STANDARD 17)
 
-# add_executable(openBLAS_example src/openBLAS_example.cpp src/utils/parDenseGEMM.h src/utils/parDenseGEMM.cpp src/utils/DenseMatrix.h)
-# target_link_libraries(openBLAS_example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}" fast_matrix_market::fast_matrix_market)
-# set_property(TARGET example PROPERTY CXX_STANDARD 17)
+add_executable(openBLAS_example src/openBLAS_example.cpp src/utils/parDenseGEMM.h src/utils/parDenseGEMM.cpp src/utils/DenseMatrix.h)
+target_link_libraries(openBLAS_example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}" fast_matrix_market::fast_matrix_market)
+set_property(TARGET openBLAS_example PROPERTY CXX_STANDARD 17)
+
+add_executable(timing src/timing.cpp)
+target_link_libraries(timing "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
+set_property(TARGET timing PROPERTY CXX_STANDARD 17)
 
 # add_executable(model ${DIST})
 # target_link_libraries(model "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)

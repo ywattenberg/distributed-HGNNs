@@ -5,6 +5,25 @@
 
 using namespace std;
 
+std::vector<double>* VPDGEMM(std::vector<double>* A, std::vector<double>* B, int ROWS_A, int COLS_A, int ROWS_B, int COLS_B) {
+
+    int size, rank;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+		const int MATRIX_SIZE = ROWS_A * COLS_A;
+
+		std::vector<double>* C = new std::vector<double>(ROWS_A * COLS_B);
+
+		// cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,myRows,COLS_B,COLS_A,1,localA, 2, B, COLS_A,0,localC,2);
+
+		// print all parameters
+		// std::cout << "rank: " << rank << ", ROWS_A: " << ROWS_A << ", COLS_A: " << COLS_A << ", ROWS_B: " << ROWS_B << ", COLS_B: " << COLS_B << std::endl;
+		cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,ROWS_A,COLS_B,COLS_A,1,A->data(), COLS_A, B->data(), COLS_B,0,C->data(),COLS_A);
+
+		return C;
+}
+
 double* PDGEMM(const double A[], const double B[], int ROWS_A, int COLS_B, int COLS_A) {
 
     double C[ROWS_A * COLS_B];

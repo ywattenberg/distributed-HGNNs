@@ -8,7 +8,7 @@
 
 #include "CombBLAS/CombBLAS.h"
 #include "CombBLAS/CommGrid3D.h"
-#include "CombBLAS/SpParMat3D.h"
+#include "CombBLAS/SpParMat.h"
 #include "CombBLAS/ParFriends.h"
 #include "CombBLAS/FullyDistVec.h"
 #include "CombBLAS/SpParMat.h"
@@ -38,18 +38,40 @@ int main(int argc, char* argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+
+    {
     // create dense matrix
-    const std::string filename = "../data/m_g_ms_gs/dense-test.mtx";
+    const std::string filename = "../data/m_g_ms_gs/features.mtx";
 	shared_ptr<CommGrid> fullWorld;
-	fullWorld.reset(new CommGrid(MPI_COMM_WORLD, std::sqrt(size), std::sqrt(size)));
-    DenseMatrix<double> A(ROWS_A, COLS_A, fullWorld);
+    fullWorld.reset( new CommGrid(MPI_COMM_WORLD, 0, 0) );
+
+    // SpParMat < int64_t, double, SpDCCols<int64_t, double> > A(fullWorld);
+    // A.ParallelReadMM(filename, false, maximum<double>());
+    // MPI_Barrier(MPI_COMM_WORLD);
+
+    DenseMatrix<double> A(0, 0, fullWorld);
     A.ParallelReadDMM(filename, false);
     MPI_Barrier(MPI_COMM_WORLD);
     // print local matrix A
-    if (rank == 0) {
-        A.printLocalMatrix();
-    }
+    // if (rank == 0) {
+    //     A.printLocalMatrix();
+    // }
 
+    DenseMatrix<double> B(0, 0, fullWorld);
+    B.ParallelReadDMM(filename, false);
+    MPI_Barrier(MPI_COMM_WORLD);
+    
+    std::vector<double>* C = VPDGEMM(A.getValues(), B.getValues(), A.getLocalRows(), A.getLocalCols(), B.getLocalRows(), B.getLocalCols());
+
+    // print first 100 elements of local matrix C
+    if (rank == 0) {
+        for (int i = 0; i < 10; i++) {
+            std::cout << "Rank " << rank << " " << C->at(i) << " " << std::endl;
+        }
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    }
     MPI_Finalize();
     return 0;
 }
