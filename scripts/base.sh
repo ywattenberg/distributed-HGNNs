@@ -7,7 +7,7 @@
 #SBATCH --ntasks=4
 #SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=1
-#SBATCH --mem-per-cpu=8G
+#SBATCH --mem-per-cpu=16G
 # Exit on errors
 set -o errexit
 
@@ -54,7 +54,9 @@ echo "Starting training at:     $(date)"
 # bash $HOME/discord-webhook/discord.sh --webhook-url=https://discord.com/api/webhooks/1105789194959339611/-tDqh7eGfQJhaLoxjCsHbHrwTzhNEsR5SDxabXFiYdhg-KHwzN3kVwr87rxUggqWCQ0K --title "Starting training for $USER" --color 3066993 --field "Date;$(date);false" --field "Jobid;${SLURM_JOB_ID};false"
 
 # $HOME/distributed-THNN/build/torchtest -c "${HOME}/distributed-THNN/config/paper_config.yaml" -u ${USER} -t ${TMPDIR}
-mpiexec -np ${SLURM_NTASKS} $HOME/distributed-THNN/build/example_2 ${TMPDIR}/data/m_g_ms_gs/DVH.mtx ${TMPDIR}/data/m_g_ms_gs/invDE_HT_DVH.mtx ${TMPDIR}/data/m_g_ms_gs/DVH_times_invDE_HT_DVH.mtx
+# mpiexec -np ${SLURM_NTASKS} $HOME/distributed-THNN/build/example_2 ${TMPDIR}/data/m_g_ms_gs/DVH.mtx ${TMPDIR}/data/m_g_ms_gs/invDE_HT_DVH.mtx ${TMPDIR}/data/m_g_ms_gs/DVH_times_invDE_HT_DVH.mtx
+mpiexec -np ${SLURM_NTASKS}  $HOME/distributed-THNN/build/openBLAS_example
+# mpiexec -np ${SLURM_NTASKS}  $HOME/distributed-THNN/build/timing
 
 echo "Finished training at:     $(date)"
 
