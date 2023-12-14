@@ -81,7 +81,6 @@ NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool 
   for(int i = 0; i < local_rows; i++){
     // std::cout << " Rank " << myrank << " "<< x_y_n.at(i) << " + " << local_sum.at(i) << std::endl;
     loss += (- x_y_n.at(i) + local_sum.at(i))/(sum? 1.0:total_rows);
-
   }
 
   MPI_Allreduce(MPI_IN_PLACE, &loss, 1, MPIType<NT>(), MPI_SUM, pred.getCommGrid()->GetColWorld());

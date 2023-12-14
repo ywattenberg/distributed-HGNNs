@@ -61,12 +61,8 @@ class DistModel
         // forward function of the Model, it takes the features X (called input) and the constant leftSide of the expression 10 of the paper 
         // Hypergraph Neural Networks (called leftSide)
         DENSE_DOUBLE* forward(DENSE_DOUBLE* input);
-        void backward(DENSE_DOUBLE* input, DENSE_DOUBLE* labels, double learning_rate);
+        void backward(DENSE_DOUBLE* input, std::vector<int>* labels, double learning_rate);
         void comp_layer(DENSE_DOUBLE* X, DistConv* curr, bool last_layer);
-
-        
-
-
 };
 
 
@@ -77,8 +73,4 @@ void DenseGradientStep(DenseMatrix<NT>* parameter, DenseMatrix<NT>* gradient, do
 template<typename SR, typename IT, typename NT>
 void VecGradientStep(std::vector<double>* parameter, DenseMatrix<NT>* gradient, double lr);
 
-
-// //TODO: Parallelize this function
-// template <typename NT>
-// std::vector<NT>* CrossEntropyLossDerivative(const std::vector<NT>* pred, const std::vector<NT>* target)
 #endif
