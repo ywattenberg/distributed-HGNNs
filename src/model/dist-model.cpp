@@ -96,7 +96,7 @@ void DistModel::comp_layer(DENSE_DOUBLE* X, DistConv* curr, bool last_layer=fals
         curr->XtB = DenseVecAdd<PTFF, int64_t, double>(curr->XtB, &curr->bias);
     }
     // Compute G_3 (LWR * XTb) with bias and (LWR * XT) without, where LWR is a sparse matrix and XTb/XT are dense matrices
-    curr->G_3 = SpDenseMult<PTFF, int64_t, double, DCCols>(this->LWR, this->withBias ? curr->XtB : curr->Xt);
+    curr->G_3 = SpDenseMult<PTFF, int64_t, double, DCCols>(this->LWR, curr->XtB);
     // Compute X (ReLU(G_3) or G_4) if not last layer
     curr->G_4 = last_layer ? DENSE_DOUBLE() : DenseReLU<PTFF, double>(curr->G_3);
 }
@@ -130,7 +130,7 @@ void DistModel::backward(DENSE_DOUBLE* input, DENSE_DOUBLE* labels, double learn
     
     DistConv* curr = this->layers[this->layers.size()-1];
     // Last layer is different as we do not use ReLU this means dL_dG3 is just dL_dX
-    DENSE_DOUBLE dL_dG1 = DenseDenseMult<PTFF, double>(dL_dX, this->withBias ? curr->XtB : curr->Xt);
+    DENSE_DOUBLE dL_dG1 = DenseDenseMult<PTFF, double>(dL_dX, curr->XtB);
     DENSE_DOUBLE dL_dw  = DenseSpMult<PTFF, int64_t, double, DCCols>(dL_dG1, this->LR);
     DENSE_DOUBLE dL_dG2 = DenseSpMult<PTFF, int64_t, double, DCCols>(dL_dX, this->LWR);
     DENSE_DOUBLE dL_dt  = DenseDenseMult<PTFF, double>(dL_dG2, *curr->X);
@@ -144,7 +144,7 @@ void DistModel::backward(DENSE_DOUBLE* input, DENSE_DOUBLE* labels, double learn
 
         DENSE_DOUBLE dX_dG3 = DerivativeDenseReLU<PTFF, double>(curr->G_3);
         DENSE_DOUBLE dL_dG3 = DenseDenseMult<PTFF, double>(dL_dX, dX_dG3);
-        DENSE_DOUBLE dL_dG1 = DenseDenseMult<PTFF, double>(dL_dG3, this->withBias ? curr->XtB : curr->Xt);
+        DENSE_DOUBLE dL_dG1 = DenseDenseMult<PTFF, double>(dL_dG3, curr->XtB);
         DENSE_DOUBLE dL_dw  = DenseSpMult<PTFF, int64_t, double, DCCols>(dL_dG1, this->LR);
         DENSE_DOUBLE dL_dG2 = DenseSpMult<PTFF, int64_t, double, DCCols>(dL_dG3, this->LWR);
         DENSE_DOUBLE dL_dt  = DenseDenseMult<PTFF, double>(dL_dG2, *curr->X);
@@ -164,7 +164,6 @@ DistConv::DistConv(){
     this->weights = DENSE_DOUBLE();
     this->bias = vector<double>();
     this->X = new DENSE_DOUBLE();
-    this->Xt = DENSE_DOUBLE();
     this->XtB = DENSE_DOUBLE();
     this->G_3 = DENSE_DOUBLE();
     this->G_4 = DENSE_DOUBLE();
