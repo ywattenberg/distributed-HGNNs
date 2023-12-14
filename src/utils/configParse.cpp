@@ -21,7 +21,7 @@ ConfigProperties ParseConfig(const std::string& config_path){
     config_properties.trainer_properties.learning_rate = config["trainer"]["learning_rate"].as<double>();
     config_properties.trainer_properties.epochs = config["trainer"]["epochs"].as<int>();
     config_properties.trainer_properties.output_stepsize = config["trainer"]["output_stepsize"].as<int>();
-    config_properties.trainer_properties.loss_function = config["trainer"]["loss_function"].as<std::string>();
+    config_properties.trainer_properties.loss_function = config["trainer"]["loss_fn"].as<std::string>();
 
     // lr_scheduler properties
     config_properties.lr_scheduler_properties.step_size = config["lr_scheduler"]["step_size"].as<int>();
