@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from matrix_utils import *
+from utils.matrix_utils import *
 
 
 """
@@ -28,8 +28,8 @@ class DistConv:
         if self.bias is not None:
              np.random.uniform(-stdv, stdv, self.bias.shape)
     
-    def __call__(self, x) -> Any:
-        x = simple_dist_mm(self.weights, x, self.comm)
+    def __call__(self, x: np.ndarray) -> np.ndarray:
+        x = simple_dist_mm(self.weights, x, self.comm) # TODO: finish this function
         if self.bias is not None:
             x += self.bias
         return x
@@ -37,7 +37,7 @@ class DistConv:
     
 
 class DistModel:
-    def __init__(self, config: dict, in_dim: int) -> None:
+    def __init__(self, config: dict, in_dim: int, left_side: np.ndarray) -> None:
         self.fwd_only = config["experiment"]["fwd_only"]
         
         self.input_dim = in_dim
@@ -46,6 +46,7 @@ class DistModel:
         self.lay_dim = config["model_properties"]["hidden_dims"]
         self.number_of_hid_layers = len(self.lay_dim)
         self.with_bias = config["model_properties"]["with_bias"]
+        self.left_side = left_side
         
         self.layers = []
         if self.number_of_hid_layers > 0:
@@ -62,17 +63,24 @@ class DistModel:
        
     def forward(self, x):
         x = self.layers[0](x)
-        x = torch.mm(self.left_side, x)
+        x = simple_dist_mm(self.left_side, x, MPI.COMM_WORLD) #
         x = F.relu(x)
         x = F.dropout(x, self.dropout, training=self.training)
         
         for i in range(1, len(self.layers)-1):
             l = self.layers[i]
-            x = F.relu(l(x))
+            x = self.__relu(l(x))
             x = F.dropout(x, self.dropout, training=self.training)
             
         x = self.layers[-1](x)
         return x
+    
+    @staticmethod
+    def __relu(x: np.ndarray):
+        return x * (x > 0)
+    
+    @staticmethod
+        
     
     def backward(self):
         pass

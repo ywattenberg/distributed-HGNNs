@@ -1,12 +1,19 @@
+import mpi4py
+mpi4py.rc.initialize = False 
+mpi4py.rc.finalize = False 
+
+from mpi4py import MPI
 from tqdm import tqdm
+import numpy as np
 
 import torch
 import torch.nn as nn
 from torchmetrics.classification import MulticlassAccuracy, MulticlassF1Score
 
 from variables import MODELNET40_NUM_CLASSES
+from utils.train_utils import CrossEntropyLoss
 
-def train_model(config, labels, features, model):
+def train_torch_model(config, labels, features, model):
     # initialize parameters
     n_epochs = config["trainer"]["epochs"]
     stepsize_output = config["trainer"]["output_stepsize"]
@@ -34,9 +41,10 @@ def train_model(config, labels, features, model):
     
     for epoch in tqdm(range(n_epochs), desc="Training ... "):
         output = model(features)
+        if model.fwd_only: # for timing only
+            continue
+        
         output_train = output[:train_set_cutoff]
-        # print(output_train.shape)
-        # print(train_labels)
         loss = loss_fn(output_train, train_labels)
         
         optimizer.zero_grad()
@@ -54,3 +62,41 @@ def train_model(config, labels, features, model):
                 print(f"Train loss: {loss} | Test loss: {test_loss}")
                 print(f"Test accuracy: {test_acc} | Test F1 score: {test_f1}")    
     
+    
+def train_dist_model(config, labels, features, model):
+    # initialize parameters
+    n_epochs = config["trainer"]["epochs"]
+    stepsize_output = config["trainer"]["output_stepsize"]
+    lr = config["trainer"]["learning_rate"]
+    train_set_cutoff = config["data"]["test_idx"]
+    
+    lr_step_size = config["lr_scheduler"]["step_size"]
+    lr_gamma = config["lr_scheduler"]["gamma"]
+    
+    train_labels = labels[:train_set_cutoff].long()
+    test_labels = labels[train_set_cutoff:train_set_cutoff+labels.shape[0]].long()
+    
+    loss_fn = CrossEntropyLoss
+    
+    # initialize MPI
+    MPI.Init()
+    
+    #TODO: scatter data
+    
+    # TODO: train model and convert data type to numpy correctly
+    for epoch in tqdm(range(n_epochs), desc="Training ... "):
+        output = model(features)
+        if model.fwd_only: # for timing only
+            continue
+        
+        output_train = output[:train_set_cutoff]
+        # print(output_train.shape)
+        # print(train_labels)
+        loss = loss_fn(output_train, train_labels)
+        
+    """
+        model.backward(loss)
+        model.update(lr)
+    """
+        
+        
