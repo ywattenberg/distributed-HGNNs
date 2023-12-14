@@ -116,6 +116,42 @@ class DenseMatrix
       }
     }
 
+    template<typename SR>
+    std::vector<NT> * getRowSum()
+    {
+      int myrank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
+      std::vector<NT> * rowSums = new std::vector<NT>(localRows);
+
+      for (int i = 0; i < localRows; i++){
+        for (int j = 0; j < localCols; j++){
+          rowSums->at(i) = SR::add(rowSums->at(i), values->at(i*localCols + j));
+        }
+      }
+
+      MPI_Allreduce(MPI_IN_PLACE, rowSums->data(), localRows, MPIType<NT>(), MPI_SUM, commGrid->GetRowWorld());
+
+      int totalRows = getnrow();
+      int gridRows = commGrid->GetGridRows();
+      std::vector<int> * displacements = new std::vector<int>(gridRows);
+      std::vector<int> * sizes = new std::vector<int>(gridRows, localRows);
+      
+
+      for (int i = 0; i < gridRows; i++){
+        displacements->at(i) = i*localRows;
+      }
+
+      sizes->at(gridRows-1) = totalRows - displacements->at(gridRows-1);
+
+      std::vector<NT> * allRowSums = new std::vector<NT>(totalRows);
+      MPI_Gatherv(rowSums->data(), localRows, MPIType<NT>(), allRowSums->data(), sizes->data(), displacements->data(), MPIType<NT>(), 0, commGrid->GetColWorld());
+      MPI_Bcast(allRowSums->data(), totalRows, MPIType<NT>(), 0, commGrid->GetColWorld());
+
+      return allRowSums;
+
+    }
+
   private:
     int localRows;
     int localCols;
@@ -129,7 +165,6 @@ static void BCastMatrixDense(MPI_Comm & comm1d, std::vector<NT> * values, std::v
 {
   int myrank;
   MPI_Comm_rank(comm1d, &myrank);
-
 
   MPI_Bcast(essentials.data(), essentials.size(), MPIType<IT>(), sendingRank, comm1d);
 
@@ -717,7 +752,10 @@ DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
   int myrank;
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
 
+
   int stages, dummy;
+  // std::cout << "holyido before before" << std::endl;
+
   std::shared_ptr<CommGrid> GridC = ProductGrid((A.getCommGrid()).get(), (B.getCommGrid()).get(), stages, dummy, dummy);		
 
   std::vector<NT> * bufferA = new std::vector<NT>();
@@ -748,7 +786,7 @@ DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
 
     BCastMatrixDense(GridC->GetRowWorld(), bufferA, essentialsA, sendingRank);
 
-      
+
     if (rankBinCol == sendingRank){
       bufferB = B.getValues();
 
@@ -765,6 +803,10 @@ DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
     
   return DenseMatrix<NT>(localRowsA, localColsB, localOut, GridC);
 }
+
+
+
+
 }
 
 
