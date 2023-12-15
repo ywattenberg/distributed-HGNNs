@@ -182,21 +182,6 @@ DistConv::DistConv(shared_ptr<CommGrid> fullWorld, int in_dim, int out_dim, bool
     if (rankInRow == gridCols -1){
         local_cols += out_dim % gridCols;
     }
-
-    int myrank, size;
-    MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-    MPI_Comm_size(MPI_COMM_WORLD,&size);
-
-    int rank = 0;
-
-    while (rank < size) {
-    if (myrank == rank) {
-        std::cout << "i am rank " << myrank << " and I have the dims " << local_rows << " x  " << local_cols << std::endl;
-    }
-    rank ++;
-    MPI_Barrier(MPI_COMM_WORLD);
-    }
-
     
     vector<double>* weight_vec = new vector<double>(local_rows * local_cols, 0.0);
     //TODO: Parallelize 
