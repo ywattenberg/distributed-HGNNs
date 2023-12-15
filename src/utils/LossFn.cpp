@@ -17,7 +17,7 @@ using namespace combblas;
 typedef PlusTimesSRing<double, double> PTFF;
 
 template double CrossEntropyLoss<PTFF, double>(DenseMatrix<double> &pred, const std::vector<int>* target, bool sum);
-template DenseMatrix<double> DerivativeCrossEntropyLoss<PTFF, double>(DenseMatrix<double> &pred, const std::vector<int>* target);
+template DenseMatrix<double> DerivativeCrossEntropyLoss<PTFF, double>(DenseMatrix<double> &pred, const std::vector<int>* target, bool sum_reduction);
 
 
 // In this function, we only calculate the loss and not the derivative.
@@ -90,7 +90,7 @@ NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool 
 
 
 template <typename SR, typename NT>
-DenseMatrix<NT> DerivativeCrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target)
+DenseMatrix<NT> DerivativeCrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, double sum_reduction)
 {
   int myrank;
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
@@ -117,6 +117,7 @@ DenseMatrix<NT> DerivativeCrossEntropyLoss(DenseMatrix<NT> &pred, const std::vec
       // if(target->at(i + row_offset) >= col_offset && target->at(i+ row_offset) < col_offset + local_cols){
       out->at(i*local_cols + j) = std::exp(predictions->at(i* local_cols + j))/local_sum.at(i);
       out->at(i*local_cols + j) -= (col_offset + j == target->at(row_offset + i)) ? 1.0 : 0.0;
+      if(!sum_reduction) out->at(i*local_cols + j) /= static_cast<NT>(pred.getnrow());
     }
   }
 
