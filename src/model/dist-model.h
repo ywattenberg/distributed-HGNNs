@@ -47,6 +47,7 @@ class DistModel
         bool withBias;
         double learning_rate;
         std::vector<DistConv*> layers;
+        std::shared_ptr<CommGrid> fullWorld;
 
         SPMAT_DOUBLE dvh;
         SPMAT_DOUBLE invde_ht_dvh;
@@ -56,7 +57,7 @@ class DistModel
 
 
     public:
-        DistModel(ConfigProperties& config, int in_dim);
+        DistModel(ConfigProperties& config, int in_dim, std::shared_ptr<CommGrid> grid, int dim_w);
         ~DistModel();
         // forward function of the Model, it takes the features X (called input) and the constant leftSide of the expression 10 of the paper 
         // Hypergraph Neural Networks (called leftSide)
