@@ -122,7 +122,7 @@ DENSE_DOUBLE* DistModel::forward(DENSE_DOUBLE* input){
 }
 
 void DistModel::backward(DENSE_DOUBLE& input, std::vector<int>* labels, double learning_rate){
-    DENSE_DOUBLE dL_dX = DerivativeLossCrossEntropy<PTFF, double>(input, labels);
+    DENSE_DOUBLE dL_dX = DerivativeCrossEntropyLoss<PTFF, double>(input, labels);
     
     DistConv* curr = this->layers[this->layers.size()-1];
     // Last layer is different as we do not use ReLU this means dL_dG3 is just dL_dX
@@ -175,13 +175,28 @@ DistConv::DistConv(shared_ptr<CommGrid> fullWorld, int in_dim, int out_dim, bool
     
     int local_rows = in_dim / gridRows;
     int local_cols = out_dim / gridCols;
-    if (rankInRow == gridRows - 1){
+    if (rankInCol == gridRows - 1){
         local_rows += in_dim % gridRows;
     }
 
-    if (rankInCol == gridCols -1){
+    if (rankInRow == gridCols -1){
         local_cols += out_dim % gridCols;
     }
+
+    int myrank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+    MPI_Comm_size(MPI_COMM_WORLD,&size);
+
+    int rank = 0;
+
+    while (rank < size) {
+    if (myrank == rank) {
+        std::cout << "i am rank " << myrank << " and I have the dims " << local_rows << " x  " << local_cols << std::endl;
+    }
+    rank ++;
+    MPI_Barrier(MPI_COMM_WORLD);
+    }
+
     
     vector<double>* weight_vec = new vector<double>(local_rows * local_cols, 0.0);
     //TODO: Parallelize 

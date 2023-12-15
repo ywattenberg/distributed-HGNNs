@@ -61,7 +61,7 @@ class DistModel
         // forward function of the Model, it takes the features X (called input) and the constant leftSide of the expression 10 of the paper 
         // Hypergraph Neural Networks (called leftSide)
         DENSE_DOUBLE* forward(DENSE_DOUBLE* input);
-        void backward(DENSE_DOUBLE* input, std::vector<int>* labels, double learning_rate);
+        void backward(DENSE_DOUBLE& input, std::vector<int>* labels, double learning_rate);
         void comp_layer(DENSE_DOUBLE* X, DistConv* curr, bool last_layer);
 };
 
