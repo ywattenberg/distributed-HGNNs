@@ -17,6 +17,7 @@
 #include "../utils/configParse.h"
 #include "../utils/parDenseGEMM.h"
 #include "../utils/DenseMatrix.h"
+#include "../utils/LossFn.h"
 
 using namespace std;
 using namespace combblas;
@@ -120,13 +121,8 @@ DENSE_DOUBLE* DistModel::forward(DENSE_DOUBLE* input){
     return X;
 }
 
-void DistModel::backward(DENSE_DOUBLE* input, DENSE_DOUBLE* labels, double learning_rate){
-    //TODO: Calculate loss and direct loss gradients
-
-
-    // Assume we have calculated the loss and gradients up to $\frac{\partial L}{\partial G_3^{L}}$ where $G_3^{L}$ is the output of the last layer
-    // Given in the variable dL/dX
-    DENSE_DOUBLE dL_dX = DENSE_DOUBLE();
+void DistModel::backward(DENSE_DOUBLE& input, std::vector<int>* labels, double learning_rate){
+    DENSE_DOUBLE dL_dX = DerivativeLossCrossEntropy<PTFF, double>(input, labels);
     
     DistConv* curr = this->layers[this->layers.size()-1];
     // Last layer is different as we do not use ReLU this means dL_dG3 is just dL_dX
@@ -204,38 +200,6 @@ DistConv::DistConv(shared_ptr<CommGrid> fullWorld, int in_dim, int out_dim, bool
     } 
 }
 
-
-template <typename NT>
-std::vector<NT>* CrossEntropyLoss(DENSE_DOUBLE* pred, const std::vector<NT>* target)
-{   
-    // Calculate the Cross Entropy Loss without averaging over the graph
-    // We assume that the pred vector are input logits and not probabilities
-    // For definition of Cross Entropy Loss see: https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
-    // Where we don't have a weight or ignore_index parameter
-    std::vector<NT>* prediction_matrix = pred->getValues();
-    int num_classes = pred->getLocalCols();
-    int num_samples = pred->getLocalRows();
-
-    if(num_classes != target->size())
-    {
-        throw std::invalid_argument("Number of classes in prediction and target do not match");
-    }
-
-    std::vector<NT>* loss = new std::vector<NT>(target->size());
-    for (int i = 0; i < target->size(); i++)
-    {
-        // Calculate the log over sum of all exponential of logits
-        for (int j = 0; j < num_classes; j++)
-        {
-            loss->at(i) += std::exp(prediction_matrix->at(j + i * num_classes));
-        }
-        loss->at(i) = std::log(loss->at(i));
-        loss->at(i) = -prediction_matrix->at(target->at(i) + i * num_classes) + loss->at(i);
-    }
-    return loss;
-}
-
-
 // TODO: Parallelize 
 template<typename SR, typename IT, typename NT>
 void DenseGradientStep(DenseMatrix<NT>* parameter, DenseMatrix<NT>* gradient, double lr){
@@ -270,10 +234,3 @@ void VecGradientStep(std::vector<double>* parameter, DenseMatrix<NT>* gradient, 
     }
     
 }
-
-// template <typename NT>
-// std::vector<NT>* CrossEntropyLossDerivative(const std::vector<NT>* pred, const std::vector<NT>* target)
-// {
-//     // Calculate the Cross Entropy Loss derivative given the 
-//     return loss;
-// }
