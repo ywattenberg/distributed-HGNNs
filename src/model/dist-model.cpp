@@ -122,7 +122,7 @@ DENSE_DOUBLE* DistModel::forward(DENSE_DOUBLE* input){
 }
 
 void DistModel::backward(DENSE_DOUBLE& input, std::vector<int>* labels, double learning_rate){
-    DENSE_DOUBLE dL_dX = DerivativeLossCrossEntropy<PTFF, double>(input, labels);
+    DENSE_DOUBLE dL_dX = DerivativeCrossEntropyLoss<PTFF, double>(input, labels);
     
     DistConv* curr = this->layers[this->layers.size()-1];
     // Last layer is different as we do not use ReLU this means dL_dG3 is just dL_dX
@@ -167,23 +167,22 @@ DistConv::DistConv(){
 
 //TODO: write implementation of weight initialization
 DistConv::DistConv(shared_ptr<CommGrid> fullWorld, int in_dim, int out_dim, bool withBias=false){
-    int rowDense = fullWorld->GetGridRows();
-    int colDense = fullWorld->GetGridCols();
-    int nodeRow =  fullWorld->GetRankInProcRow();
-    int nodeCol = fullWorld->GetRankInProcCol();
+    int gridRows = fullWorld->GetGridRows();
+    int gridCols = fullWorld->GetGridCols();
+    int rankInRow =  fullWorld->GetRankInProcRow();
+    int rankInCol = fullWorld->GetRankInProcCol();
 
-    int local_rows, local_cols;
-    if (nodeRow == rowDense - 1){
-        local_rows = in_dim - nodeRow * (in_dim / rowDense);
-    } else {
-        local_rows = in_dim / rowDense;
-    }
-    if (nodeCol == colDense - 1){
-        local_cols = out_dim - nodeCol * (out_dim / colDense);
-    } else {
-        local_cols = out_dim / colDense;
+    
+    int local_rows = in_dim / gridRows;
+    int local_cols = out_dim / gridCols;
+    if (rankInCol == gridRows - 1){
+        local_rows += in_dim % gridRows;
     }
 
+    if (rankInRow == gridCols -1){
+        local_cols += out_dim % gridCols;
+    }
+    
     vector<double>* weight_vec = new vector<double>(local_rows * local_cols, 0.0);
     //TODO: Parallelize 
     double stdv = 1.0 / std::sqrt(in_dim);
@@ -194,8 +193,7 @@ DistConv::DistConv(shared_ptr<CommGrid> fullWorld, int in_dim, int out_dim, bool
         weight_vec->at(i) = dis(gen);
     }
 
-
-    this->weights = DENSE_DOUBLE(local_rows, local_cols, weight_vec, fullWorld);
+    this->weights = *(new DENSE_DOUBLE(local_rows, local_cols, weight_vec, fullWorld));
 
     if (withBias){
         this->bias = vector<double>(out_dim, 1.0);
