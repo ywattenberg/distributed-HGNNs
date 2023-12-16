@@ -66,11 +66,5 @@ class DistModel
 };
 
 
-template<typename SR, typename IT, typename NT>
-void DenseGradientStep(DenseMatrix<NT>* parameter, DenseMatrix<NT>* gradient, double lr);
-
-
-template<typename SR, typename IT, typename NT>
-void VecGradientStep(std::vector<double>* parameter, DenseMatrix<NT>* gradient, double lr);
 
 #endif
