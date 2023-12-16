@@ -105,6 +105,8 @@ set(DIST
     src/utils/DenseMatrix.h
     src/utils/LossFn.h
     src/utils/LossFn.cpp
+    src/utils/DerivativeFunctions.h
+    src/utils/DerivativeFunctions.cpp
 )
 # add_executable(example src/example.cpp)
 # # target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
