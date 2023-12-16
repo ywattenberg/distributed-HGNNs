@@ -90,7 +90,7 @@ NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool 
 
 
 template <typename SR, typename NT>
-DenseMatrix<NT> DerivativeCrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, double sum_reduction)
+DenseMatrix<NT> DerivativeCrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool sum_reduction)
 {
   int myrank;
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
