@@ -111,6 +111,8 @@ class DenseMatrix
 
       for (int i = 0; i < localRows; i++){
         for (int j = 0; j < localCols; j++){
+          std::cout << "bias elem " <<  bias->at(coffset + j) << std::endl;
+          std::cout << "value element: " << values->at(i*localCols + j) << std::endl;
           values->at(i*localCols + j) += bias->at(coffset + j);
         }
       }
@@ -122,30 +124,30 @@ class DenseMatrix
       int myrank;
       MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
 
-      std::vector<NT> * rowSums = new std::vector<NT>(localRows);
+      std::vector<NT> rowSums = std::vector<NT>(localRows);
 
       for (int i = 0; i < localRows; i++){
         for (int j = 0; j < localCols; j++){
-          rowSums->at(i) = SR::add(rowSums->at(i), values->at(i*localCols + j));
+          rowSums.at(i) = SR::add(rowSums.at(i), values->at(i*localCols + j));
         }
       }
 
-      MPI_Allreduce(MPI_IN_PLACE, rowSums->data(), localRows, MPIType<NT>(), MPI_SUM, commGrid->GetRowWorld());
+      MPI_Allreduce(MPI_IN_PLACE, rowSums.data(), localRows, MPIType<NT>(), MPI_SUM, commGrid->GetRowWorld());
 
       int totalRows = getnrow();
       int gridRows = commGrid->GetGridRows();
-      std::vector<int> * displacements = new std::vector<int>(gridRows);
-      std::vector<int> * sizes = new std::vector<int>(gridRows, localRows);
+      std::vector<int> displacements = std::vector<int>(gridRows);
+      std::vector<int> sizes = std::vector<int>(gridRows, localRows);
       
 
       for (int i = 0; i < gridRows; i++){
-        displacements->at(i) = i*localRows;
+        displacements.at(i) = i*localRows;
       }
 
-      sizes->at(gridRows-1) = totalRows - displacements->at(gridRows-1);
+      sizes.at(gridRows-1) = totalRows - displacements.at(gridRows-1);
 
       std::vector<NT> * allRowSums = new std::vector<NT>(totalRows);
-      MPI_Gatherv(rowSums->data(), localRows, MPIType<NT>(), allRowSums->data(), sizes->data(), displacements->data(), MPIType<NT>(), 0, commGrid->GetColWorld());
+      MPI_Gatherv(rowSums.data(), localRows, MPIType<NT>(), allRowSums->data(), sizes.data(), displacements.data(), MPIType<NT>(), 0, commGrid->GetColWorld());
       MPI_Bcast(allRowSums->data(), totalRows, MPIType<NT>(), 0, commGrid->GetColWorld());
 
       return allRowSums;
@@ -653,10 +655,10 @@ void DenseMatrix< NT >::ParallelReadDMM(const std::string & filename, bool oneba
     int procRow = commGrid->GetRankInProcRow();
 
     if (procCol == grid_len - 1) {
-      localCols += ncols % grid_len;
+      localRows += nrows % grid_len;
     }
     if (procRow == grid_len - 1) {
-      localRows += nrows % grid_len;
+      localCols += ncols % grid_len;
     }
 
     this->setLocalRows(localRows);
@@ -800,7 +802,9 @@ DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
     blockDenseDense<SR, NT>(localRowsA, localColsA, localRowsB, localColsB, bufferA, bufferB, localOut);
   
   }
-    
+
+  std::cout << myrank <<  ": size of localout: " << localOut->size() << std::endl;
+
   return DenseMatrix<NT>(localRowsA, localColsB, localOut, GridC);
 }
 

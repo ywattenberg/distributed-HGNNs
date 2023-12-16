@@ -35,8 +35,33 @@ int main(int argc, char* argv[]){
   {
     cout << "Read config " << argv[1] << endl;
   }
+  
+
+  shared_ptr<CommGrid> fullWorld;
+	fullWorld.reset(new CommGrid(MPI_COMM_WORLD, std::sqrt(nprocs), std::sqrt(nprocs)));
+
   // Create Model
-  DistModel model(config, 10);
+  DistModel model(config, 6144, fullWorld, 24622);
+
+  cout << myrank << ": model initialized" << endl;
+
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  DenseMatrix<double> input(0, 0, fullWorld);
+  input.ParallelReadDMM(config.data_properties.features_path, false);
+
+  int totalRows = input.getnrow();
+  int totalCols = input.getncol();
+
+  if (myrank == 0){
+    cout << "number of features: " << totalRows << endl;
+    cout << "number of samples: " << totalCols << endl;
+  }
+
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  model.forward(&input);
+
   MPI_Finalize();
 
 }

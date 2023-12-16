@@ -30,7 +30,7 @@ typedef DenseMatrix<double> DENSE_DOUBLE;
 
 typedef PlusTimesSRing<double, double> PTFF;
 
-DistModel::DistModel(ConfigProperties &config, int in_dim){
+DistModel::DistModel(ConfigProperties &config, int in_dim, std::shared_ptr<CommGrid> grid, int dim_w){
     input_dim = in_dim;
     output_dim = config.model_properties.classes;
     dropout = config.model_properties.dropout_rate;
@@ -43,8 +43,9 @@ DistModel::DistModel(ConfigProperties &config, int in_dim){
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    shared_ptr<CommGrid> fullWorld;
-	fullWorld.reset(new CommGrid(MPI_COMM_WORLD, std::sqrt(size), std::sqrt(size)));
+    this->fullWorld = grid;
+    // shared_ptr<CommGrid> fullWorld;
+	// fullWorld.reset(new CommGrid(MPI_COMM_WORLD, std::sqrt(size), std::sqrt(size)));
 
     // read data
     SPMAT_DOUBLE dvh(fullWorld);
@@ -59,7 +60,7 @@ DistModel::DistModel(ConfigProperties &config, int in_dim){
     this->LR = PSpGEMM<PTFF, int64_t, double, double, DCCols, DCCols>(this->dvh, this->invde_ht_dvh);
     std::cout << "Reached init of layers" << std::endl;
     //TODO: use correct dimension
-    vector<double> w(in_dim, 1.0);
+    this->w = vector<double>(dim_w, 1.0);
     this->layers = vector<DistConv*>();
     this->layers.reserve(number_of_hid_layers);
     if (number_of_hid_layers > 0){
@@ -92,22 +93,51 @@ DistModel::~DistModel(){};
 
 void DistModel::comp_layer(DENSE_DOUBLE* X, DistConv* curr, bool last_layer=false){
     // Compute Xt (X * theta or G_2) where both are dense matrices
+    MPI_Barrier(MPI_COMM_WORLD);
+    int totalRows = X->getnrow();
+    int totalCols = X->getncol();
+
+    int totalRowsW = curr->weights.getnrow();
+    int totalColsW = curr->weights.getncol();
+    
+    int myrank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+    if (myrank == 0){
+    std::cout << "dim X: " << totalRows << " x " << totalCols << std::endl;
+    std::cout << "dim weights: " << totalRowsW << " x " << totalColsW << std::endl;
+    }
+
     curr->XtB = DenseDenseMult<PTFF, double>(*X, curr->weights);
+    std::cout << "after dense dense" << std::endl;
     if (this->withBias){
+        std::cout << "size bias: " << curr->bias.size() << std::endl;
+        std::cout << "localCols values: " << curr->XtB.getLocalCols() << std::endl;
+        std::cout << "size values: " << curr->XtB.getValues()->size() << std::endl;
         // Compute XTb (X * Theta + b or G_2) where both are dense matrices
         curr->XtB.addBiasLocally(&curr->bias);
     }
+        std::cout << "after bias" << std::endl;
+
     // Compute G_3 (LWR * XTb) with bias and (LWR * XT) without, where LWR is a sparse matrix and XTb/XT are dense matrices
     curr->G_3 = SpDenseMult<PTFF, int64_t, double, DCCols>(this->LWR, curr->XtB);
+    std::cout << "after sparse dense" << std::endl;
+
     // Compute X (ReLU(G_3) or G_4) if not last layer
     curr->G_4 = last_layer ? DENSE_DOUBLE() : DenseReLU<PTFF, double>(curr->G_3);
 }
 
 DENSE_DOUBLE* DistModel::forward(DENSE_DOUBLE* input){
+    int myrank;
+    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+
     // First compute LWR or G_1 (will be the same for all layers)
+    std::cout << "size of vec is: " << this->w.size() << std::endl;
+    this->dvh.PrintInfo();
     this->LWR = PSpSCALE<PTFF, int64_t, double, DCCols>(this->dvh, this->w);
     this->LWR = PSpGEMM<PTFF, int64_t, double, double, DCCols, DCCols>(this->LWR, this->invde_ht_dvh);
     DENSE_DOUBLE* X = input;
+    std::cout << "precomputing done " << myrank << std::endl;
+
     // All other calculations are have to be done for each layer
     for(int i = 0; i < this->layers.size()-1; i++){
         DistConv* curr = this->layers[i];
