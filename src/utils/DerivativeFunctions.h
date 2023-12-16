@@ -15,17 +15,18 @@
 #include "../utils/DenseMatrix.h"
 
 using namespace combblas;
+typedef DenseMatrix<double> DENSE_DOUBLE;
 
 void WDerivativeLocalAdd(DENSE_DOUBLE& dL_dw, std::vector<double>* out);
 
 void WDerivativeAccumulation(CommGrid* commGrid, std::vector<double>* local_w, std::vector<double>* out);
 
 template<typename SR, typename IT, typename NT>
-void DenseGradientStep(DenseMatrix<NT>* parameter, DenseMatrix<NT>* gradient, double lr);
+void DenseGradientStep(DenseMatrix<NT>& parameter, DenseMatrix<NT>& gradient, double lr);
 
 
 template<typename SR, typename IT, typename NT>
-void VecGradientStep(std::vector<double>* parameter, DenseMatrix<NT>* gradient, double lr);
+void BiasGradientStep(std::vector<double>* parameter, DenseMatrix<NT>& gradient, double lr);
 
 
 
