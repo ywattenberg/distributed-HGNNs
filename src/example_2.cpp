@@ -12,7 +12,8 @@
 #include "CombBLAS/FullyDistVec.h"
 #include "CombBLAS/SpParMat.h"
 #include "utils/DenseMatrix.h"
-#include "utils/LossFn.h"
+// #include "utils/LossFn.h"
+#include "model/dist-model.h"
 
 using namespace std;
 using namespace combblas;
@@ -55,11 +56,44 @@ int main(int argc, char* argv[])
     }
     else {
 
+       
+
         string Aname(argv[1]);
         string Bname(argv[2]);
         string CCname(argv[3]);
         shared_ptr<CommGrid> fullWorld;
         fullWorld.reset( new CommGrid(MPI_COMM_WORLD, 0, 0) );
+
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        if (argc >= 6){
+
+        char *p, *q;
+        long in_dim = strtol(argv[4], &p, 10);
+        long out_dim = strtol(argv[5], &p, 10);
+
+        auto conv = new DistConv(fullWorld, (int) in_dim, (int) out_dim, true);
+        auto matrix = conv->weights;
+
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        if (myrank == 0){
+            cout << matrix.getLocalCols() << std::endl;
+            cout << matrix.getLocalRows() << std::endl;
+            cout << matrix.getValues()->size() << std::endl;
+             for (int i = 0; i < matrix.getLocalRows(); i++){
+                for (int j = 0; j < matrix.getLocalCols(); j++){
+                    cout << matrix.getValues()->at(i * matrix.getLocalCols() + j) << " ";
+                }
+                cout << endl;
+            }
+        }
+
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        }
+
+        
         
         double t0, t1;
         
@@ -104,11 +138,11 @@ int main(int argc, char* argv[])
 
         res.ParallelWriteMM("../data/m_g_ms_gs/bla.mtx", true); 
 
-        const std::string filename = "../data/m_g_ms_gs/dense-test.mtx";
-        DenseMatrix<double> simi(4, 5, fullWorld);
+        // const std::string filename = "../data/m_g_ms_gs/dense-test.mtx";
+        // DenseMatrix<double> simi(4, 5, fullWorld);
 
-        simi.ParallelReadDMM(filename, false);
-        simi.printLocalMatrix();
+        // simi.ParallelReadDMM(filename, false);
+        // simi.printLocalMatrix();
         // if (res == CC2D){
         //     if (myrank == 0){
         //         fprintf(stderr, "Correct\n");
@@ -164,18 +198,20 @@ int main(int argc, char* argv[])
                 dist = new std::vector<double>(d_array, d_array + 4);
                 break;
             case 1:
-                d_array = new double[]{6,7,0,4.1};
-                dist = new std::vector<double>(d_array, d_array + 4);
+                d_array = new double[]{6,7,3,0,4.1,2};
+                dist = new std::vector<double>(d_array, d_array + 6);
                 break;
             case 2:
                 d_array = new double[]{1,5,13,6};
                 dist = new std::vector<double>(d_array, d_array +4);
                 break;
             case 3:
-                d_array = new double[]{9.5,0,0.2,3.5};
-                dist = new std::vector<double>(d_array, d_array + 4);
+                d_array = new double[]{9.5,0,2,0.2,3.5,3};
+                dist = new std::vector<double>(d_array, d_array + 6);
                 break;
         }
+
+        cout << "size: " << dist->size() << endl;
 
         std::vector<double>* dist2;
         
@@ -207,11 +243,10 @@ int main(int argc, char* argv[])
         int rows = 4;
         int cols = 4;
 
-
-        DenseMatrix<double> denseTest = DenseMatrix<double>(2,2,dist, fullWorld);
+        DenseMatrix<double> denseTest = DenseMatrix<double>(2,2 + myrank%2,dist, fullWorld);
         DenseMatrix<double> denseTest2 = DenseMatrix<double>(2,2,dist2, fullWorld);
 
-        CrossEntropyLoss<PTFF, double>(denseTest, dist, true);
+        // CrossEntropyLoss<PTFF, double>(denseTest, dist, true);
 
         // if (myrank == 2){
         //     cout << "from rank " << myrank << " ";
@@ -222,14 +257,29 @@ int main(int argc, char* argv[])
 
         // }
 
-        DenseMatrix<double> output = DenseDenseMult<PTFF, double>(denseTest, denseTest2);
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        if (myrank == 0){
+            cout << "mult is about to start" << endl;
+            cout << "commgrd: " << fullWorld->GetGridCols() << endl;
+
+            cout << "commgrd: " << denseTest.getCommGrid()->GetGridRows() << endl;
+            cout << "ahlfdshapsoifjölsajnflewaöfoj" << endl;
+
+            cout << "local: " << denseTest.getLocalCols() << std::endl;
+            cout << "localrows: " << denseTest.getLocalRows() << std::endl;
+
+        }
+
+
+        DenseMatrix<double> output = DenseDenseMult<PTFF, double>(denseTest2, denseTest);
         
+        cout << "multiplication done" << endl;
         
         // DenseMatrix<double> output = SpDenseMult<PTFF, int64_t, double, SpDCCols < int64_t, double >>(res, denseTest);
         std::vector<double> outValuesLocal = *output.getValues();
 
-
-        if (myrank == 0){
+        if (myrank == 1){
             for (int i = 0; i < output.getLocalRows(); i++){
                 for (int j = 0; j < output.getLocalCols(); j++){
                     cout << outValuesLocal[i*output.getLocalCols() + j] << " ";
@@ -237,6 +287,19 @@ int main(int argc, char* argv[])
                 cout << endl;
             }
         }
+
+        auto sumRows = output.getRowSum<PTFF>();
+        int totalRows = output.getnrow();
+
+        if (myrank == 0){
+            for (int i = 0; i < totalRows; i++){
+                cout << sumRows->at(i) << endl;
+            }
+        }
+        
+        
+
+       
         
     //     // Increase number of layers 1 -> 4 -> 16
     //     // for(int layers = 1; layers <= 16; layers = layers * 4){
