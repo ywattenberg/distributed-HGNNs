@@ -34,6 +34,8 @@ class DistConv
         DistConv();
         DistConv(shared_ptr<CommGrid> fullWorld, int in_dim, int out_dim, bool withBias);
         DENSE_DOUBLE forward(DENSE_DOUBLE &input);
+        void clear_partial_results();
+        
 };
 
 class DistModel
@@ -64,6 +66,7 @@ class DistModel
         DENSE_DOUBLE* forward(DENSE_DOUBLE* input);
         void backward(DENSE_DOUBLE& input, std::vector<int>* labels, double learning_rate);
         void comp_layer(DENSE_DOUBLE* X, DistConv* curr, bool last_layer);
+        void clear_layer_partial_results();
 };
 
 

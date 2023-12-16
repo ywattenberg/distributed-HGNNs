@@ -58,8 +58,10 @@ class DenseMatrix
       commGrid.reset(new CommGrid(MPI_COMM_WORLD, rows, cols));
     }
 
-    ~DenseMatrix<NT>()
+    void clear()
     {
+      localRows = -1;
+      localCols = -1;
       if (values != nullptr) {
         delete values;
       }

@@ -126,6 +126,15 @@ void DistModel::comp_layer(DENSE_DOUBLE* X, DistConv* curr, bool last_layer=fals
     curr->G_4 = last_layer ? DENSE_DOUBLE() : DenseReLU<PTFF, double>(curr->G_3);
 }
 
+void DistModel::clear_layer_partial_results(){
+    for(int i = 0; i < this->layers.size(); i++){
+        //For each layer free all partial results saved in the layer
+        DistConv* curr = this->layers[i];
+        curr->clear_partial_results();
+    }
+
+}
+
 DENSE_DOUBLE* DistModel::forward(DENSE_DOUBLE* input){
     int myrank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
@@ -152,6 +161,8 @@ DENSE_DOUBLE* DistModel::forward(DENSE_DOUBLE* input){
     return X;
 }
 
+
+
 void DistModel::backward(DENSE_DOUBLE& input, std::vector<int>* labels, double learning_rate){
     // We need to accumulate the gradients of w over all layers reducing using sum
     // As w is a vector we will only need the diagonal of the matrix derivative
@@ -176,7 +187,12 @@ void DistModel::backward(DENSE_DOUBLE& input, std::vector<int>* labels, double l
         BiasGradientStep<PTFF, int64_t, double>(&curr->bias, dL_dG2, learning_rate);
     }
 
-    
+    // Clear all created DenseMatrices except dL_dX
+    dL_dG1.clear();
+    dL_dw.clear();
+    dL_dG2.clear();
+    dL_dt.clear();
+
     for(int i = this->layers.size()-2; i >= 1; i--){
         curr = this->layers[i];
         // Compute the gradients for each layer
@@ -199,11 +215,24 @@ void DistModel::backward(DENSE_DOUBLE& input, std::vector<int>* labels, double l
         if (this->withBias){
             BiasGradientStep<PTFF, int64_t, double>(&curr->bias, dL_dG2, learning_rate);
         }
+
+        // Clear all created DenseMatrices except dL_dX
+        dL_dG3.clear();
+        dL_dG1.clear();
+        dL_dw.clear();
+        dL_dt.clear();
+        dX_dG3.clear();
+        dL_dG2.clear();
+
+        // Clear all partial results saved in the layer
+        this->clear_layer_partial_results();
     }
 
     // Lastly update w with the accumulated gradients
     WDerivativeUpdate(this->fullWorld, &dw, &this->w, learning_rate);
 }
+
+
 
 DistConv::DistConv(){
     this->weights = DENSE_DOUBLE();
@@ -212,6 +241,18 @@ DistConv::DistConv(){
     this->XtB = DENSE_DOUBLE();
     this->G_3 = DENSE_DOUBLE();
     this->G_4 = DENSE_DOUBLE();
+}
+
+void DistConv::clear_partial_results(){
+    if(this->XtB.getValues() != nullptr){
+        this->XtB.clear();
+    }
+    if(this->G_3.getValues() != nullptr){
+        this->G_3.clear();
+    }
+    if(this->G_4.getValues() != nullptr){
+        this->G_4.clear();
+    }
 }
 
 //TODO: write implementation of weight initialization
