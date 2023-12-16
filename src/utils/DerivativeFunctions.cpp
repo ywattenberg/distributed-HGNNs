@@ -44,27 +44,29 @@ void WDerivativeLocalAdd(DENSE_DOUBLE& dL_dw, std::vector<double>* out){
 
 void WDerivativeUpdate(std::shared_ptr<CommGrid> comm_grid, std::vector<double>* acc_grads, std::vector<double>* out, double lr){
   int num_diag_elements = acc_grads->size();
+  int diag_comm_size; MPI_Comm_size(comm_grid->GetDiagWorld(), &diag_comm_size);
+  int local_diag_el = num_diag_elements / diag_comm_size;
   int global_rows, global_cols;
 
-  if(acc_grads->size() != num_diag_elements){
+  if(acc_grads->size() != out->size()){
     throw std::invalid_argument("acc_grads vector needs does not have the correct dim (DerivativeFunctions.cpp, WDerivativeUpdate)");
   }
 
   // First perform local update of the w vector (only the diagonal elements)
   int myrank = comm_grid->GetDiagRank();
   if(myrank != MPI_PROC_NULL){
-    int offset = myrank * num_diag_elements;
+    int offset = myrank * local_diag_el;
     for(int i = offset; i < offset+num_diag_elements; i++){
       out->at(i) = out->at(i) + (-lr * acc_grads->at(i));
     }
 
     // Now distribute the updated diagonal elements to the diagonal processes
-    std::vector<int> recvcounts = std::vector<int>(comm_grid->GetGridRows(), num_diag_elements);
+    std::vector<int> recvcounts = std::vector<int>(comm_grid->GetGridRows(), local_diag_el);
     std::vector<int> offsetv = std::vector<int>(comm_grid->GetGridRows());
     for (int i = 0; i < comm_grid->GetGridRows(); i++){
-        offsetv[i] = i * num_diag_elements;
+        offsetv[i] = i * local_diag_el;
     }
-    recvcounts[recvcounts.size()-1] = out->size() - offsetv[recvcounts.size()-1];
+    recvcounts[recvcounts.size()-1] = num_diag_elements - offsetv[recvcounts.size()-1];
     MPI_Allgatherv(MPI_IN_PLACE, num_diag_elements, MPI_DOUBLE, out->data(), recvcounts.data(), offsetv.data(), MPI_DOUBLE, comm_grid->GetDiagWorld());
   }
   // Now broadcast the updated diagonal elements to all processes in the diagonal
@@ -108,21 +110,20 @@ void BiasGradientStep(std::vector<double>* parameter, DenseMatrix<NT>& gradient,
   // Now reduce the local sums to the root process of each column
   std::shared_ptr<CommGrid> comm_grid = gradient.getCommGrid();
   int mycolrank = comm_grid->GetRankInProcCol();
-  if(mycolrank == 0){
-    MPI_Reduce(MPI_IN_PLACE, local_sum.data(), cols, MPI_DOUBLE, MPI_SUM, 0, comm_grid->GetColWorld());
-  }else{
-    MPI_Reduce(local_sum.data(), local_sum.data(), cols, MPI_DOUBLE, MPI_SUM, 0, comm_grid->GetColWorld());
-  }
+
+  MPI_Reduce(MPI_IN_PLACE, local_sum.data(), cols, MPI_DOUBLE, MPI_SUM, 0, comm_grid->GetColWorld());
+
 
   // Update the part of the bias vector that is stored on this process 
   if(mycolrank == 0){
     int myrowrank = comm_grid->GetRankInProcRow();
     int total_length = parameter->size();
-    std::vector<int> recvcounts = std::vector<int>(comm_grid->GetGridRows(), cols);
+    int local_cols = total_length / comm_grid->GetGridCols();
+    std::vector<int> recvcounts = std::vector<int>(comm_grid->GetGridRows(), local_cols);
     std::vector<int> offset = std::vector<int>(comm_grid->GetGridCols());
     for (int i = 0; i < comm_grid->GetGridCols(); i++){
       //TODO: Find out what cols actually has to be here (VERY IMPORTANT) this will break for the last node
-        offset[i] = i * cols;
+        offset[i] = i * local_cols;
     }
     recvcounts[recvcounts.size()-1] = total_length - offset[recvcounts.size()-1];
     for(int i = offset[myrowrank]; i < offset[myrowrank] + recvcounts[myrowrank]; i++){
