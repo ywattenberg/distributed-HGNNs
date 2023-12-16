@@ -170,8 +170,8 @@ void DistModel::backward(DENSE_DOUBLE& input, std::vector<int>* labels, double l
     //Now we need to accumulate the gradients of w over
     WDerivativeLocalAdd(dL_dw, &dw);
 
-    // Now we need to step the weights and bias for the last layer
-    DenseGradientStep<PTFF, int64_t, double>(&curr->weights, &dL_dt, learning_rate);
+    // Now we need to upadte the weights and bias for the last layer
+    DenseGradientStep<PTFF, int64_t, double>(curr->weights, dL_dt, learning_rate);
     if (this->withBias){
         BiasGradientStep<PTFF, int64_t, double>(&curr->bias, dL_dG2, learning_rate);
     }
@@ -191,13 +191,18 @@ void DistModel::backward(DENSE_DOUBLE& input, std::vector<int>* labels, double l
         // Set dL_dX for next iteration
         dL_dX = DenseDenseMult<PTFF, double>(dL_dG2, curr->weights);
         // Derivate of loss with respect to bias B is just dL_dG2 
+        // Accumulate the gradients of w locally
+        WDerivativeLocalAdd(dL_dw, &dw);
 
         // Update weights and bias
-        DenseGradientStep<PTFF, int64_t, double>(&curr->weights, &dL_dt, learning_rate);
+        DenseGradientStep<PTFF, int64_t, double>(curr->weights, dL_dt, learning_rate);
         if (this->withBias){
-            VecGradientStep<PTFF, int64_t, double>(&curr->bias, &dL_dG2, learning_rate);
+            BiasGradientStep<PTFF, int64_t, double>(&curr->bias, dL_dG2, learning_rate);
         }
     }
+
+    // Lastly update w with the accumulated gradients
+    WDerivativeUpdate(this->fullWorld, &dw, &this->w, learning_rate);
 }
 
 DistConv::DistConv(){

@@ -22,8 +22,8 @@ typedef DenseMatrix<double> DENSE_DOUBLE;
 
 typedef PlusTimesSRing<double, double> PTFF;
 
-template void DenseGradientStep<PTFF, int, double>(DENSE_DOUBLE* parameter, DENSE_DOUBLE* gradient, double lr);
-template void BiasGradientStep<PTFF, int, double>(std::vector<double>* parameter, DenseMatrix<double>& gradient, double lr);
+template void DenseGradientStep<PTFF, long, double>(DENSE_DOUBLE& parameter, DENSE_DOUBLE& gradient, double lr);
+template void BiasGradientStep<PTFF, long, double>(std::vector<double>* parameter, DenseMatrix<double>& gradient, double lr);
 
 void WDerivativeLocalAdd(DENSE_DOUBLE& dL_dw, std::vector<double>* out){
   //If this node is part of the diagonal of the commgrid, then we can just add the diagonal elements to the out vector
@@ -36,43 +36,55 @@ void WDerivativeLocalAdd(DENSE_DOUBLE& dL_dw, std::vector<double>* out){
   if(out->size() != num_diag_elements){
     throw std::invalid_argument("out vector needs does not have the correct dim (DerivativeFunctions.cpp, WDerivativeLocalAdd)");
   }
+  int offset = myrank * num_diag_elements;
   for(int i = 0; i < num_diag_elements; i++){
-    out->at(i) += dL_dw.getValues()->at(i + i * dL_dw.getLocalCols());
+    out->at(i+offset) += dL_dw.getValues()->at(i + i * dL_dw.getLocalCols());
   }
 }
 
-void WDerivativeAccumulation(DENSE_DOUBLE& dL_dw, std::vector<double>* out){
-  int num_diag_elements = std::min(dL_dw.getLocalRows(), dL_dw.getLocalCols());
+void WDerivativeUpdate(std::shared_ptr<CommGrid> comm_grid, std::vector<double>* acc_grads, std::vector<double>* out, double lr){
+  int num_diag_elements = acc_grads->size();
   int global_rows, global_cols;
-  global_rows = dL_dw.getnrow();
-  global_cols = dL_dw.getncol();
-  if(std::min(global_cols, global_rows) == out->size()){
-    throw std::invalid_argument("out vector needs does not have the correct dim (DerivativeFunctions.cpp, WDerivativeAccumulation)");
+
+  if(acc_grads->size() != num_diag_elements){
+    throw std::invalid_argument("acc_grads vector needs does not have the correct dim (DerivativeFunctions.cpp, WDerivativeUpdate)");
   }
-  std::shared_ptr<CommGrid> comm_grid = dL_dw.getCommGrid();
-  std::vector<int> recvcounts = std::vector<int>(comm_grid->GetGridRows(), num_diag_elements);
-  std::vector<int> offset = std::vector<int>(comm_grid->GetGridRows());
-  for (int i = 0; i < comm_grid->GetGridRows(); i++){
-      offset[i] = i * num_diag_elements;
+
+  // First perform local update of the w vector (only the diagonal elements)
+  int myrank = comm_grid->GetDiagRank();
+  if(myrank != MPI_PROC_NULL){
+    int offset = myrank * num_diag_elements;
+    for(int i = offset; i < offset+num_diag_elements; i++){
+      out->at(i) = out->at(i) + (-lr * acc_grads->at(i));
+    }
+
+    // Now distribute the updated diagonal elements to the diagonal processes
+    std::vector<int> recvcounts = std::vector<int>(comm_grid->GetGridRows(), num_diag_elements);
+    std::vector<int> offsetv = std::vector<int>(comm_grid->GetGridRows());
+    for (int i = 0; i < comm_grid->GetGridRows(); i++){
+        offsetv[i] = i * num_diag_elements;
+    }
+    recvcounts[recvcounts.size()-1] = out->size() - offsetv[recvcounts.size()-1];
+    MPI_Allgatherv(MPI_IN_PLACE, num_diag_elements, MPI_DOUBLE, out->data(), recvcounts.data(), offsetv.data(), MPI_DOUBLE, comm_grid->GetDiagWorld());
   }
-  std::vector<double> local_diag = std::vector<double>(num_diag_elements);
-  for (int i = 0; i < num_diag_elements; i++){
-      local_diag[i] = dL_dw.getValues()->at(i + i * dL_dw.getLocalCols());
-  }
-  MPI_Gatherv(local_diag.data(), num_diag_elements, MPI_DOUBLE, out->data(), recvcounts.data(), offset.data(), MPI_DOUBLE, 0, comm_grid->GetWorld());   
+  // Now broadcast the updated diagonal elements to all processes in the diagonal
+  int mycol = comm_grid->GetRankInProcCol();
+  MPI_Bcast(out->data(), out->size(), MPI_DOUBLE, mycol, comm_grid->GetRowWorld());
+
+  
 }
 
 
 // TODO: Parallelize 
 template<typename SR, typename IT, typename NT>
 void DenseGradientStep(DenseMatrix<NT>& parameter, DenseMatrix<NT>& gradient, double lr){
-    size_t rows = parameter->getLocalRows(); 
-    size_t cols = parameter->getLocalCols();
-    if (rows != gradient->getLocalRows() || cols != gradient->getLocalCols()) {
+    size_t rows = parameter.getLocalRows(); 
+    size_t cols = parameter.getLocalCols();
+    if (rows != gradient.getLocalRows() || cols != gradient.getLocalCols()) {
         throw std::invalid_argument( "DIMENSIONS DON'T MATCH" );        
     }
-    auto dense_parameter = parameter->getValues();
-    auto dense_gradient = gradient->getValues();
+    auto dense_parameter = parameter.getValues();
+    auto dense_gradient = gradient.getValues();
     for(int i = 0; i < rows * cols; i++){
         dense_parameter->at(i) = SR::add(dense_parameter->at(i), SR::multiply(static_cast<NT>(-lr), dense_gradient->at(i)));
     }
@@ -83,18 +95,18 @@ void BiasGradientStep(std::vector<double>* parameter, DenseMatrix<NT>& gradient,
   // The gradient of the bias is the sum of over all gradients in the column of the gradient matrix dL/dG2
   // First reduce the gradient matrix to a distributed vector over the columns of commGrid
 
-  int cols = gradient->getLocalCols();
-  int rows = gradient->getLocalRows();
-  std::vector<double> local_sum(cols, 0.0);
+  int cols = gradient.getLocalCols();
+  int rows = gradient.getLocalRows();
+  std::vector<NT> local_sum(cols, 0.0);
   //TODO: Parallelize
   for(int i = 0; i < rows; i++){
     for(int j = 0; j < cols; j++){
-      local_sum.at(j) += gradient->getValues()->at(i*cols + j);
+      local_sum.at(j) += gradient.getValues()->at(i*cols + j);
     }
   }
   
   // Now reduce the local sums to the root process of each column
-  std::shared_ptr<CommGrid> comm_grid = gradient->getCommGrid();
+  std::shared_ptr<CommGrid> comm_grid = gradient.getCommGrid();
   int mycolrank = comm_grid->GetRankInProcCol();
   if(mycolrank == 0){
     MPI_Reduce(MPI_IN_PLACE, local_sum.data(), cols, MPI_DOUBLE, MPI_SUM, 0, comm_grid->GetColWorld());
@@ -112,7 +124,7 @@ void BiasGradientStep(std::vector<double>* parameter, DenseMatrix<NT>& gradient,
       //TODO: Find out what cols actually has to be here (VERY IMPORTANT) this will break for the last node
         offset[i] = i * cols;
     }
-    recvcounts[recvcounts.size()-1] = total_length - offset[revcounts.size()-1];
+    recvcounts[recvcounts.size()-1] = total_length - offset[recvcounts.size()-1];
     for(int i = offset[myrowrank]; i < offset[myrowrank] + recvcounts[myrowrank]; i++){
       parameter->at(i) = SR::add(parameter->at(i), SR::multiply(static_cast<NT>(-lr), local_sum.at(i)));
     }
