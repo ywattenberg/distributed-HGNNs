@@ -58,7 +58,6 @@ DistModel::DistModel(ConfigProperties &config, int in_dim, std::shared_ptr<CommG
     // Calculate the product L*R for the backwardpass of W 
 
     this->LR = PSpGEMM<PTFF, int64_t, double, double, DCCols, DCCols>(this->dvh, this->invde_ht_dvh);
-    std::cout << "Reached init of layers" << std::endl;
     //TODO: use correct dimension
     this->w = vector<double>(dim_w, 1.0);
     this->layers = vector<DistConv*>();
@@ -66,20 +65,13 @@ DistModel::DistModel(ConfigProperties &config, int in_dim, std::shared_ptr<CommG
     if (number_of_hid_layers > 0){
         auto in_conv = new DistConv(fullWorld, input_dim, lay_dim[0], this->withBias);
         this->layers.push_back(in_conv);
-        std::cout << "Reached here" << std::endl;
         for (int i = 1; i < number_of_hid_layers; i++){
-            std::cout << "Reached begin loop at: " << i << std::endl;
             auto conv = new DistConv(fullWorld, lay_dim[i-1], lay_dim[i], this->withBias);
-            std::cout << "created layer" << std::endl;
             this->layers.push_back(conv);
-            std::cout << "Reached loop at: " << i << std::endl;
             // layers.push_back(new HGNN_conv(lay_dim[i-1], lay_dim[i], this->withBias));
         }
-        std::cout << "Reached end loop" << std::endl;
         auto out_conv = new DistConv(fullWorld, lay_dim[number_of_hid_layers-1], output_dim, this->withBias);
-        std::cout << "created last layer" << std::endl;
         this->layers.push_back(out_conv);
-        std::cout << "Finished loop" << std::endl;
     } else {
         // no hidden layers
         auto out_conv = new DistConv(fullWorld, input_dim, output_dim, this->withBias);
@@ -102,26 +94,19 @@ void DistModel::comp_layer(DENSE_DOUBLE* X, DistConv* curr, bool last_layer=fals
     
     int myrank;
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
-    if (myrank == 0){
-    std::cout << "dim X: " << totalRows << " x " << totalCols << std::endl;
-    std::cout << "dim weights: " << totalRowsW << " x " << totalColsW << std::endl;
-    }
+    
+    // DenseMatrix<double> tmptmp = DenseDenseMult<PTFF, double>(*X, curr->weights);
+    // std::cout << "size values: " << tmptmp.getValues()->size() << std::endl;
 
     curr->XtB = DenseDenseMult<PTFF, double>(*X, curr->weights);
-    std::cout << "after dense dense" << std::endl;
+    std::vector<double> * test = new std::vector<double>(1, 0.0);
+    // curr->XtB = *(new DenseMatrix<double>(1,1, test, curr->weights.getCommGrid()));
     if (this->withBias){
-        std::cout << "size bias: " << curr->bias.size() << std::endl;
-        std::cout << "localCols values: " << curr->XtB.getLocalCols() << std::endl;
-        std::cout << "size values: " << curr->XtB.getValues()->size() << std::endl;
-        // Compute XTb (X * Theta + b or G_2) where both are dense matrices
         curr->XtB.addBiasLocally(&curr->bias);
     }
-        std::cout << "after bias" << std::endl;
 
     // Compute G_3 (LWR * XTb) with bias and (LWR * XT) without, where LWR is a sparse matrix and XTb/XT are dense matrices
     curr->G_3 = SpDenseMult<PTFF, int64_t, double, DCCols>(this->LWR, curr->XtB);
-    std::cout << "after sparse dense" << std::endl;
-
     // Compute X (ReLU(G_3) or G_4) if not last layer
     curr->G_4 = last_layer ? DENSE_DOUBLE() : DenseReLU<PTFF, double>(curr->G_3);
 }
@@ -140,7 +125,6 @@ DENSE_DOUBLE* DistModel::forward(DENSE_DOUBLE* input){
     MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
 
     // First compute LWR or G_1 (will be the same for all layers)
-    std::cout << "size of vec is: " << this->w.size() << std::endl;
     this->dvh.PrintInfo();
     this->LWR = PSpSCALE<PTFF, int64_t, double, DCCols>(this->dvh, this->w);
     this->LWR = PSpGEMM<PTFF, int64_t, double, double, DCCols, DCCols>(this->LWR, this->invde_ht_dvh);
@@ -238,7 +222,7 @@ DistConv::DistConv(){
     this->weights = DENSE_DOUBLE();
     this->bias = vector<double>();
     this->X = new DENSE_DOUBLE();
-    this->XtB = DENSE_DOUBLE();
+    this->XtB = *(new DENSE_DOUBLE());
     this->G_3 = DENSE_DOUBLE();
     this->G_4 = DENSE_DOUBLE();
 }

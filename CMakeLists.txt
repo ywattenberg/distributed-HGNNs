@@ -103,8 +103,8 @@ set(DIST
     src/utils/parDenseGEMM.h
     src/utils/parDenseGEMM.cpp
     src/utils/DenseMatrix.h
-    src/utils/LossFn.h
-    src/utils/LossFn.cpp
+    # src/utils/LossFn.h
+    # src/utils/LossFn.cpp
 )
 # add_executable(example src/example.cpp)
 # # target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
@@ -122,10 +122,10 @@ add_executable(openBLAS_example src/openBLAS_example.cpp src/utils/parDenseGEMM.
 target_link_libraries(openBLAS_example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}" fast_matrix_market::fast_matrix_market)
 set_property(TARGET openBLAS_example PROPERTY CXX_STANDARD 17)
 
-add_executable(timing src/timing.cpp)
-target_link_libraries(timing "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
-set_property(TARGET timing PROPERTY CXX_STANDARD 17)
+# add_executable(timing src/timing.cpp)
+# target_link_libraries(timing "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
+# set_property(TARGET timing PROPERTY CXX_STANDARD 17)
 
-# add_executable(model ${DIST})
-# target_link_libraries(model "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
-# set_property(TARGET model PROPERTY CXX_STANDARD 17)
+add_executable(model src/example_model.cpp ${DIST})
+target_link_libraries(model "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
+set_property(TARGET model PROPERTY CXX_STANDARD 17)

@@ -67,6 +67,14 @@ class DenseMatrix
       }
     }
 
+    // ~DenseMatrix<NT>()
+    // {
+    //   if (values != nullptr) {
+    //     std::cout << "i'm deleting a DM with " << localRows << " x " << localCols << std::endl;
+    //     delete values;
+    //   }
+    // }
+
     void ParallelReadDMM (const std::string & filename, bool onebased);
     
     int getnrow() const
@@ -113,8 +121,8 @@ class DenseMatrix
 
       for (int i = 0; i < localRows; i++){
         for (int j = 0; j < localCols; j++){
-          std::cout << "bias elem " <<  bias->at(coffset + j) << std::endl;
-          std::cout << "value element: " << values->at(i*localCols + j) << std::endl;
+          // std::cout << "bias elem " <<  bias->at(coffset + j) << std::endl;
+          // std::cout << "value element: " << values->at(i*localCols + j) << std::endl;
           values->at(i*localCols + j) += bias->at(coffset + j);
         }
       }
@@ -165,7 +173,7 @@ class DenseMatrix
 
 
 template<typename IT, typename NT>	
-static void BCastMatrixDense(MPI_Comm & comm1d, std::vector<NT> * values, std::vector<IT> essentials, int sendingRank)
+static void BCastMatrixDense(MPI_Comm & comm1d, std::vector<NT> * values, std::vector<IT> &essentials, int sendingRank)
 {
   int myrank;
   MPI_Comm_rank(comm1d, &myrank);
@@ -339,7 +347,7 @@ DenseMatrix<NT> DenseSpMult(DenseMatrix<NT> &A, SpParMat<IT, NT, DER> &B) {
       
       SpParHelper::BCastMatrix<IT, NT, DER>(GridC->GetColWorld(), *bufferB, ess, sendingRank);
 
-      blockDenseSparse<SR, IT, NT, DER>(denseLocalRows, denseLocalCols, bufferA, bufferB, localOut);
+      blockDenseSparse<SR, IT, NT, DER>(essentialsA[1], essentialsA[2], bufferA, bufferB, localOut);
 
     }
 
@@ -356,7 +364,7 @@ void blockSparseDense(size_t dense_rows, size_t dense_cols, DER* sparse_B, std::
   IT rows_spars = sparse_B->getnrow();
 
   if (cols_spars != dense_rows) {
-    throw std::invalid_argument( "DIMENSIONS DON'T MATCH" );        
+    throw std::invalid_argument( "DIMENSIONS DON'T MATCH: ");        
   }
 
   if (nnz == 0){
@@ -446,11 +454,9 @@ DenseMatrix<NT> SpDenseMult(SpParMat<IT, NT, DER> &B, DenseMatrix<NT> &A)
     
     SpParHelper::BCastMatrix<IT, NT, DER>(GridC->GetRowWorld(), *bufferB, ess, sendingRank);
 
-    blockSparseDense<SR, IT, NT, DER>(denseLocalRows, denseLocalCols, bufferB, bufferA, localOut);
+    blockSparseDense<SR, IT, NT, DER>(essentialsA[1], essentialsA[2], bufferB, bufferA, localOut);
   }
-
-  return DenseMatrix<NT>(denseLocalRows, sparseLocalCols, localOut, GridC);
-
+  return DenseMatrix<NT>(sparseLocalRows, denseLocalCols, localOut, GridC);
 }
 
 // helper function for ParallelReadDMM
@@ -742,7 +748,6 @@ void blockDenseDense(size_t rowsA, size_t colsA, size_t rowsB, size_t colsB, std
         // // std::cout << "index in: " << i * colsA + k << std::endl;
         // std::cout << "index in 2: " << k* colsB + j << std::endl;
         // std::cout << "size: " << dense_B->size() << std::endl;
-
         outValues->at(i * colsB + j) += SR::multiply(dense_A->at(i * colsA + k), dense_B->at(k* colsB + j));
       }
     }
@@ -758,7 +763,6 @@ DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
 
 
   int stages, dummy;
-  // std::cout << "holyido before before" << std::endl;
 
   std::shared_ptr<CommGrid> GridC = ProductGrid((A.getCommGrid()).get(), (B.getCommGrid()).get(), stages, dummy, dummy);		
 
@@ -801,11 +805,9 @@ DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
 
     BCastMatrixDense(GridC->GetColWorld(), bufferB, essentialsB, sendingRank);
 
-    blockDenseDense<SR, NT>(localRowsA, localColsA, localRowsB, localColsB, bufferA, bufferB, localOut);
+    blockDenseDense<SR, NT>(essentialsA[1], essentialsA[2], essentialsB[1], essentialsB[2], bufferA, bufferB, localOut);
   
   }
-
-  std::cout << myrank <<  ": size of localout: " << localOut->size() << std::endl;
 
   return DenseMatrix<NT>(localRowsA, localColsB, localOut, GridC);
 }
