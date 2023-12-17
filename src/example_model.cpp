@@ -1,4 +1,5 @@
 #include <mpi.h>
+#include <omp.h>
 #include <sys/time.h>
 #include <iostream>
 #include <functional>
@@ -18,6 +19,40 @@
 
 
 typedef combblas::PlusTimesSRing<double, double> PTFF;
+std::vector<int> readCSV(const std::string& filename) {
+    std::vector<int> data;
+    std::ifstream file(filename);
+
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        // Handle error
+        return data;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::stringstream lineStream(line);
+        std::string cell;
+
+        while (std::getline(lineStream, cell, ',')) {
+          try {
+            int cell_to_int = std::stoi(cell);
+            data.push_back(cell_to_int);
+          } catch (const std::invalid_argument& e) {
+              std::cerr << "Invalid argument: " << e.what() << std::endl;
+          } catch (const std::out_of_range& e) {
+              std::cerr << "Out of range: " << e.what() << std::endl;
+          }
+            
+        }
+
+    }
+
+    file.close();
+    return data;
+}
+
+
 
 int main(int argc, char* argv[]){
    int nprocs, myrank;
@@ -39,6 +74,7 @@ int main(int argc, char* argv[]){
     cout << "Read config " << argv[1] << endl;
   }
   
+  int num_threads = 1;
 
   shared_ptr<CommGrid> fullWorld;
 	fullWorld.reset(new CommGrid(MPI_COMM_WORLD, std::sqrt(nprocs), std::sqrt(nprocs)));
@@ -47,6 +83,19 @@ int main(int argc, char* argv[]){
   DistModel model(config, 6144, fullWorld, 24622);
 
   cout << myrank << ": model initialized" << endl;
+
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  vector<int> labels = readCSV(config.data_properties.labels_path);
+  labels.erase(labels.begin()); // delete first element (size)
+
+  if (myrank == 0){
+    for (int i = 0; i < 10; i++){
+      cout << "label: " << labels[i] << endl;
+    }
+  }
+
+  // cout << "label: " << labels.at(myrank * 1000) << endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -61,7 +110,6 @@ int main(int argc, char* argv[]){
     cout << "number of samples: " << totalCols << endl;
   }
 
-  std::vector<int> labels(totalCols, 0);
 
   MPI_Barrier(MPI_COMM_WORLD);
 

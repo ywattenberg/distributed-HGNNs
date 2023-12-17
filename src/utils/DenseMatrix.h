@@ -8,6 +8,7 @@
 #include <cmath>
 #include <mpi.h>
 #include <vector>
+#include <omp.h>
 
 #include "CombBLAS/CombBLAS.h"
 #include "CombBLAS/SpParMat.h"
@@ -741,9 +742,23 @@ void blockDenseDense(size_t rowsA, size_t colsA, size_t rowsB, size_t colsB, std
     throw std::invalid_argument("DIMENSIONS DON'T MATCH");
   }
 
-  for (size_t i = 0; i < rowsA; i++){
-    for (size_t j = 0; j < colsB; j++){
-      for (size_t k = 0; k < colsA; k++){
+  // for (size_t i = 0; i < rowsA; i++){
+  //   for (size_t j = 0; j < colsB; j++){
+  //     for (size_t k = 0; k < colsA; k++){
+  //       // // std::cout << "index out: " << i * colsB + j << std::endl;
+  //       // // std::cout << "index in: " << i * colsA + k << std::endl;
+  //       // std::cout << "index in 2: " << k* colsB + j << std::endl;
+  //       // std::cout << "size: " << dense_B->size() << std::endl;
+  //       outValues->at(i * colsB + j) += SR::multiply(dense_A->at(i * colsA + k), dense_B->at(k* colsB + j));
+  //     }
+  //   }
+  // }
+
+
+    #pragma omp parallel for num_threads(2)
+    for (size_t i = 0; i < rowsA; i++){
+      for (size_t j = 0; j < colsB; j++){
+        for (size_t k = 0; k < colsA; k++){
         // // std::cout << "index out: " << i * colsB + j << std::endl;
         // // std::cout << "index in: " << i * colsA + k << std::endl;
         // std::cout << "index in 2: " << k* colsB + j << std::endl;

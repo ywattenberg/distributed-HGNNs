@@ -151,12 +151,20 @@ void DistModel::backward(DENSE_DOUBLE& input, std::vector<int>* labels, double l
     std::vector<double> dw = std::vector<double>(this->w.size(), 0.0);
     
     DENSE_DOUBLE dL_dX = DerivativeCrossEntropyLoss<PTFF, double>(input, labels); 
+    std::cout << "after derivative loss" << std::endl;
     DistConv* curr = this->layers[this->layers.size()-1];
     // Last layer is different as we do not use ReLU this means dL_dG3 is just dL_dX
+    std::cout << "before dense mult" << std::endl;
     DENSE_DOUBLE dL_dG1 = DenseDenseMult<PTFF, double>(dL_dX, curr->XtB);
+    std::cout << "after dense mult" << std::endl;
     DENSE_DOUBLE dL_dw  = DenseSpMult<PTFF, int64_t, double, DCCols>(dL_dG1, this->LR);
+    std::cout << "after dense sp mult" << std::endl;
     DENSE_DOUBLE dL_dG2 = DenseSpMult<PTFF, int64_t, double, DCCols>(dL_dX, this->LWR);
+    std::cout << "after dense sp mult 2" << std::endl;
+
     DENSE_DOUBLE dL_dt  = DenseDenseMult<PTFF, double>(dL_dG2, *curr->X);
+    std::cout << "after dense dense mult 2" << std::endl;
+
     // Set dL_dX for next iteration
     dL_dX  = DenseDenseMult<PTFF, double>(dL_dG2, curr->weights);
 
