@@ -59,10 +59,8 @@ NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool 
     }
   }
   MPI_Barrier(MPI_COMM_WORLD);
-  std::cout << " reached sum allreduce: " << myrank << std::endl;
   MPI_Allreduce(MPI_IN_PLACE, &local_sum[0], local_rows, MPIType<NT>(), MPI_SUM, pred.getCommGrid()->GetRowWorld());
   MPI_Barrier(MPI_COMM_WORLD);
-  std::cout << "rank " << myrank << " length of local sum: " << local_sum.size() << " length of max_val: " << max_val.size() << "number of rows "  << std::endl;
   // Calculate add max of row (logsumexp trick)
   for(int i = 0; i < local_rows; i++){
     local_sum.at(i) = SR::add(max_val.at(i), std::log(local_sum.at(i)));
@@ -74,18 +72,13 @@ NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool 
   std::vector<NT> x_y_n(local_rows, 0.0);
 
   MPI_Barrier(MPI_COMM_WORLD);
-  std::cout << " reached x_y_n calc: " << myrank << " length of predictions "<< predictions->size() << std::endl;
   for(int i = 0; i < local_rows; i++){
     int y_n = target->at(i + row_offset);
     if(y_n >= col_offset && y_n < col_offset + local_cols){
-      if(i*local_cols + y_n - col_offset >= predictions->size()){
-        std::cout << "rank " << myrank << " i: " << i << " y_n: " << y_n << " col_offset: " << col_offset << " local_cols: " << local_cols << " predictions size: " << predictions->size() << std::endl;
-      }
       x_y_n.at(i) = predictions->at(i*local_cols + y_n - col_offset);
     }
   }
   MPI_Barrier(MPI_COMM_WORLD);
-  std::cout << " reached last acc of logSumExp: " << myrank << std::endl;
   // TODO: Gatherv might be more efficient reduce is not needed here (actually maybe not as elements are not in order)
   MPI_Allreduce(MPI_IN_PLACE, &x_y_n[0], local_rows, MPIType<NT>(), MPI_SUM, pred.getCommGrid()->GetRowWorld());
   NT loss = 0.0;
@@ -97,7 +90,6 @@ NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool 
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
-  std::cout << " All reduce error over cols: " << myrank << std::endl;
   MPI_Allreduce(MPI_IN_PLACE, &loss, 1, MPIType<NT>(), MPI_SUM, pred.getCommGrid()->GetColWorld());
   return loss;
 }
@@ -126,13 +118,14 @@ DenseMatrix<NT> DerivativeCrossEntropyLoss(DenseMatrix<NT> &pred, const std::vec
   int row_offset, col_offset;
   pred.GetPlaceInGlobalGrid(row_offset, col_offset);
 
+  int total_rows = pred.getnrow();
   std::vector<NT>* out = new std::vector<NT>(local_rows * local_cols);
   for(int i = 0; i < local_rows; i++){
     for(int j = 0; j < local_cols; j++){
       // if(target->at(i + row_offset) >= col_offset && target->at(i+ row_offset) < col_offset + local_cols){
       out->at(i*local_cols + j) = std::exp(predictions->at(i* local_cols + j))/local_sum.at(i);
       out->at(i*local_cols + j) -= (col_offset + j == target->at(row_offset + i)) ? 1.0 : 0.0;
-      if(!sum_reduction) out->at(i*local_cols + j) /= static_cast<NT>(pred.getnrow());
+      if(!sum_reduction)out->at(i*local_cols + j) /= total_rows;
     }
   }
 
