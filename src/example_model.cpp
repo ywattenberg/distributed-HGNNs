@@ -14,7 +14,10 @@
 #include "utils/DenseMatrix.h"
 #include "utils/configParse.h"
 #include "model/dist-model.h"
+#include "utils/LossFn.h"
 
+
+typedef combblas::PlusTimesSRing<double, double> PTFF;
 
 int main(int argc, char* argv[]){
    int nprocs, myrank;
@@ -58,10 +61,15 @@ int main(int argc, char* argv[]){
     cout << "number of samples: " << totalCols << endl;
   }
 
+  std::vector<int> labels(totalCols, 0);
+
   MPI_Barrier(MPI_COMM_WORLD);
 
-  model.forward(&input);
-
+  DenseMatrix<double> res = model.forward(&input);
+  MPI_Barrier(MPI_COMM_WORLD);
+  std::cout << "loss: " << CrossEntropyLoss<PTFF, double>(res, &labels) << std::endl;
+  MPI_Barrier(MPI_COMM_WORLD);
+  model.backward(res, &labels, 0.1);
   MPI_Finalize();
 
 }
