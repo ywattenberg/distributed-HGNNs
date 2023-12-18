@@ -92,6 +92,10 @@ set(SOURCES
     src/utils/parDenseGEMM.h
     src/utils/parDenseGEMM.cpp
     src/utils/DenseMatrix.h
+    src/utils/LossFn.h
+    src/utils/LossFn.cpp
+    src/utils/DerivativeFunctions.h
+    src/utils/DerivativeFunctions.cpp
 )
 
 set(DIST 
@@ -112,9 +116,9 @@ set(DIST
 # # target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
 # # set_property(TARGET example PROPERTY CXX_STANDARD 17)
 
-# add_executable(${PROJECT_NAME} ${SOURCES})
-# target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
-# set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
+add_executable(${PROJECT_NAME} ${SOURCES})
+target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 
 add_executable(example_2 src/example_2.cpp ${DIST})
 target_link_libraries(example_2 "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
