@@ -80,8 +80,6 @@ DistModel::DistModel(ConfigProperties &config, int in_dim, std::shared_ptr<CommG
     std::cout << "Finished init" << std::endl;
 };
 
-DistModel::~DistModel(){};
-
 
 void DistModel::comp_layer(DENSE_DOUBLE* X, DistConv* curr, bool last_layer=false){
     // Compute Xt (X * theta or G_2) where both are dense matrices
@@ -120,7 +118,7 @@ void DistModel::clear_layer_partial_results(){
 
 }
 
-DENSE_DOUBLE* DistModel::forward(DENSE_DOUBLE* input){
+DENSE_DOUBLE DistModel::forward(DENSE_DOUBLE* input){
     int myrank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
 
@@ -132,17 +130,17 @@ DENSE_DOUBLE* DistModel::forward(DENSE_DOUBLE* input){
     std::cout << "precomputing done " << myrank << std::endl;
 
     // All other calculations are have to be done for each layer
-    for(int i = 0; i < this->layers.size()-1; i++){
+    for(int i = 0; i < this->layers.size(); i++){
         DistConv* curr = this->layers[i];
         curr->X = X;
         // Compute each layer
-        comp_layer(X, curr);
+        comp_layer(X, curr, i == this->layers.size()-1);
         // Set X to G_4 for next iteration
         X = &(curr->G_4);
     }
+    MPI_Barrier(MPI_COMM_WORLD);
     // Last layer is different as we do not use ReLU
-    X = &(this->layers[this->layers.size()-1]->G_3);
-    return X;
+    return this->layers[this->layers.size()-1]->G_3;
 }
 
 

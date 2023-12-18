@@ -27,7 +27,7 @@ class DistConv
         DENSE_DOUBLE weights;
         std::vector<double> bias;
         DENSE_DOUBLE* X; // This will hold the input X
-        DENSE_DOUBLE XtB; // This will hold the result of X*\theta + b if bias is used or X*\theta if bias is not used
+        DENSE_DOUBLE XtB; // This will hold the result of X*\theta + b if bias is used or X*\theta if bias is not used (G_2)
         DENSE_DOUBLE G_3; // This will hold the result of G_2 * LWR (or G_3)
         DENSE_DOUBLE G_4; // This will hold the result of ReLU(G_3) (or G_4)
 
@@ -60,10 +60,9 @@ class DistModel
 
     public:
         DistModel(ConfigProperties& config, int in_dim, std::shared_ptr<CommGrid> grid, int dim_w);
-        ~DistModel();
         // forward function of the Model, it takes the features X (called input) and the constant leftSide of the expression 10 of the paper 
         // Hypergraph Neural Networks (called leftSide)
-        DENSE_DOUBLE* forward(DENSE_DOUBLE* input);
+        DENSE_DOUBLE forward(DENSE_DOUBLE* input);
         void backward(DENSE_DOUBLE& input, std::vector<int>* labels, double learning_rate);
         void comp_layer(DENSE_DOUBLE* X, DistConv* curr, bool last_layer);
         void clear_layer_partial_results();

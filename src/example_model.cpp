@@ -15,8 +15,10 @@
 #include "utils/DenseMatrix.h"
 #include "utils/configParse.h"
 #include "model/dist-model.h"
+#include "utils/LossFn.h"
 
 
+typedef combblas::PlusTimesSRing<double, double> PTFF;
 std::vector<int> readCSV(const std::string& filename) {
     std::vector<int> data;
     std::ifstream file(filename);
@@ -108,18 +110,16 @@ int main(int argc, char* argv[]){
     cout << "number of samples: " << totalCols << endl;
   }
 
-  MPI_Barrier(MPI_COMM_WORLD);
-
-  auto outForward = model.forward(&input);
-
-  cout << "forward done" << endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  // model.backward(input, &labels, 0.01);
 
-  
 
+  DenseMatrix<double> res = model.forward(&input);
+  MPI_Barrier(MPI_COMM_WORLD);
+  std::cout << "loss: " << CrossEntropyLoss<PTFF, double>(res, &labels) << std::endl;
+  MPI_Barrier(MPI_COMM_WORLD);
+  model.backward(res, &labels, 0.1);
   MPI_Finalize();
 
 }
