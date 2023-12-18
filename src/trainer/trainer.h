@@ -9,7 +9,6 @@
 
 using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&); //Supertype for loss functions
 
-
-void train_model(const ConfigProperties& config, torch::Tensor &labels, torch::Tensor &input_features, LossFunction loss_fn, BaseModel *model);
+void train_model(const ConfigProperties& config, torch::Tensor &labels, torch::Tensor &input_features, LossFunction loss_fn, BaseModel *model, int run_id, bool timing, std::string timing_file);
 
 #endif

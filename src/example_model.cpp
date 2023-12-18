@@ -113,6 +113,8 @@ int main(int argc, char* argv[]){
 
   MPI_Barrier(MPI_COMM_WORLD);
 
+
+
   DenseMatrix<double> res = model.forward(&input);
   MPI_Barrier(MPI_COMM_WORLD);
   std::cout << "loss: " << CrossEntropyLoss<PTFF, double>(res, &labels) << std::endl;

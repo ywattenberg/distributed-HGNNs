@@ -1,6 +1,10 @@
 #include <iostream>
+#include <fstream>
 #include <filesystem>
 #include <unistd.h>
+#include <sstream>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include <yaml-cpp/yaml.h>
 #include <torch/torch.h>
@@ -22,8 +26,8 @@ inline torch::Tensor coo_tensor_to_sparse(torch::Tensor& coo_tensor){
 
 using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&); //Supertype for loss functions
 
-int model(ConfigProperties& config){
-
+int model(ConfigProperties& config, bool timing, int run_id, int cpus){
+  std::cout << "Running model" << std::endl;
   torch::Tensor coo_list = tensor_from_file<float>(config.data_properties.g_path);
   torch::Tensor left_side = coo_tensor_to_sparse(coo_list);
   std::cout << "G dimensions: " << left_side.sizes() << std::endl;
@@ -41,13 +45,47 @@ int model(ConfigProperties& config){
   LossFunction ce_loss_fn = [](const torch::Tensor& predicted, const torch::Tensor& target) {
         return torch::nn::functional::cross_entropy(predicted, target);
     };
+  
+  using std::chrono::high_resolution_clock;
+  using std::chrono::duration_cast;
+  using std::chrono::duration;
+  using std::chrono::milliseconds;
+
+  auto t1 = high_resolution_clock::now();
+  
+  std::string timing_file = "";
+
+  if (timing) {
+    std::ostringstream oss;
+    oss << "../data/timing/" << run_id << "/base_model.csv";
+    timing_file = oss.str();
+    std::ofstream outfile;
+    outfile.open(timing_file, std::ios_base::app);
+    outfile << "run_id,epoch,epoch_time,train_loss,test_loss,test_acc,test_f1\n";
+    outfile.close();
+  }
+
   // Train the model
-  train_model(config, labels, features, ce_loss_fn, model);
+  train_model(config, labels, features, ce_loss_fn, model, run_id, timing, timing_file);
+
+  auto t2 = high_resolution_clock::now();
+  /* Getting number of milliseconds as an integer. */
+  auto ms_int = duration_cast<milliseconds>(t2 - t1);
+  /* Getting number of milliseconds as a double. */
+  duration<double, std::milli> ms_double = t2 - t1;
+
+  std::cout <<"Training took " << ms_int.count() << "ms\n";
+
+  if (timing) {
+    std::ofstream outfile;
+    outfile.open("../data/timing/" + std::to_string(run_id) + "/config.yaml", std::ios_base::app);
+    outfile << "\ntraining_time: " << ms_int.count();
+  }
 
   return 0;
 }
 
-int learnable_w(ConfigProperties& config){
+int learnable_w(ConfigProperties& config, bool timing, int run_id, int cpus){
 
   torch::Tensor dvh_coo_list = tensor_from_file<float>(config.data_properties.dvh_path);
   torch::Tensor dvh = coo_tensor_to_sparse(dvh_coo_list);
@@ -71,9 +109,41 @@ int learnable_w(ConfigProperties& config){
   LossFunction ce_loss_fn = [](const torch::Tensor& predicted, const torch::Tensor& target) {
         return torch::nn::functional::cross_entropy(predicted, target);
     };
+  
+  using std::chrono::high_resolution_clock;
+  using std::chrono::duration_cast;
+  using std::chrono::duration;
+  using std::chrono::milliseconds;
 
+  auto t1 = high_resolution_clock::now();
+  
+  std::string timing_file = "";
+
+  if (timing) {
+    std::ostringstream oss;
+    oss << "../data/timing/" << run_id << "/base_model.csv";
+    timing_file = oss.str();
+    std::ofstream outfile;
+    outfile.open(timing_file, std::ios_base::app);
+    outfile << "run_id,epoch,epoch_time,train_loss,test_loss,test_acc,test_f1\n";
+    outfile.close();
+  }
   // Train the model
-  train_model(config, labels, features, ce_loss_fn, model);
+  train_model(config, labels, features, ce_loss_fn, model, run_id, timing, timing_file);
+
+  auto t2 = high_resolution_clock::now();
+  /* Getting number of milliseconds as an integer. */
+  auto ms_int = duration_cast<milliseconds>(t2 - t1);
+  /* Getting number of milliseconds as a double. */
+  duration<double, std::milli> ms_double = t2 - t1;
+
+  std::cout <<"Training took " << ms_int.count() << "ms\n";
+
+  if (timing) {
+    std::ofstream outfile;
+    outfile.open("../data/timing/" + std::to_string(run_id) + "/config.yaml", std::ios_base::app);
+    outfile << "\ntraining_time: " << ms_int.count();
+  }
 
   return 0;
 }
@@ -88,12 +158,12 @@ int dist_learning(ConfigProperties& config) {
   std::cout << "features shape: " << features.sizes() << std::endl;
   int f_cols = features.size(1);
 
-  auto model = new DistModel(config, f_cols);
+  // auto model = new DistModel(config, f_cols);
 
   // Define the loss function
-  LossFunction ce_loss_fn = [](const torch::Tensor& predicted, const torch::Tensor& target) {
-        return torch::nn::functional::cross_entropy(predicted, target);
-    };
+  // LossFunction ce_loss_fn = [](const torch::Tensor& predicted, const torch::Tensor& target) {
+  //       return torch::nn::functional::cross_entropy(predicted, target);
+  //   };
 
   // Train the model
   // train_model(config, labels, features, ce_loss_fn, model);
@@ -107,13 +177,31 @@ int main(int argc, char** argv){
   int opt;
   std::string config_path;
   std::string tmp_dir = "";
-  while((opt = getopt(argc, argv, "c:t:")) != -1){
+  bool timing = false;
+  int run_id = -1;
+  int cpus = 1;
+  while((opt = getopt(argc, argv, "c:d:i:p:t:")) != -1){
     switch(opt){
       case 'c':
         config_path = optarg;
         break;
-      case 't':
+      case 'd':
         tmp_dir = optarg;
+        break;
+      case 'i':
+        run_id = atoi(optarg);
+        break;
+      case 'p':
+        // std::cout << "type of p " << optarg << std::endl;
+        // std::cout << "Using " << atoi(optarg) << " cpus" << std::endl;
+        cpus = atoi(optarg);
+        break;
+      case 't':
+        if (atoi(optarg) == 1) {
+          timing = true;
+        } else {
+          timing = false;
+        }
         break;
       default:
         std::cerr << "Usage: " << argv[0] << " -c <config_path>" << std::endl;
@@ -121,8 +209,13 @@ int main(int argc, char** argv){
     }
   }
 
+  std::cout << "Using " << cpus << " cpus" << std::endl;
+  std::cout << "Run id: " << run_id << std::endl;
+
+  std::cout << "Config path: " << config_path << std::endl;
   // load config
   ConfigProperties config = ParseConfig(config_path);
+  std::cout << "Config loaded" << std::endl;
 
   if (!tmp_dir.empty()) {
     config.data_properties.g_path = config.data_properties.g_path.replace(config.data_properties.g_path.find(".."), 2, tmp_dir);
@@ -130,9 +223,18 @@ int main(int argc, char** argv){
     config.data_properties.features_path = config.data_properties.features_path.replace(config.data_properties.features_path.find(".."), 2, tmp_dir);
   }
 
+  if(timing) {
+    fs::create_directories("../data/timing/" + std::to_string(run_id));
+    fs::copy_file(config_path, "../data/timing/" + std::to_string(run_id) + "/config.yaml");
+    std::ofstream outfile;
+    outfile.open("../data/timing/" + std::to_string(run_id) + "/config.yaml", std::ios_base::app);
+    outfile << "\nrun_id: " << run_id;
+    outfile << "\ncpus: " << cpus;
+    outfile.close();
+  }
   if (config.model_properties.learnable_w) {
-    return learnable_w(config);
+    return learnable_w(config, timing, run_id, cpus);
   } else {
-    return model(config);
+    return model(config, timing, run_id, cpus);
   }
 }
