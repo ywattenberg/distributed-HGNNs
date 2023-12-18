@@ -97,7 +97,6 @@ void DistModel::comp_layer(DENSE_DOUBLE* X, DistConv* curr, bool last_layer=fals
     // std::cout << "size values: " << tmptmp.getValues()->size() << std::endl;
 
     curr->XtB = DenseDenseMult<PTFF, double>(*X, curr->weights);
-    std::vector<double> * test = new std::vector<double>(1, 0.0);
     // curr->XtB = *(new DenseMatrix<double>(1,1, test, curr->weights.getCommGrid()));
     if (this->withBias){
         curr->XtB.addBiasLocally(&curr->bias);
@@ -149,7 +148,8 @@ void DistModel::backward(DENSE_DOUBLE& input, std::vector<int>* labels, double l
     // We need to accumulate the gradients of w over all layers reducing using sum
     // As w is a vector we will only need the diagonal of the matrix derivative
     std::vector<double> dw = std::vector<double>(this->w.size(), 0.0);
-    
+    int myrank;
+    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
     DENSE_DOUBLE dL_dX = DerivativeCrossEntropyLoss<PTFF, double>(input, labels); 
     std::cout << "after derivative loss" << std::endl;
     DistConv* curr = this->layers[this->layers.size()-1];
