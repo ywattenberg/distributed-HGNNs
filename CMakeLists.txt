@@ -131,3 +131,7 @@ set_property(TARGET openBLAS_example PROPERTY CXX_STANDARD 17)
 add_executable(model src/example_model.cpp ${DIST})
 target_link_libraries(model "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
 set_property(TARGET model PROPERTY CXX_STANDARD 17)
+
+add_executable(forward_timing src/forward_timing.cpp src/model/model.h src/model/model.cpp)
+target_link_libraries(forward_timing "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
+set_property(TARGET forward_timing PROPERTY CXX_STANDARD 17)
