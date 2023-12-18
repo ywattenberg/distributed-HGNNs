@@ -96,6 +96,8 @@ template<typename SR, typename IT, typename NT>
 void BiasGradientStep(std::vector<double>* parameter, DenseMatrix<NT>& gradient, double lr){
   // The gradient of the bias is the sum of over all gradients in the column of the gradient matrix dL/dG2
   // First reduce the gradient matrix to a distributed vector over the columns of commGrid
+  int myrank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
 
   int cols = gradient.getLocalCols();
   int rows = gradient.getLocalRows();
@@ -106,13 +108,16 @@ void BiasGradientStep(std::vector<double>* parameter, DenseMatrix<NT>& gradient,
       local_sum.at(j) += gradient.getValues()->at(i*cols + j);
     }
   }
-  
+
   // Now reduce the local sums to the root process of each column
   std::shared_ptr<CommGrid> comm_grid = gradient.getCommGrid();
   int mycolrank = comm_grid->GetRankInProcCol();
-
-  MPI_Reduce(MPI_IN_PLACE, local_sum.data(), cols, MPI_DOUBLE, MPI_SUM, 0, comm_grid->GetColWorld());
-
+  std::vector<NT> global_sum(cols, 0.0);
+  if(mycolrank == 0){
+    MPI_Reduce(MPI_IN_PLACE, &local_sum[0], cols, MPIType<NT>(), MPI_SUM, 0, comm_grid->GetColWorld());
+  } else{
+    MPI_Reduce(&local_sum[0], &local_sum[0], cols, MPIType<NT>(), MPI_SUM, 0, comm_grid->GetColWorld());
+  }
 
   // Update the part of the bias vector that is stored on this process 
   if(mycolrank == 0){
@@ -127,8 +132,9 @@ void BiasGradientStep(std::vector<double>* parameter, DenseMatrix<NT>& gradient,
     }
     recvcounts[recvcounts.size()-1] = total_length - offset[recvcounts.size()-1];
     for(int i = offset[myrowrank]; i < offset[myrowrank] + recvcounts[myrowrank]; i++){
-      parameter->at(i) = SR::add(parameter->at(i), SR::multiply(static_cast<NT>(-lr), local_sum.at(i)));
+      parameter->at(i) = SR::add(parameter->at(i), SR::multiply(static_cast<NT>(-lr), local_sum.at(i - offset[myrowrank])));
     }
+
     MPI_Allgatherv(MPI_IN_PLACE, cols, MPIType<NT>(), parameter->data(), recvcounts.data(), offset.data(), MPIType<NT>(), comm_grid->GetRowWorld());
   }
 

@@ -80,8 +80,6 @@ set(SOURCES
     src/main.cpp
     src/model/model.h
     src/model/model.cpp
-    src/model/dist-model.h
-    src/model/dist-model.cpp
     src/trainer/trainer.h
     src/trainer/trainer.cpp
     src/utils/fileParse.h
@@ -111,6 +109,8 @@ set(DIST
     src/utils/LossFn.cpp
     src/utils/DerivativeFunctions.h
     src/utils/DerivativeFunctions.cpp
+    src/model/dist-model_no_w.h
+    src/model/dist-model_no_w.cpp
 )
 # add_executable(example src/example.cpp)
 # # target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")

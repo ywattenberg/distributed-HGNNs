@@ -14,7 +14,7 @@
 #include "CombBLAS/SpParMat.h"
 #include "utils/DenseMatrix.h"
 #include "utils/configParse.h"
-#include "model/dist-model.h"
+#include "model/dist-model_no_w.h"
 #include "utils/LossFn.h"
 
 
@@ -80,7 +80,7 @@ int main(int argc, char* argv[]){
 	fullWorld.reset(new CommGrid(MPI_COMM_WORLD, std::sqrt(nprocs), std::sqrt(nprocs)));
 
   // Create Model
-  DistModel model(config, 6144, fullWorld, 24622);
+  DistModelW model(config, 6144, fullWorld, 24622);
 
   cout << myrank << ": model initialized" << endl;
 
@@ -116,10 +116,21 @@ int main(int argc, char* argv[]){
 
 
   DenseMatrix<double> res = model.forward(&input);
+  if(!myrank){
+    auto res_v = res.getValues();
+    for(int i = 0; i < 10; i++){
+      for(int j = 0; j < res.getLocalCols(); j++){
+        std::cout << res_v->at(i*res.getLocalCols() + j) << "  ";
+      }
+      std::cout << std::endl;
+    }
+  }
+  return 0;
   MPI_Barrier(MPI_COMM_WORLD);
   std::cout << "loss: " << CrossEntropyLoss<PTFF, double>(res, &labels) << std::endl;
   MPI_Barrier(MPI_COMM_WORLD);
   model.backward(res, &labels, 0.1);
+  std::cout << "Backward Finished" << std::endl;
   MPI_Finalize();
 
 }

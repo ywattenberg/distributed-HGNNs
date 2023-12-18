@@ -1093,6 +1093,30 @@ DenseMatrix<NT> DenseTransDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
   
 }
 
+template<typename SR, typename NT>
+DenseMatrix<NT> DenseElementWiseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
+{
+  int myrank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
+  int localRowsA = A.getLocalRows();
+  int localColsA = A.getLocalCols();
+  int localRowsB = B.getLocalRows();
+  int localColsB = B.getLocalCols();
+  if(localRowsA != localRowsB) {
+    throw std::invalid_argument("DIMENSIONS DON'T MATCH localRowsA != localRowsB at DenseTransDenseMult");
+  }
+  if(localColsA != localColsB) {
+    throw std::invalid_argument("DIMENSIONS DON'T MATCH localColsA != localColsB at DenseTransDenseMult");
+  }
+
+  std::vector<NT>* res = new std::vector<NT>(localRowsA * localColsA);
+  #pragma omp parallel for num_threads(4)
+  for(int i = 0; i < localRowsA * localColsA; i++) {
+    res->at(i) = SR::multiply(A.getValues()->at(i), B.getValues()->at(i));
+  }
+  return DenseMatrix<NT>(localColsA, localColsB, res, A.getCommGrid());  
+}
 
 }
 
