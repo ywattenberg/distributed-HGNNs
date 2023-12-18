@@ -46,6 +46,50 @@ class DenseMatrix
     DenseMatrix<NT>(): values(nullptr), localRows(-1), localCols(-1), commGrid(nullptr) {
     }
 
+    // transpose Constructor
+    DenseMatrix<NT>(DenseMatrix<NT> &A){
+      commGrid = A.getCommGrid();
+      int rankInRow = commGrid->GetRankInProcRow();
+      int rankInCol = commGrid->GetRankInProcCol();
+      int rowsA = A.getLocalRows();
+      int colsA = A.getLocalCols();
+
+      int rowsNew, colsNew;
+      std::vector<NT> * buffer = new std::vector<NT>();
+      values = new std::vector<NT>();
+
+      if (rankInRow != rankInCol){
+        int diagNeighbour = commGrid->GetComplementRank();
+        
+        MPI_Status status;
+        MPI_Sendrecv(&rowsA, 1, MPI_INT, diagNeighbour, 0, &colsNew, 1, MPI_INT, diagNeighbour, 0, commGrid->GetWorld(), &status);
+        MPI_Sendrecv(&colsA, 1, MPI_INT, diagNeighbour, 0, &rowsNew, 1, MPI_INT, diagNeighbour, 0, commGrid->GetWorld(), &status);
+
+        buffer->resize(rowsNew * colsNew);
+        localRows = rowsNew;
+        localCols = colsNew;
+
+        MPI_Sendrecv(A.getValues()->data(), rowsA * colsA, MPIType<NT>(), diagNeighbour, 0, buffer->data(), rowsNew * colsNew, MPIType<NT>(), diagNeighbour, 0, commGrid->GetWorld(), &status);
+      } else {
+        localRows = colsA;
+        localCols = rowsA;
+
+        // buffer->resize(rowsA * colsA);
+        buffer = A.getValues();
+        // std::copy(A.getValues()->begin(), A.getValues()->end(), buffer->begin());
+      }
+
+      values->resize(localRows * localCols);
+      // transpose locally
+      for (int i = 0; i < localCols; i++){
+        for (int j = 0; j < localRows; j++){
+          values->at(j * localCols + i) = buffer->at(i*localRows + j);
+        }
+      }
+
+      delete buffer;    
+    }
+
     DenseMatrix<NT>(int rows, int cols, std::vector<NT> * values, std::shared_ptr<CommGrid> grid): values(values), localRows(rows), localCols(cols)
     {
       commGrid = grid;
