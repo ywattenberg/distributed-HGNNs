@@ -893,7 +893,6 @@ DenseMatrix<NT> DenseDenseTransMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
   std::vector<NT> * localOut = new std::vector<NT>();
 
   int diagNeighbour = B.getCommGrid()->GetComplementRank();
-  // std::cout << "i'm rank "<< myrank << "and my complement is " << diagNeighbour << std::endl;
 
   int transposeRows, transposeCols;
   std::vector<NT> *transposeValues = new std::vector<NT>();
@@ -990,10 +989,6 @@ DenseMatrix<NT> DenseTransDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
 
   int diagNeighbour = A.getCommGrid()->GetComplementRank();
 
-  std::cout << myrank << ": para 5: " << localColsB << std::endl;
-
-  // std::cout << "i'm rank "<< myrank << "and my complement is " << diagNeighbour << std::endl;
-
   int transposeRows, transposeCols;
   std::vector<NT> *transposeValues = new std::vector<NT>();
 
@@ -1005,10 +1000,12 @@ DenseMatrix<NT> DenseTransDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
     transposeValues->resize(transposeRows * transposeCols);
     
     MPI_Sendrecv(A.getValues()->data(), localRowsA * localColsA, MPIType<NT>(), diagNeighbour, 0, transposeValues->data(), transposeRows * transposeCols, MPIType<NT>(), diagNeighbour, 0, A.getCommGrid()->GetWorld(), &status);
+    
+    localRowsA = transposeRows;
+    localColsA = transposeCols;
   }
 
-  localRowsA = transposeRows;
-  localColsA = transposeCols;
+  
 
   std::vector<NT> * localOut = new std::vector<NT>(localColsA * localColsB);
 
@@ -1041,9 +1038,7 @@ DenseMatrix<NT> DenseTransDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
     }
     BCastMatrixDense(GridC->GetColWorld(), bufferB, essentialsB, sendingRank);
 
-    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans,essentialsA[2],essentialsB[2],essentialsA[1],1,bufferA->data(), essentialsA[1], bufferB->data(), essentialsB[1],1,localOut->data(),essentialsB[2]);
-    std::cout << myrank << ": para 5 in lloop: " << essentialsA[1] << std::endl;
-
+    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans,essentialsA[2],essentialsB[2],essentialsA[1],1,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[2],1,localOut->data(),essentialsB[2]);
     // blockDenseDenseTrans<SR, NT>(essentialsA[1], essentialsA[2], essentialsB[1], essentialsB[2], bufferA, bufferB, localOut);
 
   }
