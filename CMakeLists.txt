@@ -109,6 +109,8 @@ set(DIST
     src/utils/LossFn.cpp
     src/utils/DerivativeFunctions.h
     src/utils/DerivativeFunctions.cpp
+    src/model/dist-model_no_w.h
+    src/model/dist-model_no_w.cpp
 )
 # add_executable(example src/example.cpp)
 # # target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
