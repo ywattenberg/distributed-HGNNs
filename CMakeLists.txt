@@ -80,8 +80,6 @@ set(SOURCES
     src/main.cpp
     src/model/model.h
     src/model/model.cpp
-    src/model/dist-model.h
-    src/model/dist-model.cpp
     src/trainer/trainer.h
     src/trainer/trainer.cpp
     src/utils/fileParse.h
@@ -89,9 +87,6 @@ set(SOURCES
     src/utils/scores.cpp
     src/utils/configParse.h
     src/utils/configParse.cpp
-    src/utils/parDenseGEMM.h
-    src/utils/parDenseGEMM.cpp
-    src/utils/DenseMatrix.h
 )
 
 set(DIST 
@@ -112,9 +107,9 @@ set(DIST
 # # target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
 # # set_property(TARGET example PROPERTY CXX_STANDARD 17)
 
-# add_executable(${PROJECT_NAME} ${SOURCES})
-# target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
-# set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
+add_executable(${PROJECT_NAME} ${SOURCES})
+target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 
 add_executable(example_2 src/example_2.cpp ${DIST})
 target_link_libraries(example_2 "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
