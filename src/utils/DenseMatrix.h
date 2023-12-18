@@ -9,6 +9,7 @@
 #include <mpi.h>
 #include <vector>
 #include <omp.h>
+#include <cblas.h>
 
 #include "CombBLAS/CombBLAS.h"
 #include "CombBLAS/SpParMat.h"
@@ -185,7 +186,9 @@ static void BCastMatrixDense(MPI_Comm & comm1d, std::vector<NT> * values, std::v
     values->resize(essentials[0]);
   }
 
-  MPI_Bcast(values->data(), essentials[0], MPIType<NT>(), sendingRank, comm1d); 
+  MPI_Bcast(values->data(), essentials[0], MPIType<NT>(), sendingRank, comm1d);
+
+
 }
 
 template<typename SR, typename IT, typename NT, typename DER>
@@ -787,7 +790,7 @@ DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
   std::vector<int> essentialsB(3);
 
   int rankAinRow = A.getCommGrid()->GetRankInProcRow();
-  int rankBinCol = A.getCommGrid()->GetRankInProcCol();
+  int rankBinCol = B.getCommGrid()->GetRankInProcCol();
 
   int localRowsA = A.getLocalRows();
   int localColsA = A.getLocalCols();
@@ -820,7 +823,9 @@ DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
 
     BCastMatrixDense(GridC->GetColWorld(), bufferB, essentialsB, sendingRank);
 
-    blockDenseDense<SR, NT>(essentialsA[1], essentialsA[2], essentialsB[1], essentialsB[2], bufferA, bufferB, localOut);
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,essentialsA[1],essentialsB[2],essentialsA[2],1,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[1],1,localOut->data(),essentialsB[2]);
+
+    // blockDenseDense<SR, NT>(essentialsA[1], essentialsA[2], essentialsB[1], essentialsB[2], bufferA, bufferB, localOut);
   
   }
 
@@ -828,6 +833,226 @@ DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
 }
 
 
+
+
+// computes locally A * B^T, with A and B given
+template<typename SR, typename NT>
+void blockDenseDenseTrans(size_t rowsA, size_t colsA, size_t rowsB, size_t colsB, std::vector<NT>* dense_A, std::vector<NT>* dense_B, std::vector<NT>* outValues)
+{
+  int myrank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
+  if (colsA != colsB) {
+    throw std::invalid_argument("DIMENSIONS DON'T MATCH");
+  }
+
+  if (rowsA * rowsB != outValues->size()) {
+    throw std::invalid_argument("DIMENSIONS DON'T MATCH 2");
+  }
+
+  #pragma omp parallel for num_threads(2)
+    for (size_t i = 0; i < rowsA; i++){
+      for (size_t j = 0; j < rowsB; j++){
+        NT sum = 0.0;
+        for (size_t k = 0; k < colsA; k++){
+          sum = SR::add(sum, SR::multiply(dense_A->at(i * colsA + k), dense_B->at(j * colsB + k)));
+        }
+        outValues->at(i * rowsB + j) = SR::add(outValues->at(i * rowsB + j), sum);
+      }
+    }
+}
+
+
+// computes A*B^T distributed
+template<typename SR, typename NT>
+DenseMatrix<NT> DenseDenseTransMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
+{
+  int myrank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
+
+  int stages, dummy;
+
+  std::shared_ptr<CommGrid> GridC = ProductGrid((A.getCommGrid()).get(), (B.getCommGrid()).get(), stages, dummy, dummy);		
+
+  std::vector<NT> * bufferA = new std::vector<NT>();
+  std::vector<int> essentialsA(3);
+  std::vector<NT> * bufferB = new std::vector<NT>();
+  std::vector<int> essentialsB(3);
+
+  int rankAinRow = A.getCommGrid()->GetRankInProcRow();
+  int rankBinCol = B.getCommGrid()->GetRankInProcCol();
+  int rankBinRow = B.getCommGrid()->GetRankInProcRow();
+
+
+  int localRowsA = A.getLocalRows();
+  int localColsA = A.getLocalCols();
+  int localRowsB = B.getLocalRows();
+  int localColsB = B.getLocalCols();
+
+  std::vector<NT> * localOut = new std::vector<NT>();
+
+  int diagNeighbour = B.getCommGrid()->GetComplementRank();
+  // std::cout << "i'm rank "<< myrank << "and my complement is " << diagNeighbour << std::endl;
+
+  int transposeRows, transposeCols;
+  std::vector<NT> *transposeValues = new std::vector<NT>();
+
+  if (rankBinRow != rankBinCol){
+    MPI_Status status;
+    MPI_Sendrecv(&localRowsB, 1, MPI_INT, diagNeighbour, 0, &transposeRows, 1, MPI_INT, diagNeighbour, 0, B.getCommGrid()->GetWorld(), &status);
+    MPI_Sendrecv(&localColsB, 1, MPI_INT, diagNeighbour, 0, &transposeCols, 1, MPI_INT, diagNeighbour, 0, B.getCommGrid()->GetWorld(), &status);
+
+    transposeValues->resize(transposeRows * transposeCols);
+    localOut->resize(localRowsA * transposeRows);
+
+
+    MPI_Sendrecv(B.getValues()->data(), localRowsB * localColsB, MPIType<NT>(), diagNeighbour, 0, transposeValues->data(), transposeRows * transposeCols, MPIType<NT>(), diagNeighbour, 0, B.getCommGrid()->GetWorld(), &status);
+
+  } else {
+    localOut->resize(localRowsA * localRowsB);
+
+  }
+
+  for (int i = 0; i < stages; i++){
+    int sendingRank = i;
+    
+    if (rankAinRow == sendingRank){
+      bufferA = A.getValues();
+
+      essentialsA[1] = localRowsA;  
+      essentialsA[2] = localColsA;
+      essentialsA[0] = essentialsA[1] * essentialsA[2];
+    }
+
+    BCastMatrixDense(GridC->GetRowWorld(), bufferA, essentialsA, sendingRank);
+
+
+    if (rankBinCol == sendingRank){
+      if (rankBinRow != rankBinCol){
+        bufferB = transposeValues;
+        essentialsB[1] = transposeRows;
+        essentialsB[2] = transposeCols;
+        essentialsB[0] = essentialsB[1] * essentialsB[2];
+      } else {
+        bufferB = B.getValues();
+
+        essentialsB[1] = localRowsB;
+        essentialsB[2] = localColsB;
+        essentialsB[0] = essentialsB[1] * essentialsB[2];
+      }
+    }
+    BCastMatrixDense(GridC->GetColWorld(), bufferB, essentialsB, sendingRank);
+
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans,essentialsA[1],essentialsB[1],essentialsA[2],1,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[2],1,localOut->data(),essentialsB[1]);
+
+    // blockDenseDenseTrans<SR, NT>(essentialsA[1], essentialsA[2], essentialsB[1], essentialsB[2], bufferA, bufferB, localOut);
+  
+  }
+
+  delete transposeValues;
+
+  if (rankBinRow != rankBinCol){
+    return DenseMatrix<NT>(localRowsA, transposeRows, localOut, GridC);
+  } else {
+    return DenseMatrix<NT>(localRowsA, localRowsB, localOut, GridC);  
+  }
+}
+
+// computes A^T * B, given the dense matrix A and dense matrix B
+template<typename SR, typename NT>
+DenseMatrix<NT> DenseTransDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
+{
+  int myrank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
+
+  int stages, dummy;
+
+  std::shared_ptr<CommGrid> GridC = ProductGrid((A.getCommGrid()).get(), (B.getCommGrid()).get(), stages, dummy, dummy);		
+
+  std::vector<NT> * bufferA = new std::vector<NT>();
+  std::vector<int> essentialsA(3);
+  std::vector<NT> * bufferB = new std::vector<NT>();
+  std::vector<int> essentialsB(3);
+
+  int rankAinRow = A.getCommGrid()->GetRankInProcRow();
+  int rankBinCol = B.getCommGrid()->GetRankInProcCol();
+  int rankAinCol = A.getCommGrid()->GetRankInProcCol();
+
+
+  int localRowsA = A.getLocalRows();
+  int localColsA = A.getLocalCols();
+  int localRowsB = B.getLocalRows();
+  int localColsB = B.getLocalCols();
+
+  
+
+  int diagNeighbour = A.getCommGrid()->GetComplementRank();
+
+  std::cout << myrank << ": para 5: " << localColsB << std::endl;
+
+  // std::cout << "i'm rank "<< myrank << "and my complement is " << diagNeighbour << std::endl;
+
+  int transposeRows, transposeCols;
+  std::vector<NT> *transposeValues = new std::vector<NT>();
+
+  if (rankAinRow != rankAinCol){
+    MPI_Status status;
+    MPI_Sendrecv(&localRowsA, 1, MPI_INT, diagNeighbour, 0, &transposeRows, 1, MPI_INT, diagNeighbour, 0, A.getCommGrid()->GetWorld(), &status);
+    MPI_Sendrecv(&localColsA, 1, MPI_INT, diagNeighbour, 0, &transposeCols, 1, MPI_INT, diagNeighbour, 0, A.getCommGrid()->GetWorld(), &status);
+
+    transposeValues->resize(transposeRows * transposeCols);
+    
+    MPI_Sendrecv(A.getValues()->data(), localRowsA * localColsA, MPIType<NT>(), diagNeighbour, 0, transposeValues->data(), transposeRows * transposeCols, MPIType<NT>(), diagNeighbour, 0, A.getCommGrid()->GetWorld(), &status);
+  }
+
+  localRowsA = transposeRows;
+  localColsA = transposeCols;
+
+  std::vector<NT> * localOut = new std::vector<NT>(localColsA * localColsB);
+
+
+  for (int i = 0; i < stages; i++){
+    int sendingRank = i;
+    
+    if (rankAinRow == sendingRank){
+      if (rankAinRow != rankAinCol){
+        bufferA = transposeValues;
+      } else {
+        bufferA = A.getValues();
+      }
+
+      essentialsA[1] = localRowsA;  
+      essentialsA[2] = localColsA;
+      essentialsA[0] = essentialsA[1] * essentialsA[2];
+    }
+
+    BCastMatrixDense(GridC->GetRowWorld(), bufferA, essentialsA, sendingRank);
+
+
+    if (rankBinCol == sendingRank){
+        bufferB = B.getValues();
+
+        essentialsB[1] = localRowsB;
+        essentialsB[2] = localColsB;
+        essentialsB[0] = essentialsB[1] * essentialsB[2];
+      
+    }
+    BCastMatrixDense(GridC->GetColWorld(), bufferB, essentialsB, sendingRank);
+
+    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans,essentialsA[2],essentialsB[2],essentialsA[1],1,bufferA->data(), essentialsA[1], bufferB->data(), essentialsB[1],1,localOut->data(),essentialsB[2]);
+    std::cout << myrank << ": para 5 in lloop: " << essentialsA[1] << std::endl;
+
+    // blockDenseDenseTrans<SR, NT>(essentialsA[1], essentialsA[2], essentialsB[1], essentialsB[2], bufferA, bufferB, localOut);
+
+  }
+
+  delete transposeValues;
+
+  return DenseMatrix<NT>(localColsA, localColsB, localOut, GridC);  
+  
+}
 
 
 }

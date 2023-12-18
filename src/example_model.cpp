@@ -116,7 +116,7 @@ int main(int argc, char* argv[]){
 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  model.backward(input, &labels, 0.01);
+  // model.backward(input, &labels, 0.01);
 
   
 
