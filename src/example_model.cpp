@@ -115,7 +115,7 @@ int main(int argc, char* argv[]){
 
 
 
-  DenseMatrix<double> res = model.forward(&input);
+  DenseMatrix<double> res = model.forward(input);
   if(!myrank){
     auto res_v = res.getValues();
     for(int i = 0; i < 10; i++){

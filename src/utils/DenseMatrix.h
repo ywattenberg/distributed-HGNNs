@@ -10,6 +10,7 @@
 #include <vector>
 #include <omp.h>
 #include <cblas.h>
+// #include <mkl.h>
 
 #include "CombBLAS/CombBLAS.h"
 #include "CombBLAS/SpParMat.h"
@@ -797,7 +798,7 @@ DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
   int localRowsB = B.getLocalRows();
   int localColsB = B.getLocalCols();
 
-  std::vector<NT> * localOut = new std::vector<NT>(localRowsA * localColsB);
+  std::vector<NT> * localOut = new std::vector<NT>(localRowsA * localColsB, 0.0);
 
   for (int i = 0; i < stages; i++){
     int sendingRank = i;
