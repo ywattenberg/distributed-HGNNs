@@ -77,7 +77,6 @@ void WDerivativeUpdate(std::shared_ptr<CommGrid> comm_grid, std::vector<double>*
 }
 
 
-// TODO: Parallelize 
 template<typename SR, typename IT, typename NT>
 void DenseGradientStep(DenseMatrix<NT>& parameter, DenseMatrix<NT>& gradient, double lr){
     size_t rows = parameter.getLocalRows(); 
@@ -87,6 +86,7 @@ void DenseGradientStep(DenseMatrix<NT>& parameter, DenseMatrix<NT>& gradient, do
     }
     auto dense_parameter = parameter.getValues();
     auto dense_gradient = gradient.getValues();
+    #pragma omp parallel for
     for(int i = 0; i < rows * cols; i++){
         dense_parameter->at(i) = SR::add(dense_parameter->at(i), SR::multiply(static_cast<NT>(-lr), dense_gradient->at(i)));
     }

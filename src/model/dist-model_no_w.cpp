@@ -54,8 +54,8 @@ DistModelW::DistModelW(ConfigProperties &config, int in_dim, std::shared_ptr<Com
     invde_ht_dvh.ParallelReadMM(config.data_properties.invde_ht_dvh_path, true, maximum<double>());
 
     this->LWR = PSpGEMM<PTFF, int64_t, double, double, DCCols, DCCols>(dvh, invde_ht_dvh);
-    // this->LWR_T = SPMAT_DOUBLE(this->LWR);
-    // this->LWR_T.Transpose();
+    this->LWR_T = SPMAT_DOUBLE(this->LWR);
+    this->LWR_T.Transpose();
 
     // Calculate the product L*R for the backwardpass of W 
 
@@ -94,15 +94,21 @@ void DistModelW::comp_layer(DENSE_DOUBLE& X, DistConvW* curr, bool last_layer=fa
     
     // DenseMatrix<double> tmptmp = DenseDenseMult<PTFF, double>(*X, curr->weights);
     curr->XtB = DenseDenseMult<PTFF, double>(X, curr->weights);
+    if(!myrank)std::cout << "DDM " << curr->XtB.getValues()->at(0) << std::endl; 
     // curr->XtB = *(new DenseMatrix<double>(1,1, test, curr->weights.getCommGrid()));
-
     if (this->withBias){
         curr->XtB.addBiasLocally(&curr->bias);
     }
+    if(!myrank)std::cout << "bias " << curr->XtB.getValues()->at(0) << std::endl; 
+
     // Compute G_3 (LWR * XTb) with bias and (LWR * XT) without, where LWR is a sparse matrix and XTb/XT are dense matrices
     curr->G_3 = SpDenseMult<PTFF, int64_t, double, DCCols>(this->LWR, curr->XtB);
+    if(!myrank)std::cout << "G_3 " << curr->G_3.getValues()->at(0) << std::endl; 
+
     // Compute X (ReLU(G_3) or G_4) if not last layer
     curr->G_4 = last_layer ? curr->G_3 : DenseReLU<PTFF, double>(curr->G_3);
+    if(!myrank)std::cout << "G_4 " << curr->G_4.getValues()->at(0) << std::endl; 
+
 }
 
 void DistModelW::clear_layer_partial_results(){
@@ -236,12 +242,12 @@ DistConvW::DistConvW(shared_ptr<CommGrid> fullWorld, int in_dim, int out_dim, bo
     
     vector<double>* weight_vec = new vector<double>(local_rows * local_cols, 0.0);
     //TODO: Parallelize 
-    double stdv = 1.0; // (std::sqrt(in_dim));
+    double stdv = 1.0 / (std::sqrt(in_dim));
 
     std::random_device rd;  // Will be used to obtain a seed for the random number engine
     std::mt19937 gen(rd());
     std::uniform_real_distribution<double> dis(-stdv, stdv);
-
+        
     for(int i = 0; i < local_rows * local_cols; i++){
         weight_vec->at(i) = dis(gen);
     }

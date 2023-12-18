@@ -47,7 +47,8 @@ class DenseMatrix
     }
 
     // transpose Constructor
-    DenseMatrix<NT>(DenseMatrix<NT> &A){
+    DenseMatrix<NT>(DenseMatrix<NT> &A, char T){
+
       commGrid = A.getCommGrid();
       int rankInRow = commGrid->GetRankInProcRow();
       int rankInCol = commGrid->GetRankInProcCol();
@@ -266,7 +267,6 @@ void blockDenseSparse(size_t dense_rows, size_t dense_cols, std::vector<NT>* den
     }
   }
 }
-// TODO: Parallelize 
 template<typename SR, typename NT>
 inline DenseMatrix<NT> DenseDenseAdd(DenseMatrix<NT> &A, DenseMatrix<NT> &B){
   size_t rows = A.getLocalRows(); 
@@ -277,11 +277,15 @@ inline DenseMatrix<NT> DenseDenseAdd(DenseMatrix<NT> &A, DenseMatrix<NT> &B){
   std::vector<NT> out = new std::vector<NT>(rows * cols);
   auto dense_A = A.getValues();
   auto dense_B = B.getValues();
-  std::transform(dense_A->begin(), dense_A->end(), dense_B->begin(), out->begin(), SR::add);
+  
+  #pragma omp parallel for
+  for(int i = 0; i < rows * cols; i++){
+    out->at(i) = SR::add(dense_A->at(i), dense_B->at(i));
+  }
+
   return DenseMatrix<NT>(rows, cols, out, A.getCommGrid()); 
 }
 
-// TODO: Write Function once we have bias and parallize
 template<typename SR, typename IT, typename NT>
 inline DenseMatrix<NT> DenseVecAdd(DenseMatrix<NT> &A, std::vector<NT> &B){
   int rows = A.getLocalRows();
@@ -305,26 +309,26 @@ inline DenseMatrix<NT> DenseVecAdd(DenseMatrix<NT> &A, std::vector<NT> &B){
 }
 
 
-// TODO: Parallelize 
 template<typename SR, typename NT>
 inline DenseMatrix<NT> DenseReLU(DenseMatrix<NT> &A){
   size_t rows = A.getLocalRows(); 
   size_t cols = A.getLocalCols();
   std::vector<NT>* out = new std::vector<NT>(rows * cols);
   auto dense_A = A.getValues();
+  #pragma omp parallel for
   for(int i = 0; i < rows * cols; i++){
     out->at(i) = dense_A->at(i) > 0 ? dense_A->at(i) : static_cast<NT>(0.0);
   }
   return DenseMatrix<NT>(rows, cols, out, A.getCommGrid());
 }
 
-// TODO: Parallelize 
 template<typename SR, typename NT>
 inline DenseMatrix<NT> DerivativeDenseReLU(DenseMatrix<NT> &A){
   size_t rows = A.getLocalRows(); 
   size_t cols = A.getLocalCols();
   std::vector<NT>* out = new std::vector<NT>(rows * cols);
   auto dense_A = A.getValues();
+  #pragma omp parallel for
   for(int i = 0; i < rows * cols; i++){
     out->at(i) = dense_A->at(i) > 0 ?  static_cast<NT>(1.0) : static_cast<NT>(0.0);
   }
@@ -363,7 +367,7 @@ DenseMatrix<NT> DenseSpMult(DenseMatrix<NT> &A, SpParMat<IT, NT, DER> &B) {
     int sparseLocalRows = B.getlocalrows();
     int sparseLocalCols = B.getlocalcols();
 
-    std::vector<NT> * localOut = new std::vector<NT>(denseLocalRows * sparseLocalCols);
+    std::vector<NT> * localOut = new std::vector<NT>(denseLocalRows * sparseLocalCols, 0.0);
     
 
     //other stages:
@@ -471,7 +475,7 @@ DenseMatrix<NT> SpDenseMult(SpParMat<IT, NT, DER> &B, DenseMatrix<NT> &A)
   int sparseLocalRows = B.getlocalrows();
   int sparseLocalCols = B.getlocalcols();
 
-  std::vector<NT> * localOut = new std::vector<NT>(sparseLocalRows * denseLocalCols);
+  std::vector<NT> * localOut = new std::vector<NT>(sparseLocalRows * denseLocalCols, 0.0);
   
   //other stages:
   for (int i = 0; i < stages; i++){    
@@ -803,7 +807,7 @@ void blockDenseDense(size_t rowsA, size_t colsA, size_t rowsB, size_t colsB, std
   // }
 
 
-    #pragma omp parallel for num_threads(2)
+    #pragma omp parallel for
     for (size_t i = 0; i < rowsA; i++){
       for (size_t j = 0; j < colsB; j++){
         for (size_t k = 0; k < colsA; k++){
@@ -867,8 +871,13 @@ DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
     }
 
     BCastMatrixDense(GridC->GetColWorld(), bufferB, essentialsB, sendingRank);
+    std::vector<NT> tmpBuffer = std::vector<NT>(localOut->size(), 0.0);
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,essentialsA[1],essentialsB[2],essentialsA[2],1.0,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[1],0.0,tmpBuffer.data(),essentialsB[2]);
 
-    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,essentialsA[1],essentialsB[2],essentialsA[2],1,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[1],1,localOut->data(),essentialsB[2]);
+    #pragma omp parallel for 
+    for(int i = 0; i < localRowsA * localColsB; i++){
+      localOut->at(i) += tmpBuffer.at(i);
+    }
 
     // blockDenseDense<SR, NT>(essentialsA[1], essentialsA[2], essentialsB[1], essentialsB[2], bufferA, bufferB, localOut);
   
@@ -895,7 +904,7 @@ void blockDenseDenseTrans(size_t rowsA, size_t colsA, size_t rowsB, size_t colsB
     throw std::invalid_argument("DIMENSIONS DON'T MATCH 2");
   }
 
-  #pragma omp parallel for num_threads(2)
+  #pragma omp parallel for
     for (size_t i = 0; i < rowsA; i++){
       for (size_t j = 0; j < rowsB; j++){
         NT sum = 0.0;
@@ -948,13 +957,13 @@ DenseMatrix<NT> DenseDenseTransMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
     MPI_Sendrecv(&localColsB, 1, MPI_INT, diagNeighbour, 0, &transposeCols, 1, MPI_INT, diagNeighbour, 0, B.getCommGrid()->GetWorld(), &status);
 
     transposeValues->resize(transposeRows * transposeCols);
-    localOut->resize(localRowsA * transposeRows);
+    localOut->resize(localRowsA * transposeRows, 0.0);
 
 
     MPI_Sendrecv(B.getValues()->data(), localRowsB * localColsB, MPIType<NT>(), diagNeighbour, 0, transposeValues->data(), transposeRows * transposeCols, MPIType<NT>(), diagNeighbour, 0, B.getCommGrid()->GetWorld(), &status);
 
   } else {
-    localOut->resize(localRowsA * localRowsB);
+    localOut->resize(localRowsA * localRowsB, 0.0);
 
   }
 
@@ -987,8 +996,14 @@ DenseMatrix<NT> DenseDenseTransMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
       }
     }
     BCastMatrixDense(GridC->GetColWorld(), bufferB, essentialsB, sendingRank);
+    std::vector<NT> tmpBuffer = std::vector<NT>(localOut->size(),0.0);
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans,essentialsA[1],essentialsB[1],essentialsA[2],1.0,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[2],0.0,tmpBuffer.data(),essentialsB[1]);
 
-    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans,essentialsA[1],essentialsB[1],essentialsA[2],1,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[2],1,localOut->data(),essentialsB[1]);
+    #pragma omp parallel for
+    for(int i = 0; i < localOut->size(); i++){
+      localOut->at(i) += tmpBuffer.at(i);
+    }
+    
 
     // blockDenseDenseTrans<SR, NT>(essentialsA[1], essentialsA[2], essentialsB[1], essentialsB[2], bufferA, bufferB, localOut);
   
@@ -1052,7 +1067,7 @@ DenseMatrix<NT> DenseTransDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
 
   
 
-  std::vector<NT> * localOut = new std::vector<NT>(localColsA * localColsB);
+  std::vector<NT> * localOut = new std::vector<NT>(localColsA * localColsB, 0.0);
 
 
   for (int i = 0; i < stages; i++){
@@ -1083,9 +1098,14 @@ DenseMatrix<NT> DenseTransDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
     }
     BCastMatrixDense(GridC->GetColWorld(), bufferB, essentialsB, sendingRank);
 
-    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans,essentialsA[2],essentialsB[2],essentialsA[1],1,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[2],1,localOut->data(),essentialsB[2]);
+    std::vector<NT> tmpBuffer = std::vector<NT>(localOut->size(),0.0);
+    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans,essentialsA[2],essentialsB[2],essentialsA[1],1.0,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[2],0.0,localOut->data(),essentialsB[2]);
     // blockDenseDenseTrans<SR, NT>(essentialsA[1], essentialsA[2], essentialsB[1], essentialsB[2], bufferA, bufferB, localOut);
 
+    #pragma omp parallel for
+    for(int i = 0; i < localOut->size(); i++){
+      localOut->at(i) += tmpBuffer.at(i);
+    }
   }
 
   delete transposeValues;
@@ -1112,7 +1132,7 @@ DenseMatrix<NT> DenseElementWiseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
   }
 
   std::vector<NT>* res = new std::vector<NT>(localRowsA * localColsA);
-  #pragma omp parallel for num_threads(4)
+  #pragma omp parallel for
   for(int i = 0; i < localRowsA * localColsA; i++) {
     res->at(i) = SR::multiply(A.getValues()->at(i), B.getValues()->at(i));
   }

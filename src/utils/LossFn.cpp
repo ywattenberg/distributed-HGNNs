@@ -89,7 +89,7 @@ NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool 
 }
 
 
-
+// TODO: Parallelize this function
 template <typename SR, typename NT>
 DenseMatrix<NT> DerivativeCrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool sum_reduction)
 {
