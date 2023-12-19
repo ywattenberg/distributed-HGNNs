@@ -34,7 +34,7 @@ class DistConvW
         DistConvW();
         DistConvW(shared_ptr<CommGrid> fullWorld, int in_dim, int out_dim, bool withBias);
         DENSE_DOUBLE forward(DENSE_DOUBLE &input);
-        void clear_partial_results();
+        void clear_partial_results(bool last_layer=false);
         
 };
 

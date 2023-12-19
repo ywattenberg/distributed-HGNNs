@@ -112,21 +112,18 @@ int main(int argc, char* argv[]){
     cout << "number of features: " << totalCols << endl;
   }
 
-
-  MPI_Barrier(MPI_COMM_WORLD);
-
-
-  double lr = 0.005;
+  double lr = 0.1;
   for(int i = 0; i < 100; i++){
+    if(!myrank)std::cout << "Epoch: " << i << std::endl;
     DenseMatrix<double> res = model.forward(input);
-    MPI_Barrier(MPI_COMM_WORLD);
     if(i%5 == 0){
       double loss = CrossEntropyLoss<PTFF, double>(res, &labels);
-      if(!myrank)std::cout <<"Epoch: " << i << " loss: " << loss << std::endl;
+      if(!myrank)std::cout <<"loss: " << loss << std::endl;
     }
-    MPI_Barrier(MPI_COMM_WORLD);
     model.backward(res, &labels, lr);
-    if(i == 50)lr = 0.001;
+    if(i % 5 == 0){
+      lr = lr * 0.7;
+    }
   }
   MPI_Finalize();
 

@@ -80,7 +80,7 @@ DistModelW::DistModelW(ConfigProperties &config, int in_dim, std::shared_ptr<Com
 }
 
 
-void DistModelW::comp_layer(DENSE_DOUBLE& X, DistConvW* curr, bool last_layer=false){
+void DistModelW::comp_layer(DENSE_DOUBLE& X, DistConvW* curr, bool last_layer){
     // Compute Xt (X * theta or G_2) where both are dense matrices
     MPI_Barrier(MPI_COMM_WORLD);
     int totalRows = X.getnrow();
@@ -111,7 +111,8 @@ void DistModelW::clear_layer_partial_results(){
     for(int i = 0; i < this->layers.size(); i++){
         //For each layer free all partial results saved in the layer
         DistConvW* curr = this->layers[i];
-        curr->clear_partial_results();
+        MPI_Barrier(MPI_COMM_WORLD);
+        curr->clear_partial_results(i == this->layers.size()-1);
     }
 
 }
@@ -130,9 +131,7 @@ DENSE_DOUBLE DistModelW::forward(DENSE_DOUBLE& input){
         comp_layer(X, curr, i == this->layers.size()-1);
         // Set X to G_4 for next iteration
         X = curr->G_4;
-        MPI_Barrier(MPI_COMM_WORLD);
     }
-    MPI_Barrier(MPI_COMM_WORLD);
     // Last layer is different as we do not use ReLU
     return this->layers[this->layers.size()-1]->G_3;
 }
@@ -144,16 +143,16 @@ void DistModelW::backward(DENSE_DOUBLE& input, std::vector<int>* labels, double 
     // As w is a vector we will only need the diagonal of the matrix derivative
     int myrank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+
     DENSE_DOUBLE dL_dX = DerivativeCrossEntropyLoss<PTFF, double>(input, labels); 
     DistConvW* curr = this->layers[this->layers.size()-1];
     // Last layer is different as we do not use ReLU this means dL_dG3 is just dL_dX
     DENSE_DOUBLE dL_dG2 = SpDenseMult<PTFF, int64_t, double, DCCols>(this->LWR_T, dL_dX);
     DENSE_DOUBLE dL_dt  = DenseTransDenseMult<PTFF, double>(curr->X, dL_dG2);    
 
-    
-
     // Set dL_dX for next iteration
-    dL_dX  = DenseDenseTransMult<PTFF, double>(dL_dG2, curr->weights);
+    dL_dX.clear();
+    dL_dX = DenseDenseTransMult<PTFF, double>(dL_dG2, curr->weights);
     // Now we need to upadte the weights and bias for the last layer
     DenseGradientStep<PTFF, int64_t, double>(curr->weights, dL_dt, learning_rate);
     if (this->withBias){
@@ -162,40 +161,34 @@ void DistModelW::backward(DENSE_DOUBLE& input, std::vector<int>* labels, double 
     // Clear all created DenseMatrices except dL_dX
     dL_dG2.clear();
     dL_dt.clear();
-    
-    for(int i = this->layers.size()-2; i >= 1; i--){
+    for(int i = this->layers.size()-2; i >= 0; i--){
         curr = this->layers[i];
         // Compute the gradients for each layer
         // We are given dL_dX from the previous layer
-
         DENSE_DOUBLE dX_dG3 = DerivativeDenseReLU<PTFF, double>(curr->G_3);
         DENSE_DOUBLE dL_dG3 = DenseElementWiseMult<PTFF, double>(dL_dX, dX_dG3);
                      dL_dG2 = SpDenseMult<PTFF, int64_t, double, DCCols>(this->LWR_T, dL_dX);
-                     dL_dt  = DenseTransDenseMult<PTFF, double>((curr->X), dL_dG2);  
-        // Set dL_dX for next iteration
-        dL_dX = DenseDenseTransMult<PTFF, double>(dL_dG2, curr->weights);
-        // Derivate of loss with respect to bias B is just dL_dG2 
-        // Accumulate the gradients of w locally
-
+                     dL_dt  = DenseTransDenseMult<PTFF, double>(curr->X, dL_dG2); 
+        
         // Update weights and bias
         DenseGradientStep<PTFF, int64_t, double>(curr->weights, dL_dt, learning_rate);
         if (this->withBias){
             BiasGradientStep<PTFF, int64_t, double>(&curr->bias, dL_dG2, learning_rate);
         }
-
+        // Set dL_dX for next iteration
+        dL_dX.clear();
+        dL_dX = DenseDenseTransMult<PTFF, double>(dL_dG2, curr->weights);
         // Clear all created DenseMatrices except dL_dX
         dL_dG2.clear();
         dL_dt.clear();
         dL_dG3.clear();
         dX_dG3.clear();
 
-        // Clear all partial results saved in the layer
-        this->clear_layer_partial_results();
     }
+    dL_dX.clear();
+    this->clear_layer_partial_results();
 
-    // Lastly update w with the accumulated gradients
 }
-
 
 
 DistConvW::DistConvW(){
@@ -207,19 +200,18 @@ DistConvW::DistConvW(){
     this->G_4 = DENSE_DOUBLE();
 }
 
-void DistConvW::clear_partial_results(){
+void DistConvW::clear_partial_results(bool last_layer){
     if(this->XtB.getValues() != nullptr){
         this->XtB.clear();
     }
     if(this->G_3.getValues() != nullptr){
         this->G_3.clear();
     }
-    if(this->G_4.getValues() != nullptr){
+    if(!last_layer && this->G_4.getValues() != nullptr){
         this->G_4.clear();
     }
 }
 
-//TODO: write implementation of weight initialization
 DistConvW::DistConvW(shared_ptr<CommGrid> fullWorld, int in_dim, int out_dim, bool withBias=false){
     int gridRows = fullWorld->GetGridRows();
     int gridCols = fullWorld->GetGridCols();
