@@ -871,13 +871,8 @@ DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
     }
 
     BCastMatrixDense(GridC->GetColWorld(), bufferB, essentialsB, sendingRank);
-    std::vector<NT> tmpBuffer = std::vector<NT>(localOut->size(), 0.0);
-    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,essentialsA[1],essentialsB[2],essentialsA[2],1.0,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[1],0.0,tmpBuffer.data(),essentialsB[2]);
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,essentialsA[1],essentialsB[2],essentialsA[2],1.0,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[2],1.0,localOut->data(),essentialsB[2]);
 
-    #pragma omp parallel for 
-    for(int i = 0; i < localRowsA * localColsB; i++){
-      localOut->at(i) += tmpBuffer.at(i);
-    }
 
     // blockDenseDense<SR, NT>(essentialsA[1], essentialsA[2], essentialsB[1], essentialsB[2], bufferA, bufferB, localOut);
   
@@ -996,14 +991,7 @@ DenseMatrix<NT> DenseDenseTransMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
       }
     }
     BCastMatrixDense(GridC->GetColWorld(), bufferB, essentialsB, sendingRank);
-    std::vector<NT> tmpBuffer = std::vector<NT>(localOut->size(),0.0);
-    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans,essentialsA[1],essentialsB[1],essentialsA[2],1.0,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[2],0.0,tmpBuffer.data(),essentialsB[1]);
-
-    #pragma omp parallel for
-    for(int i = 0; i < localOut->size(); i++){
-      localOut->at(i) += tmpBuffer.at(i);
-    }
-    
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans,essentialsA[1],essentialsB[1],essentialsA[2],1.0,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[2],1.0,localOut->data(),essentialsB[1]);
 
     // blockDenseDenseTrans<SR, NT>(essentialsA[1], essentialsA[2], essentialsB[1], essentialsB[2], bufferA, bufferB, localOut);
   
@@ -1098,14 +1086,10 @@ DenseMatrix<NT> DenseTransDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
     }
     BCastMatrixDense(GridC->GetColWorld(), bufferB, essentialsB, sendingRank);
 
-    std::vector<NT> tmpBuffer = std::vector<NT>(localOut->size(),0.0);
-    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans,essentialsA[2],essentialsB[2],essentialsA[1],1.0,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[2],0.0,localOut->data(),essentialsB[2]);
+    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans,essentialsA[2],essentialsB[2],essentialsA[1],1.0,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[2], 1.0,localOut->data(),essentialsB[2]);
     // blockDenseDenseTrans<SR, NT>(essentialsA[1], essentialsA[2], essentialsB[1], essentialsB[2], bufferA, bufferB, localOut);
 
-    #pragma omp parallel for
-    for(int i = 0; i < localOut->size(); i++){
-      localOut->at(i) += tmpBuffer.at(i);
-    }
+
   }
 
   delete transposeValues;

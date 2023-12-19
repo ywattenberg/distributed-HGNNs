@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <vector>
 #include <sstream>
+#include <cblas.h>
 #include "CombBLAS/CombBLAS.h"
 #include "CombBLAS/CommGrid3D.h"
 #include "CombBLAS/SpParMat3D.h"
@@ -55,7 +56,8 @@ std::vector<int> readCSV(const std::string& filename) {
 
 
 int main(int argc, char* argv[]){
-   int nprocs, myrank;
+
+  int nprocs, myrank;
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
@@ -106,31 +108,26 @@ int main(int argc, char* argv[]){
   int totalCols = input.getncol();
 
   if (myrank == 0){
-    cout << "number of features: " << totalRows << endl;
-    cout << "number of samples: " << totalCols << endl;
+    cout << "number of samples: " << totalRows << endl;
+    cout << "number of features: " << totalCols << endl;
   }
 
 
   MPI_Barrier(MPI_COMM_WORLD);
 
 
-
-  DenseMatrix<double> res = model.forward(input);
-  if(!myrank){
-    auto res_v = res.getValues();
-    for(int i = 0; i < 10; i++){
-      for(int j = 0; j < res.getLocalCols(); j++){
-        std::cout << res_v->at(i*res.getLocalCols() + j) << "  ";
-      }
-      std::cout << std::endl;
+  double lr = 0.005;
+  for(int i = 0; i < 100; i++){
+    DenseMatrix<double> res = model.forward(input);
+    MPI_Barrier(MPI_COMM_WORLD);
+    if(i%5 == 0){
+      double loss = CrossEntropyLoss<PTFF, double>(res, &labels)
+      if(!myrank)std::cout <<"Epoch: " << i << " loss: " << loss << std::endl;
     }
+    MPI_Barrier(MPI_COMM_WORLD);
+    model.backward(res, &labels, lr);
+    if(i == 50)lr = 0.001;
   }
-  return 0;
-  MPI_Barrier(MPI_COMM_WORLD);
-  std::cout << "loss: " << CrossEntropyLoss<PTFF, double>(res, &labels) << std::endl;
-  MPI_Barrier(MPI_COMM_WORLD);
-  model.backward(res, &labels, 0.1);
-  std::cout << "Backward Finished" << std::endl;
   MPI_Finalize();
 
 }

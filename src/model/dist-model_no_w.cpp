@@ -77,7 +77,7 @@ DistModelW::DistModelW(ConfigProperties &config, int in_dim, std::shared_ptr<Com
         this->layers.push_back(out_conv);
     }
     std::cout << "Finished init" << std::endl;
-};
+}
 
 
 void DistModelW::comp_layer(DENSE_DOUBLE& X, DistConvW* curr, bool last_layer=false){
@@ -94,21 +94,17 @@ void DistModelW::comp_layer(DENSE_DOUBLE& X, DistConvW* curr, bool last_layer=fa
     
     // DenseMatrix<double> tmptmp = DenseDenseMult<PTFF, double>(*X, curr->weights);
     curr->XtB = DenseDenseMult<PTFF, double>(X, curr->weights);
-    if(!myrank)std::cout << "DDM " << curr->XtB.getValues()->at(0) << std::endl; 
     // curr->XtB = *(new DenseMatrix<double>(1,1, test, curr->weights.getCommGrid()));
     if (this->withBias){
         curr->XtB.addBiasLocally(&curr->bias);
     }
-    if(!myrank)std::cout << "bias " << curr->XtB.getValues()->at(0) << std::endl; 
 
     // Compute G_3 (LWR * XTb) with bias and (LWR * XT) without, where LWR is a sparse matrix and XTb/XT are dense matrices
     curr->G_3 = SpDenseMult<PTFF, int64_t, double, DCCols>(this->LWR, curr->XtB);
-    if(!myrank)std::cout << "G_3 " << curr->G_3.getValues()->at(0) << std::endl; 
 
     // Compute X (ReLU(G_3) or G_4) if not last layer
     curr->G_4 = last_layer ? curr->G_3 : DenseReLU<PTFF, double>(curr->G_3);
-    if(!myrank)std::cout << "G_4 " << curr->G_4.getValues()->at(0) << std::endl; 
-
+    return;
 }
 
 void DistModelW::clear_layer_partial_results(){
@@ -134,6 +130,7 @@ DENSE_DOUBLE DistModelW::forward(DENSE_DOUBLE& input){
         comp_layer(X, curr, i == this->layers.size()-1);
         // Set X to G_4 for next iteration
         X = curr->G_4;
+        MPI_Barrier(MPI_COMM_WORLD);
     }
     MPI_Barrier(MPI_COMM_WORLD);
     // Last layer is different as we do not use ReLU
