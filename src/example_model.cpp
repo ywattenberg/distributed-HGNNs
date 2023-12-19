@@ -121,7 +121,7 @@ int main(int argc, char* argv[]){
     DenseMatrix<double> res = model.forward(input);
     MPI_Barrier(MPI_COMM_WORLD);
     if(i%5 == 0){
-      double loss = CrossEntropyLoss<PTFF, double>(res, &labels)
+      double loss = CrossEntropyLoss<PTFF, double>(res, &labels);
       if(!myrank)std::cout <<"Epoch: " << i << " loss: " << loss << std::endl;
     }
     MPI_Barrier(MPI_COMM_WORLD);
