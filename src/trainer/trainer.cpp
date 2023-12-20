@@ -4,11 +4,12 @@
 #include <fstream>
 #include "trainer.h"
 
-
 #include "../model/model.h"
 #include "../utils/scores.h"
 #include "../utils/configParse.h"
 
+#define BILLION 1000000000L
+#define MILLION 1000000L
 
 using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&);
 
@@ -85,7 +86,6 @@ void train_model(const ConfigProperties& config, torch::Tensor &labels, torch::T
                 t1 = high_resolution_clock::now();
                 // << ", Predictions: " << round(predictions,2)
             }
-            
         }
     }
 }
