@@ -59,7 +59,7 @@ class DistModel
 
 
     public:
-        DistModel(ConfigProperties& config, int in_dim, std::shared_ptr<CommGrid> grid, int dim_w);
+        DistModel(ConfigProperties& config, int in_dim, std::shared_ptr<CommGrid> grid);
         // forward function of the Model, it takes the features X (called input) and the constant leftSide of the expression 10 of the paper 
         // Hypergraph Neural Networks (called leftSide)
         DENSE_DOUBLE forward(DENSE_DOUBLE* input);

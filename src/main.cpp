@@ -53,17 +53,17 @@ int model(ConfigProperties& config, bool timing, int run_id, int cpus){
 
   auto t1 = high_resolution_clock::now();
   
-  std::string timing_file = "";
+  std::string timing_file = "../data/timing/main_training.csv";
 
-  if (timing) {
-    std::ostringstream oss;
-    oss << "../data/timing/" << run_id << "/base_model.csv";
-    timing_file = oss.str();
-    std::ofstream outfile;
-    outfile.open(timing_file, std::ios_base::app);
-    outfile << "run_id,epoch,epoch_time,train_loss,test_loss,test_acc,test_f1\n";
-    outfile.close();
-  }
+  // if (timing) {
+  //   std::ostringstream oss;
+  //   oss << "../data/timing/" << run_id << "/base_model.csv";
+  //   timing_file = oss.str();
+  //   std::ofstream outfile;
+  //   outfile.open(timing_file, std::ios_base::app);
+  //   outfile << "run_id,epoch,epoch_time,train_loss,test_loss,test_acc,test_f1\n";
+  //   outfile.close();
+  // }
 
   // Train the model
   train_model(config, labels, features, ce_loss_fn, model, run_id, timing, timing_file);
@@ -76,11 +76,11 @@ int model(ConfigProperties& config, bool timing, int run_id, int cpus){
 
   std::cout <<"Training took " << ms_int.count() << "ms\n";
 
-  if (timing) {
-    std::ofstream outfile;
-    outfile.open("../data/timing/" + std::to_string(run_id) + "/config.yaml", std::ios_base::app);
-    outfile << "\ntraining_time: " << ms_int.count();
-  }
+  // if (timing) {
+  //   std::ofstream outfile;
+  //   outfile.open("../data/timing/" + std::to_string(run_id) + "/config.yaml", std::ios_base::app);
+  //   outfile << "\ntraining_time: " << ms_int.count();
+  // }
 
   return 0;
 }
@@ -117,17 +117,17 @@ int learnable_w(ConfigProperties& config, bool timing, int run_id, int cpus){
 
   auto t1 = high_resolution_clock::now();
   
-  std::string timing_file = "";
+  std::string timing_file = "../data/timing/main_training.csv";
 
-  if (timing) {
-    std::ostringstream oss;
-    oss << "../data/timing/" << run_id << "/base_model.csv";
-    timing_file = oss.str();
-    std::ofstream outfile;
-    outfile.open(timing_file, std::ios_base::app);
-    outfile << "run_id,epoch,epoch_time,train_loss,test_loss,test_acc,test_f1\n";
-    outfile.close();
-  }
+  // if (timing) {
+  //   std::ostringstream oss;
+  //   oss << "../data/timing/" << run_id << "/base_model.csv";
+  //   timing_file = oss.str();
+  //   std::ofstream outfile;
+  //   outfile.open(timing_file, std::ios_base::app);
+  //   outfile << "run_id,epoch,epoch_time,train_loss,test_loss,test_acc,test_f1\n";
+  //   outfile.close();
+  // }
   // Train the model
   train_model(config, labels, features, ce_loss_fn, model, run_id, timing, timing_file);
 
@@ -139,11 +139,11 @@ int learnable_w(ConfigProperties& config, bool timing, int run_id, int cpus){
 
   std::cout <<"Training took " << ms_int.count() << "ms\n";
 
-  if (timing) {
-    std::ofstream outfile;
-    outfile.open("../data/timing/" + std::to_string(run_id) + "/config.yaml", std::ios_base::app);
-    outfile << "\ntraining_time: " << ms_int.count();
-  }
+  // if (timing) {
+  //   std::ofstream outfile;
+  //   outfile.open("../data/timing/" + std::to_string(run_id) + "/config.yaml", std::ios_base::app);
+  //   outfile << "\ntraining_time: " << ms_int.count();
+  // }
 
   return 0;
 }
@@ -217,21 +217,25 @@ int main(int argc, char** argv){
   ConfigProperties config = ParseConfig(config_path);
   std::cout << "Config loaded" << std::endl;
 
+  std::cout << "Tmp dir: " << tmp_dir << std::endl;
   if (!tmp_dir.empty()) {
     config.data_properties.g_path = config.data_properties.g_path.replace(config.data_properties.g_path.find(".."), 2, tmp_dir);
     config.data_properties.labels_path = config.data_properties.labels_path.replace(config.data_properties.labels_path.find(".."), 2, tmp_dir);
     config.data_properties.features_path = config.data_properties.features_path.replace(config.data_properties.features_path.find(".."), 2, tmp_dir);
+    config.data_properties.dvh_path = config.data_properties.dvh_path.replace(config.data_properties.dvh_path.find(".."), 2, tmp_dir);
+    config.data_properties.invde_ht_dvh_path = config.data_properties.invde_ht_dvh_path.replace(config.data_properties.invde_ht_dvh_path.find(".."), 2, tmp_dir);
   }
 
-  if(timing) {
-    fs::create_directories("../data/timing/" + std::to_string(run_id));
-    fs::copy_file(config_path, "../data/timing/" + std::to_string(run_id) + "/config.yaml");
-    std::ofstream outfile;
-    outfile.open("../data/timing/" + std::to_string(run_id) + "/config.yaml", std::ios_base::app);
-    outfile << "\nrun_id: " << run_id;
-    outfile << "\ncpus: " << cpus;
-    outfile.close();
-  }
+
+  // if(timing) {
+  //   fs::create_directories("../data/timing/" + std::to_string(run_id));
+  //   fs::copy_file(config_path, "../data/timing/" + std::to_string(run_id) + "/config.yaml");
+  //   std::ofstream outfile;
+  //   outfile.open("../data/timing/" + std::to_string(run_id) + "/config.yaml", std::ios_base::app);
+  //   outfile << "\nrun_id: " << run_id;
+  //   outfile << "\ncpus: " << cpus;
+  //   outfile.close();
+  // }
   if (config.model_properties.learnable_w) {
     return learnable_w(config, timing, run_id, cpus);
   } else {

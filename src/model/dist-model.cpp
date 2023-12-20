@@ -30,7 +30,7 @@ typedef DenseMatrix<double> DENSE_DOUBLE;
 
 typedef PlusTimesSRing<double, double> PTFF;
 
-DistModel::DistModel(ConfigProperties &config, int in_dim, std::shared_ptr<CommGrid> grid, int dim_w){
+DistModel::DistModel(ConfigProperties &config, int in_dim, std::shared_ptr<CommGrid> grid){
     input_dim = in_dim;
     output_dim = config.model_properties.classes;
     dropout = config.model_properties.dropout_rate;
@@ -55,9 +55,10 @@ DistModel::DistModel(ConfigProperties &config, int in_dim, std::shared_ptr<CommG
     this->dvh = dvh;
     this->invde_ht_dvh = invde_ht_dvh;
 
+    int dim_w = invde_ht_dvh.getnrow();
     // Calculate the product L*R for the backwardpass of W 
 
-    this->LR = PSpGEMM<PTFF, int64_t, double, double, DCCols, DCCols>(this->dvh, this->invde_ht_dvh);
+    // this->LR = PSpGEMM<PTFF, int64_t, double, double, DCCols, DCCols>(this->dvh, this->invde_ht_dvh);
     //TODO: use correct dimension
     this->w = vector<double>(dim_w, 1.0);
     this->layers = vector<DistConv*>();

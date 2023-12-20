@@ -39,6 +39,13 @@ void train_model(const ConfigProperties& config, torch::Tensor &labels, torch::T
     for (int epoch = 0; epoch < n_epochs; epoch++){
 
         torch::Tensor predictions = model->forward(input_features);
+        // std::cout << "predictions shape: " << predictions.sizes() << std::endl;
+        // // print random predictions
+        // for (int i = 0; i < 10; i++){
+        //     int idx = rand() % predictions.size(0);
+        //     std::cout << "prediction " << idx << ": " << predictions[idx] << std::endl;
+        // }
+        
         torch::Tensor train_predictions = predictions.index({at::indexing::Slice(0,train_set_cutoff)});
         torch::Tensor loss = loss_fn(train_predictions, train_labels);
 
@@ -72,7 +79,7 @@ void train_model(const ConfigProperties& config, torch::Tensor &labels, torch::T
                     std::ofstream outfile;
                     outfile.open(timing_file, std::ios_base::app);
                     // append time to csv file
-                    outfile << run_id << "," << epoch << "," << ms_int.count() << "," << loss.item<double>() << "," << test_loss.item<double>() << "," << acc.item<double>() << "," << f1.item<double>() << "\n";
+                    outfile << run_id << "," << epoch << "," << ms_int.count() << "," << loss.item<double>() << "," << test_loss.item<double>() << "," << acc.item<double>() << "," << f1.item<double>() << "," << config.model_properties.hidden_dims << "," << config.model_properties.classes << "," << config.model_properties.dropout_rate << "," << config.model_properties.with_bias << "," << config.model_properties.learnable_w << "\n";
                     outfile.close();
                 }
                 t1 = high_resolution_clock::now();
