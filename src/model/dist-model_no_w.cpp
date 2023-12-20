@@ -177,7 +177,7 @@ void DistModelW::backward(DENSE_DOUBLE& input, std::vector<int>* labels, double 
         }
         // Set dL_dX for next iteration
         dL_dX.clear();
-        dL_dX = DenseDenseTransMult<PTFF, double>(dL_dG2, curr->weights);
+        if(i)dL_dX = DenseDenseTransMult<PTFF, double>(dL_dG2, curr->weights);
         // Clear all created DenseMatrices except dL_dX
         dL_dG2.clear();
         dL_dt.clear();
@@ -185,7 +185,7 @@ void DistModelW::backward(DENSE_DOUBLE& input, std::vector<int>* labels, double 
         dX_dG3.clear();
 
     }
-    dL_dX.clear();
+    // dL_dX.clear();
     this->clear_layer_partial_results();
 
 }
