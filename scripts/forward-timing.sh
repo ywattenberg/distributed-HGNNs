@@ -4,9 +4,10 @@
 #SBATCH --time=01:00:00
 #SBATCH --output=/cluster/home/%u/distributed-THNN/log/%j.out
 #SBATCH --error=/cluster/home/%u/distributed-THNN/log/%j.err
-#SBATCH --ntasks=8
+#SBATCH --ntasks=16
+#SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem-per-cpu=8G
+#SBATCH --mem-per-cpu=16G
 # Exit on errors
 set -o errexit
 
@@ -34,7 +35,8 @@ echo "SLURM_NTASKS:    ${SLURM_NTASKS}"
 
 rsync -ah --stats /cluster/home/$USER/distributed-THNN/data $TMPDIR
 rsync -ah --stats /cluster/scratch/$USER/data/random $TMPDIR/data
-
+ls $TMPDIR/data
+ls $TMPDIR/data/random
 # echo "Data copied at:     $(date)"
 
 # Binary or script to execute
@@ -51,14 +53,14 @@ echo "Build finished at:     $(date)"
 
 echo "Starting timing run at:     $(date)"
 
-# bash $HOME/discord-webhook/discord.sh --webhook-url=https://discord.com/api/webhooks/1105789194959339611/-tDqh7eGfQJhaLoxjCsHbHrwTzhNEsR5SDxabXFiYdhg-KHwzN3kVwr87rxUggqWCQ0K --title "Starting training for $USER" --color 3066993 --field "Date;$(date);false" --field "Jobid;${SLURM_JOB_ID};false"
+# bash $HOME/discord-webhook/discord.sh --webhook-url=https://discord.com/api/webhooks/1105789194959339611/-tDqh7eGfQJhaLoxjCsHbHrwTzhNEsR5SDxabXFiYdhg-KHwzN3kVwr87rxUggqWCQ0K --title "Starting timing for $USER" --color 3066993 --field "Date;$(date);false" --field "Jobid;${SLURM_JOB_ID};false"
 
-$HOME/distributed-THNN/build/forward_timing -d $TMPDIR -i ${SLURM_JOB_ID} -p ${SLURM_NTASKS}
+$HOME/distributed-THNN/build/forward_timing -c ${HOME}/distributed-THNN/config/forward_timing.yaml -t $TMPDIR -i ${SLURM_JOB_ID} -p ${SLURM_NTASKS} -d 1
 
 echo "Finished timing run at:     $(date)"
 
 # discord notification on finish
-# bash $HOME/discord-webhook/discord.sh --webhook-url=https://discord.com/api/webhooks/1105789194959339611/-tDqh7eGfQJhaLoxjCsHbHrwTzhNEsR5SDxabXFiYdhg-KHwzN3kVwr87rxUggqWCQ0K --title "Finished training for $USER" --color 3066993 --field "Date;$(date);false" --field "Jobid;${SLURM_JOB_ID};false"
+# bash $HOME/discord-webhook/discord.sh --webhook-url=https://discord.com/api/webhooks/1105789194959339611/-tDqh7eGfQJhaLoxjCsHbHrwTzhNEsR5SDxabXFiYdhg-KHwzN3kVwr87rxUggqWCQ0K --title "Finished timing for $USER" --color 3066993 --field "Date;$(date);false" --field "Jobid;${SLURM_JOB_ID};false"
 
 # End the script with exit code 0
 exit 0

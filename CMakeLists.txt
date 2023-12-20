@@ -136,6 +136,14 @@ add_executable(model src/example_model.cpp ${DIST})
 target_link_libraries(model "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
 set_property(TARGET model PROPERTY CXX_STANDARD 17)
 
-add_executable(forward_timing src/forward_timing.cpp src/model/model.h src/model/model.cpp)
+add_executable(forward_timing src/forward_timing.cpp src/model/model.h src/model/model.cpp ${DIST})
 target_link_libraries(forward_timing "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
 set_property(TARGET forward_timing PROPERTY CXX_STANDARD 17)
+
+add_executable(matrix_bench src/matrix_bench.cpp ${DIST})
+target_link_libraries(matrix_bench "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
+set_property(TARGET matrix_bench PROPERTY CXX_STANDARD 17)
+
+add_executable(spmatrix_bench src/spmatrix_bench.cpp ${DIST})
+target_link_libraries(spmatrix_bench "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
+set_property(TARGET spmatrix_bench PROPERTY CXX_STANDARD 17)

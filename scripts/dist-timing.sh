@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH --mail-type=NONE
-#SBATCH --job-name=thnn
+#SBATCH --job-name=dist-timing
 #SBATCH --time=00:30:00
 #SBATCH --output=/cluster/home/%u/distributed-THNN/log/%j.out
 #SBATCH --error=/cluster/home/%u/distributed-THNN/log/%j.err
-#SBATCH --ntasks=1
+#SBATCH --ntasks=4
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=9
-#SBATCH --mem-per-cpu=16G
+#SBATCH --cpus-per-task=1
+#SBATCH --mem-per-cpu=32G
 # Exit on errors
 set -o errexit
 
@@ -36,7 +36,6 @@ echo "SLURM_NTASKS:     ${SLURM_NTASKS}"
 echo "CPUS:                 ${CPUS}"
 
 rsync -ah --stats /cluster/home/$USER/distributed-THNN/data $TMPDIR
-# rsync -ah --stats /cluster/scratch/$USER/data/random $TMPDIR/data
 
 # echo "Data copied at:     $(date)"
 
@@ -61,8 +60,7 @@ echo "Starting training at:     $(date)"
 # mpiexec -np ${SLURM_NTASKS}  $HOME/distributed-THNN/build/openBLAS_example
 # mpiexec -np ${SLURM_NTASKS}  $HOME/distributed-THNN/build/timing
 # mpiexec -np ${SLURM_NTASKS}  $HOME/distributed-THNN/build/model ${HOME}/distributed-THNN/config/paper_config.yaml
-# mpiexec -np ${SLURM_NTASKS} $HOME/distributed-THNN/build/matrix_bench -t "/cluster/scratch/siwachte" -i ${SLURM_JOB_ID} -p $CPUS
-mpiexec -np ${SLURM_NTASKS} $HOME/distributed-THNN/build/spmatrix_bench -t "/cluster/scratch/siwachte" -i ${SLURM_JOB_ID} -p $CPUS
+mpiexec -np ${SLURM_NTASKS}  $HOME/distributed-THNN/build/model -c "${HOME}/distributed-THNN/config/paper_config.yaml" -t ${TMPDIR} -i ${SLURM_JOB_ID} -p $CPUS
 
 echo "Finished training at:     $(date)"
 
