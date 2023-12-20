@@ -1,4 +1,4 @@
-# Distributed-THNN
+# Distributed-HGNNs
 
 GNN Guide - https://distill.pub/2021/gnn-intro/
 
