@@ -104,7 +104,13 @@ set(DIST
     src/utils/configParse.cpp
     src/utils/parDenseGEMM.h
     src/utils/parDenseGEMM.cpp
-    src/utils/DenseMatrix.h
+    src/DenseMatrix/DenseMatrix.h
+    src/DenseMatrix/DenseMatrix.cpp
+    src/DenseMatrix/DenseMatrixAlgorithms.h
+    src/DenseMatrix/DenseMatrixAlgorithms.cpp
+    src/DenseMatrix/DistributedDGEMM.cpp
+    src/DenseMatrix/DistributedSpDGEMM.cpp
+    src/DenseMatrix/DenseMatrixPRead.cpp
     src/utils/LossFn.h
     src/utils/LossFn.cpp
     src/utils/DerivativeFunctions.h
@@ -112,38 +118,7 @@ set(DIST
     src/model/dist-model_no_w.h
     src/model/dist-model_no_w.cpp
 )
-# add_executable(example src/example.cpp)
-# # target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
-# # set_property(TARGET example PROPERTY CXX_STANDARD 17)
-
-add_executable(${PROJECT_NAME} ${SOURCES})
-target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
-
-add_executable(example_2 src/example_2.cpp ${DIST})
-target_link_libraries(example_2 "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
-set_property(TARGET example_2 PROPERTY CXX_STANDARD 17)
-
-add_executable(openBLAS_example src/openBLAS_example.cpp src/utils/parDenseGEMM.h src/utils/parDenseGEMM.cpp src/utils/DenseMatrix.h)
-target_link_libraries(openBLAS_example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}" fast_matrix_market::fast_matrix_market)
-set_property(TARGET openBLAS_example PROPERTY CXX_STANDARD 17)
-
-# add_executable(timing src/timing.cpp)
-# target_link_libraries(timing "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
-# set_property(TARGET timing PROPERTY CXX_STANDARD 17)
 
 add_executable(model src/example_model.cpp ${DIST})
 target_link_libraries(model "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
 set_property(TARGET model PROPERTY CXX_STANDARD 17)
-
-add_executable(forward_timing src/forward_timing.cpp src/model/model.h src/model/model.cpp ${DIST})
-target_link_libraries(forward_timing "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
-set_property(TARGET forward_timing PROPERTY CXX_STANDARD 17)
-
-add_executable(matrix_bench src/matrix_bench.cpp ${DIST})
-target_link_libraries(matrix_bench "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
-set_property(TARGET matrix_bench PROPERTY CXX_STANDARD 17)
-
-add_executable(spmatrix_bench src/spmatrix_bench.cpp ${DIST})
-target_link_libraries(spmatrix_bench "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
-set_property(TARGET spmatrix_bench PROPERTY CXX_STANDARD 17)

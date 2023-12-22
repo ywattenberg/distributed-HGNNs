@@ -13,10 +13,12 @@
 #include "CombBLAS/FullyDistVec.h"
 #include "CombBLAS/ParFriends.h"
 
-#include "../utils/DenseMatrix.h"
+#include "../DenseMatrix/DenseMatrix.h"
+#include "../DenseMatrix/DenseMatrixAlgorithms.h"
+
 #include "../utils/configParse.h"
 #include "../utils/parDenseGEMM.h"
-#include "../utils/DenseMatrix.h"
+
 #include "../utils/LossFn.h"
 #include "../utils/DerivativeFunctions.h"
 
@@ -106,7 +108,7 @@ void DistModel::comp_layer(DENSE_DOUBLE* X, DistConv* curr, bool last_layer=fals
     // Compute G_3 (LWR * XTb) with bias and (LWR * XT) without, where LWR is a sparse matrix and XTb/XT are dense matrices
     curr->G_3 = SpDenseMult<PTFF, int64_t, double, DCCols>(this->LWR, curr->XtB);
     // Compute X (ReLU(G_3) or G_4) if not last layer
-    curr->G_4 = last_layer ? DENSE_DOUBLE() : DenseReLU<PTFF, double>(curr->G_3);
+    curr->G_4 = last_layer ? DENSE_DOUBLE() : DenseReLU<double>(curr->G_3);
 }
 
 void DistModel::clear_layer_partial_results(){
@@ -189,7 +191,7 @@ void DistModel::backward(DENSE_DOUBLE& input, std::vector<int>* labels, double l
         // Compute the gradients for each layer
         // We are given dL_dX from the previous layer
 
-        DENSE_DOUBLE dX_dG3 = DerivativeDenseReLU<PTFF, double>(curr->G_3);
+        DENSE_DOUBLE dX_dG3 = DerivativeDenseReLU<double>(curr->G_3);
         DENSE_DOUBLE dL_dG3 = DenseDenseMult<PTFF, double>(dL_dX, dX_dG3);
                      dL_dG1 = DenseDenseMult<PTFF, double>(dL_dG3, curr->XtB);
                      dL_dw  = DenseSpMult<PTFF, int64_t, double, DCCols>(dL_dG1, this->LR);

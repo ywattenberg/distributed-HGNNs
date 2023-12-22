@@ -13,10 +13,13 @@
 #include "CombBLAS/FullyDistVec.h"
 #include "CombBLAS/ParFriends.h"
 
-#include "../utils/DenseMatrix.h"
+
+
+#include "../DenseMatrix/DenseMatrix.h"
+#include "../DenseMatrix/DenseMatrixAlgorithms.h"
+
 #include "../utils/configParse.h"
 #include "../utils/parDenseGEMM.h"
-#include "../utils/DenseMatrix.h"
 #include "../utils/LossFn.h"
 #include "../utils/DerivativeFunctions.h"
 
@@ -103,7 +106,7 @@ void DistModelW::comp_layer(DENSE_DOUBLE& X, DistConvW* curr, bool last_layer){
     curr->G_3 = SpDenseMult<PTFF, int64_t, double, DCCols>(this->LWR, curr->XtB);
 
     // Compute X (ReLU(G_3) or G_4) if not last layer
-    curr->G_4 = last_layer ? curr->G_3 : DenseReLU<PTFF, double>(curr->G_3);
+    curr->G_4 = last_layer ? curr->G_3 : DenseReLU<double>(curr->G_3);
     return;
 }
 
@@ -165,7 +168,7 @@ void DistModelW::backward(DENSE_DOUBLE& input, std::vector<int>* labels, double 
         curr = this->layers[i];
         // Compute the gradients for each layer
         // We are given dL_dX from the previous layer
-        DENSE_DOUBLE dX_dG3 = DerivativeDenseReLU<PTFF, double>(curr->G_3);
+        DENSE_DOUBLE dX_dG3 = DerivativeDenseReLU<double>(curr->G_3);
         DENSE_DOUBLE dL_dG3 = DenseElementWiseMult<PTFF, double>(dL_dX, dX_dG3);
                      dL_dG2 = SpDenseMult<PTFF, int64_t, double, DCCols>(this->LWR_T, dL_dX);
                      dL_dt  = DenseTransDenseMult<PTFF, double>(curr->X, dL_dG2); 
