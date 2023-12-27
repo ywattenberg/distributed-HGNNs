@@ -2,8 +2,8 @@
 #SBATCH --mail-type=NONE
 #SBATCH --job-name=thnn
 #SBATCH --time=02:00:00
-#SBATCH --output=/cluster/home/%u/distributed-THNN/log/%j.out
-#SBATCH --error=/cluster/home/%u/distributed-THNN/log/%j.err
+#SBATCH --output=/cluster/home/%u/distributed-HGNNs/log/%j.out
+#SBATCH --error=/cluster/home/%u/distributed-HGNNs/log/%j.err
 #SBATCH --ntasks=8
 #SBATCH --ntasks-per-node=8
 #SBATCH --cpus-per-task=1
@@ -27,7 +27,7 @@ module load python/3.11.6
 
 echo "Dependencies installed"
 
-cd $HOME/distributed-THNN/preprocessing
+cd $HOME/distributed-HGNNs/preprocessing
 
 echo "Build finished at:     $(date)"
 
@@ -35,7 +35,7 @@ echo "Starting training at:     $(date)"
 
 # bash $HOME/discord-webhook/discord.sh --webhook-url=https://discord.com/api/webhooks/1105789194959339611/-tDqh7eGfQJhaLoxjCsHbHrwTzhNEsR5SDxabXFiYdhg-KHwzN3kVwr87rxUggqWCQ0K --title "Starting training for $USER" --color 3066993 --field "Date;$(date);false" --field "Jobid;${SLURM_JOB_ID};false"
 
-/cluster/scratch/${USER}/venv/bin/python3 $HOME/distributed-THNN/preprocessing/random_matrices.py
+/cluster/scratch/${USER}/venv/bin/python3 $HOME/distributed-HGNNs/preprocessing/random_matrices.py
 
 echo "Finished training at:     $(date)"
 
