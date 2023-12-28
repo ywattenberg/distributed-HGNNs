@@ -115,8 +115,10 @@ set(DIST
     src/utils/LossFn.cpp
     src/utils/DerivativeFunctions.h
     src/utils/DerivativeFunctions.cpp
-    src/model/dist-model_no_w.h
-    src/model/dist-model_no_w.cpp
+    src/model/dist-model.h
+    src/model/dist-model.cpp
+    src/model/dist-model-w.h
+    src/model/dist-model-w.cpp
 )
 
 add_executable(model src/example_model.cpp ${DIST})

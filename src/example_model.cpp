@@ -16,7 +16,8 @@
 #include "CombBLAS/SpParMat.h"
 #include "DenseMatrix/DenseMatrix.h"
 #include "utils/configParse.h"
-#include "model/dist-model_no_w.h"
+#include "model/dist-model.h"
+#include "model/dist-model-w.h"
 #include "utils/LossFn.h"
 
 
@@ -100,7 +101,7 @@ int main(int argc, char* argv[]){
 	fullWorld.reset(new CommGrid(MPI_COMM_WORLD, std::sqrt(nprocs), std::sqrt(nprocs)));
 
   // Create Model
-  DistModelW model(config, 6144, fullWorld, 24622);
+  DistModel model(config, 6144, fullWorld, 24622);
 
   cout << myrank << ": model initialized" << endl;
 
