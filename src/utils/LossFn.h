@@ -10,10 +10,10 @@
 #include "CombBLAS/CommGrid3D.h"
 #include "CombBLAS/ParFriends.h"
 
-#include "../utils/DenseMatrix.h"
 #include "../utils/configParse.h"
 #include "../utils/parDenseGEMM.h"
-#include "../utils/DenseMatrix.h"
+#include "../DenseMatrix/DenseMatrix.h"
+#include "../DenseMatrix/DenseMatrixAlgorithms.h"
 
 using namespace combblas;
 

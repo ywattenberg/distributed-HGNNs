@@ -9,10 +9,13 @@
 #include "CombBLAS/CommGrid3D.h"
 #include "CombBLAS/ParFriends.h"
 
-#include "../utils/DenseMatrix.h"
+#include "../DenseMatrix/DenseMatrix.h"
+#include "../DenseMatrix/DenseMatrixAlgorithms.h"
+
+
 #include "../utils/configParse.h"
 #include "../utils/parDenseGEMM.h"
-#include "../utils/DenseMatrix.h"
+
 
 using namespace combblas;
 typedef DenseMatrix<double> DENSE_DOUBLE;

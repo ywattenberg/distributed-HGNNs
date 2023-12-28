@@ -11,7 +11,9 @@
 #include "CombBLAS/FullyDistVec.h"
 #include "CombBLAS/ParFriends.h"
 
-#include "../utils/DenseMatrix.h"
+#include "../DenseMatrix/DenseMatrix.h"
+#include "../DenseMatrix/DenseMatrixAlgorithms.h"
+
 #include "../utils/configParse.h"
 
 using namespace combblas;

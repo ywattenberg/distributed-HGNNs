@@ -14,7 +14,7 @@
 #include "CombBLAS/ParFriends.h"
 #include "CombBLAS/FullyDistVec.h"
 #include "CombBLAS/SpParMat.h"
-#include "utils/DenseMatrix.h"
+#include "DenseMatrix/DenseMatrix.h"
 #include "utils/configParse.h"
 #include "model/dist-model_no_w.h"
 #include "utils/LossFn.h"
