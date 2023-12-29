@@ -40,6 +40,7 @@ NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool 
   std::vector<NT>* predictions = pred.getValues();
   int local_cols = pred.getLocalCols();
   int local_rows = pred.getLocalRows();
+  int rankInRow = pred.getCommGrid()->GetRankInProcRow();
 
   // Find the max value in each row for logsumexp trick
   std::vector<NT> max_val(local_rows, numeric_limits<NT>::min());
@@ -67,6 +68,9 @@ NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool 
 
   int row_offset, col_offset;
   pred.GetPlaceInGlobalGrid(row_offset, col_offset);
+
+  // Calculate the Accuracy
+  int corrects = 0;
   
   std::vector<NT> x_y_n(local_rows, 0.0);
 
@@ -74,8 +78,15 @@ NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool 
     int y_n = target->at(i + row_offset);
     if(y_n >= col_offset && y_n < col_offset + local_cols){
       x_y_n.at(i) = predictions->at(i*local_cols + y_n - col_offset);
+
+      if (x_y_n.at(i) == max_val.at(i)){
+        corrects++;
+      }
     }
   }
+
+  MPI_Allreduce(MPI_IN_PLACE, &corrects, 1, MPI_INT, MPI_SUM, pred.getCommGrid()->GetWorld());
+  double totalRows = (double) pred.getnrow();
   // TODO: Gatherv might be more efficient reduce is not needed here (actually maybe not as elements are not in order)
   MPI_Allreduce(MPI_IN_PLACE, &x_y_n[0], local_rows, MPIType<NT>(), MPI_SUM, pred.getCommGrid()->GetRowWorld());
   NT loss = 0.0;
@@ -86,6 +97,11 @@ NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool 
   }
 
   MPI_Allreduce(MPI_IN_PLACE, &loss, 1, MPIType<NT>(), MPI_SUM, pred.getCommGrid()->GetColWorld());
+
+  if (myrank == 0){
+    std::cout << "Accuracy: " << (corrects / total_rows) << std::endl;
+  }
+
   return loss;
 }
 
