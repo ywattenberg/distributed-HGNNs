@@ -278,6 +278,9 @@ namespace combblas{
       tmp->push_back(recvdata[i]);
     }
     this->setValues(tmp);
+
+    DeleteAll(recvdata);
+
     MPI_Barrier(this->getCommWorld());
 
 

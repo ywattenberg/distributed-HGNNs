@@ -104,7 +104,7 @@ namespace combblas {
       localCols = rowsA;
 
       // buffer->resize(rowsA * colsA);
-      buffer = A.getValues();
+      std::copy(A.getValues()->begin(), A.getValues()->end(), std::back_inserter(*buffer));
       // std::copy(A.getValues()->begin(), A.getValues()->end(), buffer->begin());
     }
 
@@ -116,17 +116,20 @@ namespace combblas {
       }
     }
 
-    delete buffer;    
+    delete buffer;
   }
 
 
   template<typename NT>
   void DenseMatrix<NT>::clear()
   {
+    int myrank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
     localRows = -1;
     localCols = -1;
-    if (values != nullptr) {
-      delete values;
+    if (this->values != nullptr) {
+      delete this->values;
+      this->values = nullptr;
     }
   }
   

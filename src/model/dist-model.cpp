@@ -94,6 +94,10 @@ void DistModel::comp_layer(DENSE_DOUBLE& X, DistConv* curr, bool last_layer){
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
     
     // DenseMatrix<double> tmptmp = DenseDenseMult<PTFF, double>(*X, curr->weights);
+    // curr->XtB.clear();
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
     curr->XtB = DenseDenseMult<PTFF, double>(X, curr->weights);
     // curr->XtB = *(new DenseMatrix<double>(1,1, test, curr->weights.getCommGrid()));
     if (this->withBias){
@@ -101,9 +105,12 @@ void DistModel::comp_layer(DENSE_DOUBLE& X, DistConv* curr, bool last_layer){
     }
 
     // Compute G_3 (LWR * XTb) with bias and (LWR * XT) without, where LWR is a sparse matrix and XTb/XT are dense matrices
+
+    // curr->G_3.clear();
     curr->G_3 = SpDenseMult<PTFF, int64_t, double, DCCols>(this->LWR, curr->XtB);
 
     // Compute X (ReLU(G_3) or G_4) if not last layer
+    // curr->G_4.clear();
     curr->G_4 = last_layer ? curr->G_3 : DenseReLU<double>(curr->G_3);
     return;
 }
@@ -123,17 +130,23 @@ DENSE_DOUBLE DistModel::forward(DENSE_DOUBLE& input){
     MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
 
     // First compute LWR or G_1 (will be the same for all layers)
-    DENSE_DOUBLE X = input;
+    DENSE_DOUBLE X;
     // All other calculations are have to be done for each layer
     for(int i = 0; i < this->layers.size(); i++){
         DistConv* curr = this->layers[i];
-        curr->X = X;
+        
+        // if (curr->X.getValues() != 0){
+        //     std::cout << "i'm going to call clear on " << curr->X.getValues()->at(0) << std::endl;
+        // }
+        // curr->X.clear();
+        curr->X = (i == 0) ? input : X;
         // Compute each layer
-        comp_layer(X, curr, i == this->layers.size()-1);
+        comp_layer(curr->X, curr, i == this->layers.size()-1);
         // Set X to G_4 for next iteration
         X = curr->G_4;
     }
     // Last layer is different as we do not use ReLU
+
     return this->layers[this->layers.size()-1]->G_3;
 }
 
@@ -202,6 +215,9 @@ DistConv::DistConv(){
 }
 
 void DistConv::clear_partial_results(bool last_layer){
+    int myrank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
     if(this->XtB.getValues() != nullptr){
         this->XtB.clear();
     }

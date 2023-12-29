@@ -40,9 +40,8 @@ DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
 
   std::shared_ptr<CommGrid> GridC = ProductGrid((A.getCommGrid()).get(), (B.getCommGrid()).get(), stages, dummy, dummy);		
 
-  std::vector<NT> * bufferA = new std::vector<NT>();
+  
   std::vector<int> essentialsA(3);
-  std::vector<NT> * bufferB = new std::vector<NT>();
   std::vector<int> essentialsB(3);
 
   int rankAinRow = A.getCommGrid()->GetRankInProcRow();
@@ -56,6 +55,9 @@ DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
   std::vector<NT> * localOut = new std::vector<NT>(localRowsA * localColsB, 0.0);
 
   for (int i = 0; i < stages; i++){
+    std::vector<NT> * bufferA = new std::vector<NT>();
+    std::vector<NT> * bufferB = new std::vector<NT>();
+
     int sendingRank = i;
     
     if (rankAinRow == sendingRank){
@@ -64,7 +66,7 @@ DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
       essentialsA[1] = localRowsA;
       essentialsA[2] = localColsA;
       essentialsA[0] = essentialsA[1] * essentialsA[2];
-    }
+    } 
 
     BCastMatrixDense(GridC->GetRowWorld(), bufferA, essentialsA, sendingRank);
 
@@ -75,14 +77,19 @@ DenseMatrix<NT> DenseDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
       essentialsB[1] = localRowsB;
       essentialsB[2] = localColsB;
       essentialsB[0] = essentialsB[1] * essentialsB[2];
-    }
+
+    } 
 
     BCastMatrixDense(GridC->GetColWorld(), bufferB, essentialsB, sendingRank);
     cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,essentialsA[1],essentialsB[2],essentialsA[2],1.0,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[2],1.0,localOut->data(),essentialsB[2]);
 
+    if (rankAinRow != sendingRank){
+      delete bufferA;
+    }
 
-    // blockDenseDense<SR, NT>(essentialsA[1], essentialsA[2], essentialsB[1], essentialsB[2], bufferA, bufferB, localOut);
-  
+    if (rankBinCol != sendingRank){
+      delete bufferB;
+    }
   }
 
   return DenseMatrix<NT>(localRowsA, localColsB, localOut, GridC);
@@ -131,9 +138,8 @@ DenseMatrix<NT> DenseDenseTransMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
 
   std::shared_ptr<CommGrid> GridC = ProductGrid((A.getCommGrid()).get(), (B.getCommGrid()).get(), stages, dummy, dummy);		
 
-  std::vector<NT> * bufferA = new std::vector<NT>();
+  
   std::vector<int> essentialsA(3);
-  std::vector<NT> * bufferB = new std::vector<NT>();
   std::vector<int> essentialsB(3);
 
   int rankAinRow = A.getCommGrid()->GetRankInProcRow();
@@ -170,6 +176,9 @@ DenseMatrix<NT> DenseDenseTransMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
   }
 
   for (int i = 0; i < stages; i++){
+    std::vector<NT> * bufferA = new std::vector<NT>();
+    std::vector<NT> * bufferB = new std::vector<NT>();
+
     int sendingRank = i;
     
     if (rankAinRow == sendingRank){
@@ -201,6 +210,13 @@ DenseMatrix<NT> DenseDenseTransMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
     cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans,essentialsA[1],essentialsB[1],essentialsA[2],1.0,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[2],1.0,localOut->data(),essentialsB[1]);
 
     // blockDenseDenseTrans<SR, NT>(essentialsA[1], essentialsA[2], essentialsB[1], essentialsB[2], bufferA, bufferB, localOut);
+    if (rankAinRow != sendingRank){
+      delete bufferA;
+    }
+
+    if (rankBinCol != sendingRank){
+      delete bufferB;
+    }
   
   }
 
@@ -226,9 +242,7 @@ DenseMatrix<NT> DenseTransDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
 
   std::shared_ptr<CommGrid> GridC = ProductGrid((A.getCommGrid()).get(), (B.getCommGrid()).get(), stages, dummy, dummy);		
 
-  std::vector<NT> * bufferA = new std::vector<NT>();
   std::vector<int> essentialsA(3);
-  std::vector<NT> * bufferB = new std::vector<NT>();
   std::vector<int> essentialsB(3);
 
   int rankAinRow = A.getCommGrid()->GetRankInProcRow();
@@ -268,7 +282,9 @@ DenseMatrix<NT> DenseTransDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
 
   for (int i = 0; i < stages; i++){
     int sendingRank = i;
-    
+    std::vector<NT> * bufferA = new std::vector<NT>();
+    std::vector<NT> * bufferB = new std::vector<NT>();
+
     if (rankAinRow == sendingRank){
       if (rankAinRow != rankAinCol){
         bufferA = transposeValues;
@@ -297,7 +313,13 @@ DenseMatrix<NT> DenseTransDenseMult(DenseMatrix<NT> &A, DenseMatrix<NT> &B)
     cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans,essentialsA[2],essentialsB[2],essentialsA[1],1.0,bufferA->data(), essentialsA[2], bufferB->data(), essentialsB[2], 1.0,localOut->data(),essentialsB[2]);
     // blockDenseDenseTrans<SR, NT>(essentialsA[1], essentialsA[2], essentialsB[1], essentialsB[2], bufferA, bufferB, localOut);
 
+    if (rankAinRow != sendingRank){
+      delete bufferA;
+    }
 
+    if (rankBinCol != sendingRank){
+      delete bufferB;
+    }
   }
 
   delete transposeValues;

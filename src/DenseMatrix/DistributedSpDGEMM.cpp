@@ -42,12 +42,9 @@ namespace combblas{
     IT ** BRecvSizes = SpHelper::allocate2D<IT>(DER::esscount, stages);
     SpParHelper::GetSetSizes( *(B.getSpSeq()), BRecvSizes, (B.getcommgrid())->GetColWorld());
 
-
-    std::vector<NT> * bufferA = new std::vector<NT>();
     std::vector<IT> essentialsA(3); // saves rows, cols and total number of elements of block
     std::vector<IT> ess = std::vector<IT>();
     std::vector<NT> * out;
-    DER * bufferB;
 
     int rankAinRow = A.getCommGrid()->GetRankInProcRow();
     int rankAinCol = A.getCommGrid()->GetRankInProcCol();
@@ -61,10 +58,11 @@ namespace combblas{
 
     std::vector<NT> * localOut = new std::vector<NT>(denseLocalRows * sparseLocalCols, 0.0);
     
-
-    //other stages:
     for (int i = 0; i < stages; i++){
       int sendingRank = i;
+      std::vector<NT> * bufferA = new std::vector<NT>();
+      DER * bufferB;
+
       
       if (rankAinRow == sendingRank){
         bufferA = A.getValues();
@@ -94,6 +92,13 @@ namespace combblas{
 
       blockDenseSparse<SR, IT, NT, DER>(essentialsA[1], essentialsA[2], bufferA, bufferB, localOut);
 
+      if (rankAinRow != sendingRank){
+        delete bufferA;
+      }
+
+      if (rankBinCol != sendingRank){
+        delete bufferB;
+      }
     }
 
     return DenseMatrix<NT>(denseLocalRows, sparseLocalCols, localOut, GridC);
@@ -117,12 +122,9 @@ namespace combblas{
     IT ** BRecvSizes = SpHelper::allocate2D<IT>(DER::esscount, stages);
     SpParHelper::GetSetSizes( *(B.getSpSeq()), BRecvSizes, (B.getcommgrid())->GetRowWorld());
 
-
-    std::vector<NT> * bufferA = new std::vector<NT>();
     std::vector<IT> essentialsA(3); // saves rows, cols and total number of elements of block
     std::vector<IT> ess = std::vector<IT>();
     std::vector<NT> * out;
-    DER * bufferB;
 
     int rankAinRow = A.getCommGrid()->GetRankInProcRow();
     int rankAinCol = A.getCommGrid()->GetRankInProcCol();
@@ -138,8 +140,10 @@ namespace combblas{
     std::vector<NT> * localOut = new std::vector<NT>(sparseLocalRows * denseLocalCols, 0.0);
     
     //other stages:
-    for (int i = 0; i < stages; i++){    
+    for (int i = 0; i < stages; i++){
       int sendingRank = i;
+      std::vector<NT> * bufferA = new std::vector<NT>();
+      DER * bufferB;
       
       if (rankAinCol == sendingRank){
         bufferA = A.getValues();
@@ -168,6 +172,14 @@ namespace combblas{
       SpParHelper::BCastMatrix<IT, NT, DER>(GridC->GetRowWorld(), *bufferB, ess, sendingRank);
 
       blockSparseDense<SR, IT, NT, DER>(essentialsA[1], essentialsA[2], bufferB, bufferA, localOut);
+
+      if (rankAinCol != sendingRank){
+        delete bufferA;
+      }
+
+      if (rankBinRow != sendingRank){
+        delete bufferB;
+      }
     }
     return DenseMatrix<NT>(sparseLocalRows, denseLocalCols, localOut, GridC);
   }
