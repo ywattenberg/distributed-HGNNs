@@ -123,6 +123,11 @@ int main(int argc, char* argv[]){
   DenseMatrix<double> input(0, 0, fullWorld);
   input.ParallelReadDMM(config.data_properties.features_path, false);
 
+  // std::cout << "input data: " << std::endl;
+  // for (int i = 0; i < 50; i++){
+  //     std::cout << input.getValues()->at(i) << std::endl;
+  //   }
+
   int totalRows = input.getnrow();
   int totalCols = input.getncol();
 
