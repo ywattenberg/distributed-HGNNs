@@ -114,6 +114,8 @@ namespace combblas{
 
   template <class NT>
   void processLines(std::vector<std::string>& lines, int type, std::vector<NT>& vals, int myrank);
+
+  void writeMatrix(std::string filename);
 }
 
 #endif

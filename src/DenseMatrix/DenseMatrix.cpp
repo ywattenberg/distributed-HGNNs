@@ -231,4 +231,71 @@ namespace combblas {
     return allRowSums;
 
   }
+
+  void DenseMatrix<NT>::writeMatrix(std::string filename){
+    int myrank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
+    int totalRows = getnrow();
+    int totalCols = getncol();
+
+    int gridRows = commGrid->GetGridRows();
+    int gridCols = commGrid->GetGridCols();
+
+    int rowsPerProc = totalRows / gridRows;
+    int colsPerProc = totalCols / gridCols;
+
+    int roffset = 0;
+    int coffset = 0;
+    GetPlaceInGlobalGrid(roffset, coffset);
+
+    // First accumulate all the data of the rows in the first column
+    int rowrank;
+    MPI_Comm rowComm = commGrid->GetRowWorld();
+    MPI_Comm_rank(rowComm, &rowrank);
+    std::vector<NT> rowbuffer = std::vector<NT>();
+    if (rowrank == 0){
+      rowbuffer.resize(totalCols * rowsPerProc);
+    }
+    std::vector<int> offset = std::vector<int>(gridRows);
+    std::vector<int> sizes = std::vector<int>(gridRows, rowsPerProc * colsPerProc);
+    for (int i = 0; i < gridRows; i++){
+      offset.at(i) = i * rowsPerProc * colsPerProc;
+    }
+    sizes.at(gridRows-1) = totalCols * rowsPerProc - offset.at(gridRows-1);
+
+    MPI_Gatherv(values->data(), localRows * localCols, MPIType<NT>(), rowbuffer.data(), sizes.data(), offset.data(), MPIType<NT>(), 0, rowComm);
+
+    // Now gather all the data in the first row
+    if(rowrank == 0){
+      int colrank; 
+      MPI_Comm colComm = commGrid->GetColWorld();
+      MPI_Comm_rank(colComm, &colrank);
+      std::vector<NT> buffer = std::vector<NT>();
+      if (myrank == 0){
+        buffer->resize(totalRows * totalCols); 
+      }
+
+      std::vector<int> offset = std::vector<int>(gridCols);
+      std::vector<int> sizes = std::vector<int>(gridCols, totalCols * rowsPerProc);
+      for (int i = 0; i < gridCols; i++){
+        offset.at(i) = i * totalCols * rowsPerProc;
+      }
+      sizes.at(gridCols-1) = totalCols * totalRows - offset.at(gridCols-1);
+
+      MPI_Gatherv(rowbuffer.data(), totalRows * colsPerProc, MPIType<NT>(), buffer->data(), sizes.data(), offset.data(), MPIType<NT>(), 0, colComm);
+    }
+    if(!myrank){
+      // Write buffer to file
+      std::ofstream outfile;
+      outfile.open(filename);
+      for (int i = 0; i < totalRows; i++){
+        for (int j = 0; j < totalCols; j++){
+          outfile << buffer->at(i*totalCols + j) << ",";
+        }
+        outfile << "\n";
+      }
+    }
+
+  }
 }
