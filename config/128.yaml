@@ -2,7 +2,7 @@ model:
   classes: 40
   learnable_w: false
   hidden_dims: [128]
-  dropout_rate: 0.5
+  dropout_rate: 0
   with_bias: true
   activation: "relu"
 trainer: 

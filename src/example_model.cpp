@@ -136,17 +136,19 @@ int main(int argc, char* argv[]){
   using std::chrono::duration;
   using std::chrono::milliseconds;
 
+  int test_idx = config.data_properties.test_idx;
+
   double lr = 0.1;
-  for(int i = 0; i < 100; i++){
+  for(int i = 0; i < 1000; i++){
     auto t1 = high_resolution_clock::now();
 
     if(!myrank)std::cout << "Epoch: " << i << std::endl;
     DenseMatrix<double> res = model.forward(input);
-    double loss = CrossEntropyLoss<PTFF, double>(res, &labels);
+    double loss = CrossEntropyLoss<PTFF, double>(res, &labels, test_idx);
     if(!myrank)std::cout <<"loss: " << loss << std::endl;
     model.backward(res, &labels, lr);
-    if(i % 5 == 0){
-      lr = lr * 0.7;
+    if(i > 100 && i % 5 == 0){
+      lr = lr * 0.9;
     }
 
     if (myrank == 0){

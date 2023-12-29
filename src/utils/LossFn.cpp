@@ -17,7 +17,7 @@
 using namespace combblas;
 typedef PlusTimesSRing<double, double> PTFF;
 
-template double CrossEntropyLoss<PTFF, double>(DenseMatrix<double> &pred, const std::vector<int>* target, bool sum);
+template double CrossEntropyLoss<PTFF, double>(DenseMatrix<double> &pred, const std::vector<int>* target, int test_idx, bool sum);
 template DenseMatrix<double> DerivativeCrossEntropyLoss<PTFF, double>(DenseMatrix<double> &pred, const std::vector<int>* target, bool sum_reduction);
 
 
@@ -26,7 +26,7 @@ template DenseMatrix<double> DerivativeCrossEntropyLoss<PTFF, double>(DenseMatri
 // else individual loss values are returned
 // TODO: Parallelize this function
 template <typename SR, typename NT>
-NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool sum)
+NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, int test_idx, bool sum)
 {
   // Calculate the Cross Entropy Loss without averaging over the graph
   // We assume that the pred matrix are input logits and not probabilities
@@ -41,6 +41,15 @@ NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool 
   int local_cols = pred.getLocalCols();
   int local_rows = pred.getLocalRows();
   int rankInRow = pred.getCommGrid()->GetRankInProcRow();
+
+  int row_offset, col_offset;
+  pred.GetPlaceInGlobalGrid(row_offset, col_offset);
+
+  // For accuracy calculation
+  int test_rows = max(row_offset + local_rows - test_idx, 0);
+  int start_test_rows = (row_offset > test_idx) ? 0 : test_idx - row_offset;
+
+  local_rows = min(max(test_idx - row_offset, 0), local_rows);
 
   // Find the max value in each row for logsumexp trick
   std::vector<NT> max_val(local_rows, numeric_limits<NT>::min());
@@ -66,9 +75,6 @@ NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool 
     local_sum.at(i) = SR::add(max_val.at(i), std::log(local_sum.at(i)));
   }
 
-  int row_offset, col_offset;
-  pred.GetPlaceInGlobalGrid(row_offset, col_offset);
-
   // Calculate the Accuracy
   int corrects = 0;
   
@@ -78,15 +84,21 @@ NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool 
     int y_n = target->at(i + row_offset);
     if(y_n >= col_offset && y_n < col_offset + local_cols){
       x_y_n.at(i) = predictions->at(i*local_cols + y_n - col_offset);
+    }
+  }
 
-      if (x_y_n.at(i) == max_val.at(i)){
+  std::cout << "Rank " << myrank << " " << local_rows << " " << test_rows << " " << start_test_rows << std::endl;
+
+  if (test_rows > 0) {
+    for (int i = start_test_rows; i < start_test_rows + test_rows; i++) {
+      if (x_y_n.at(i) == max_val.at(i)) {
         corrects++;
       }
     }
   }
 
   MPI_Allreduce(MPI_IN_PLACE, &corrects, 1, MPI_INT, MPI_SUM, pred.getCommGrid()->GetWorld());
-  double totalRows = (double) pred.getnrow();
+  double totalTestRows = (double) (pred.getnrow() - test_idx);
   // TODO: Gatherv might be more efficient reduce is not needed here (actually maybe not as elements are not in order)
   MPI_Allreduce(MPI_IN_PLACE, &x_y_n[0], local_rows, MPIType<NT>(), MPI_SUM, pred.getCommGrid()->GetRowWorld());
   NT loss = 0.0;
@@ -99,7 +111,7 @@ NT CrossEntropyLoss(DenseMatrix<NT> &pred, const std::vector<int>* target, bool 
   MPI_Allreduce(MPI_IN_PLACE, &loss, 1, MPIType<NT>(), MPI_SUM, pred.getCommGrid()->GetColWorld());
 
   if (myrank == 0){
-    std::cout << "Accuracy: " << (corrects / total_rows) << std::endl;
+    std::cout << "Accuracy: " << (corrects / totalTestRows) << std::endl;
   }
 
   return loss;
