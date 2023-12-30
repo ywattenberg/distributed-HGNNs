@@ -126,9 +126,6 @@ namespace combblas{
     int rows_per_proc = (nrows / nprocs);
     int row_start = myrank * rows_per_proc;
 
-    // std::cout << "nrows: " << nrows << std::endl;
-    // std::cout << "rows per proc: " << rows_per_proc << std::endl;
-    // std::cout << "row start: " << row_start << std::endl;
     // Use fseek again to go backwards two bytes and check that byte with fgetc
     struct stat st;     // get file size
     if (stat(filename.c_str(), &st) == -1) {
@@ -140,17 +137,9 @@ namespace combblas{
     int64_t file_size = st.st_size;
     MPI_Offset fpos, end_fpos, endofheader;
     if(commGrid->GetRank() == 0) { // the offset needs to be for this rank
-        std::cout << "File is " << file_size << " bytes" << std::endl;
         fpos = ftell(f);
         endofheader =  fpos;
     	  MPI_Bcast(&endofheader, 1, MPIType<MPI_Offset>(), 0, this->getCommWorld());
-        // std::cout << "End of header is " << endofheader << " bytes" << std::endl;
-        // std::string line;
-        // std::getline(f, line);
-        // int secondpos = ftell(f);
-        // // calc the number of bytes in a line
-        // int bytes_per_line = secondpos - fpos;
-        // std::cout << "Bytes per line is " << bytes_per_line << std::endl;
         fclose(f);
     } else {
     	MPI_Bcast(&endofheader, 1, MPIType<MPI_Offset>(), 0, this->getCommWorld());  // receive the file loc at the end of header
@@ -177,16 +166,9 @@ namespace combblas{
     bool finished = SpParHelper::FetchBatch(mpi_fh, fpos, end_fpos, true, lines, myrank);
     int64_t entriesread = lines.size();
 
-    // std::cout << "Process " << myrank << " lines size " << entriesread << std::endl;
     processLines(lines, type, vals, myrank);   
 
-    MPI_Barrier(this->getCommWorld());
-    if (myrank == 0) {
-      std::cout << "First batch finished" << std::endl;
-    }
-
     while(!finished) {
-        // std::cout << "Process " << myrank << " reading from " << fpos << std::endl;
         finished = SpParHelper::FetchBatch(mpi_fh, fpos, end_fpos, false, lines, myrank);
         entriesread += lines.size();
         // SpHelper::ProcessLines(rows, cols, vals, lines, symmetric, type, onebased);
@@ -205,7 +187,6 @@ namespace combblas{
     // std::vector<NT>().swap(&vals);
 
     int rows_read = entriesread / ncols;
-    // std::cout << "process " << myrank << " read " << entriesread << " entries" << std::endl;
 
     int grid_len = std::sqrt(nprocs);
     int localRows = nrows / grid_len;
@@ -224,10 +205,7 @@ namespace combblas{
     this->setLocalRows(localRows);
     this->setLocalCols(localCols);
     
-    MPI_Barrier(this->getCommWorld());
-    // std::cout << "process " << myrank << " local rows: " << localRows << " " << " local cols: " << localCols << std::endl;
     std::vector<std::vector<NT>> data = std::vector<std::vector<NT>>(nprocs);
-    // std::cout << "process " << myrank << " vals size: " << vals.size() << std::endl;
 
     for (int i = 0; i < rows_read; i++) {
       for (int j = 0; j < ncols; j++) {
@@ -274,16 +252,11 @@ namespace combblas{
     std::vector<NT>* tmp = new std::vector<NT>(recvdata, recvdata + totrecv);
     // print received data
     for (int i = 0; i < totrecv; i++) {
-      // std::cout << "process " << myrank << " received value " << recvdata[i] << std::endl;
       tmp->push_back(recvdata[i]);
     }
     this->setValues(tmp);
 
     DeleteAll(recvdata);
-
-    MPI_Barrier(this->getCommWorld());
-
-
   }
 
 }

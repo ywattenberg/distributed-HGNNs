@@ -86,7 +86,6 @@ DistModelW::DistModelW(ConfigProperties &config, int in_dim, std::shared_ptr<Com
 
 void DistModelW::comp_layer(DENSE_DOUBLE* X, DistConvW* curr, bool last_layer=false){
     // Compute Xt (X * theta or G_2) where both are dense matrices
-    MPI_Barrier(MPI_COMM_WORLD);
     int totalRows = X->getnrow();
     int totalCols = X->getncol();
 
@@ -140,7 +139,6 @@ DENSE_DOUBLE DistModelW::forward(DENSE_DOUBLE* input){
         // Set X to G_4 for next iteration
         X = &(curr->G_4);
     }
-    MPI_Barrier(MPI_COMM_WORLD);
     // Last layer is different as we do not use ReLU
     return this->layers[this->layers.size()-1]->G_3;
 }

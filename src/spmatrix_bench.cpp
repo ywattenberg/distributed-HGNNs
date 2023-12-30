@@ -60,13 +60,9 @@ int main(int argc, char* argv[]) {
         SpParMat<int64_t,double, SpDCCols<int64_t,double>> A(fullWorld);
         A.ParallelReadMM(filename_a, true, maximum<double>());
 
-        MPI_Barrier(MPI_COMM_WORLD);
-
         std::string filename = tmp_dir + "/data/random/scale_" + std::to_string(scale) + "/features.mtx";
         DenseMatrix<double> B(0, 0, fullWorld);
         B.ParallelReadDMM(filename, false);
-
-        MPI_Barrier(MPI_COMM_WORLD);
 
         using std::chrono::high_resolution_clock;
         using std::chrono::duration_cast;

@@ -61,12 +61,8 @@ int main(int argc, char* argv[]) {
         DenseMatrix<double> A(0, 0, fullWorld);
         A.ParallelReadDMM(filename, false);
 
-        MPI_Barrier(MPI_COMM_WORLD);
-
         DenseMatrix<double> B(0, 0, fullWorld);
         B.ParallelReadDMM(filename, false);
-
-        MPI_Barrier(MPI_COMM_WORLD);
 
         using std::chrono::high_resolution_clock;
         using std::chrono::duration_cast;

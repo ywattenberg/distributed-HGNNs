@@ -131,31 +131,23 @@ set(DIST
     src/model/dist-model-w.cpp
 )
 
-add_executable(model src/example_model.cpp ${DIST})
-target_link_libraries(model "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
+add_executable(model src/examples/example_model.cpp ${DIST})
+target_link_libraries(model "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
 set_property(TARGET model PROPERTY CXX_STANDARD 17)
 
-# add_executable(forward_timing src/forward_timing.cpp src/model/model.h src/model/model.cpp)
-# target_link_libraries(forward_timing "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
-# set_property(TARGET forward_timing PROPERTY CXX_STANDARD 17)
+add_executable(example src/examples/example.cpp)
+target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
+set_property(TARGET example PROPERTY CXX_STANDARD 17)
 
-# add_executable(example src/example.cpp)
-# # target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
-# # set_property(TARGET example PROPERTY CXX_STANDARD 17)
-
-# add_executable(example_2 src/example_2.cpp ${DIST})
-# target_link_libraries(example_2 "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
+# add_executable(example_2 src/examples/example_2.cpp ${SOURCES} ${DIST})
+# target_link_libraries(example_2 "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
 # set_property(TARGET example_2 PROPERTY CXX_STANDARD 17)
 
-# add_executable(openBLAS_example src/openBLAS_example.cpp src/utils/parDenseGEMM.h src/utils/parDenseGEMM.cpp src/utils/DenseMatrix.h)
+# add_executable(openBLAS_example src/examples/openBLAS_example.cpp ${SOURCES} ${DIST})
 # target_link_libraries(openBLAS_example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}" fast_matrix_market::fast_matrix_market)
 # set_property(TARGET openBLAS_example PROPERTY CXX_STANDARD 17)
 
-# add_executable(timing src/timing.cpp)
-# target_link_libraries(timing "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
-# set_property(TARGET timing PROPERTY CXX_STANDARD 17)
-
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(${PROJECT_NAME} ${SOURCES} ${DIST})
 target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 

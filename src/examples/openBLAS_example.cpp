@@ -13,8 +13,7 @@
 #include "CombBLAS/FullyDistVec.h"
 #include "CombBLAS/SpParMat.h"
 #include "CombBLAS/DenseParMat.h"
-#include "utils/parDenseGEMM.h"
-#include "utils/DenseMatrix.h"
+#include "../DenseMatrix/DenseMatrix.h"
 
 using namespace std;
 using namespace combblas;

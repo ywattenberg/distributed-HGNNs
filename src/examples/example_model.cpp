@@ -14,11 +14,11 @@
 #include "CombBLAS/ParFriends.h"
 #include "CombBLAS/FullyDistVec.h"
 #include "CombBLAS/SpParMat.h"
-#include "DenseMatrix/DenseMatrix.h"
-#include "utils/configParse.h"
-#include "model/dist-model.h"
-#include "model/dist-model-w.h"
-#include "utils/LossFn.h"
+#include "../DenseMatrix/DenseMatrix.h"
+#include "../utils/configParse.h"
+#include "../model/dist-model.h"
+#include "../model/dist-model-w.h"
+#include "../utils/LossFn.h"
 
 
 typedef combblas::PlusTimesSRing<double, double> PTFF;

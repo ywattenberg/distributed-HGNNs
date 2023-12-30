@@ -83,7 +83,6 @@ DistModel::DistModel(ConfigProperties &config, int in_dim, std::shared_ptr<CommG
 
 void DistModel::comp_layer(DENSE_DOUBLE& X, DistConv* curr, bool last_layer){
     // Compute Xt (X * theta or G_2) where both are dense matrices
-    MPI_Barrier(MPI_COMM_WORLD);
     int totalRows = X.getnrow();
     int totalCols = X.getncol();
 
@@ -95,8 +94,6 @@ void DistModel::comp_layer(DENSE_DOUBLE& X, DistConv* curr, bool last_layer){
     
     // DenseMatrix<double> tmptmp = DenseDenseMult<PTFF, double>(*X, curr->weights);
     // curr->XtB.clear();
-
-    MPI_Barrier(MPI_COMM_WORLD);
 
     curr->XtB = DenseDenseMult<PTFF, double>(X, curr->weights);
     // curr->XtB = *(new DenseMatrix<double>(1,1, test, curr->weights.getCommGrid()));
@@ -119,7 +116,6 @@ void DistModel::clear_layer_partial_results(){
     for(int i = 0; i < this->layers.size(); i++){
         //For each layer free all partial results saved in the layer
         DistConv* curr = this->layers[i];
-        MPI_Barrier(MPI_COMM_WORLD);
         curr->clear_partial_results(i == this->layers.size()-1);
     }
 
