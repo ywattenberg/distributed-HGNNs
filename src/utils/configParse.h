@@ -7,7 +7,9 @@
 // Struct for model parameters
 struct ModelProperties
 {
+    std::string dataset;
     int classes;
+    bool distributed;
     bool learnable_w;
     std::vector<int> hidden_dims;
     double dropout_rate;

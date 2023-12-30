@@ -10,7 +10,9 @@ ConfigProperties ParseConfig(const std::string& config_path){
     ConfigProperties config_properties;
 
     // model properties
+    config_properties.model_properties.dataset = config["model"]["dataset"].as<std::string>();
     config_properties.model_properties.classes = config["model"]["classes"].as<int>();
+    config_properties.model_properties.distributed = config["model"]["distributed"].as<bool>();
     config_properties.model_properties.learnable_w = config["model"]["learnable_w"].as<bool>();
     config_properties.model_properties.hidden_dims = config["model"]["hidden_dims"].as<std::vector<int>>();
     config_properties.model_properties.dropout_rate = config["model"]["dropout_rate"].as<double>();

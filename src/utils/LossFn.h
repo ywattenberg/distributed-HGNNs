@@ -22,6 +22,9 @@ template <typename SR, typename NT>
 NT CrossEntropyLoss(DenseMatrix<NT>& pred, const std::vector<int>* target, int test_idx, bool sum = false);
 
 template <typename SR, typename NT>
+std::vector<NT> LossMetrics(DenseMatrix<NT>& pred, const std::vector<int>* target, int test_idx, bool sum = false);
+
+template <typename SR, typename NT>
 DenseMatrix<NT> DerivativeCrossEntropyLoss(DenseMatrix<NT>& pred, const std::vector<int>* target, bool sum_reduction=false);
 
 #endif 

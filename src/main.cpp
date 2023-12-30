@@ -9,11 +9,48 @@ namespace fs = std::filesystem;
 #include <yaml-cpp/yaml.h>
 #include <torch/torch.h>
 
-#include "model/model.h"
-#include "model/dist-model.h"
 #include "trainer/trainer.h"
-#include "utils/fileParse.h"
+#include "DenseMatrix/DenseMatrix.h"
 #include "utils/configParse.h"
+#include "model/dist-model.h"
+#include "model/dist-model-w.h"
+#include "model/model.h"
+#include "utils/LossFn.h"
+#include "utils/fileParse.h"
+#include "trainer/dist-trainer.h"
+
+std::vector<int> readCSV(const std::string& filename) {
+    std::vector<int> data;
+    std::ifstream file(filename);
+
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        // Handle error
+        return data;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::stringstream lineStream(line);
+        std::string cell;
+
+        while (std::getline(lineStream, cell, ',')) {
+          try {
+            int cell_to_int = std::stoi(cell);
+            data.push_back(cell_to_int);
+          } catch (const std::invalid_argument& e) {
+              std::cerr << "Invalid argument: " << e.what() << std::endl;
+          } catch (const std::out_of_range& e) {
+              std::cerr << "Out of range: " << e.what() << std::endl;
+          }
+            
+        }
+
+    }
+
+    file.close();
+    return data;
+}
 
 inline torch::Tensor coo_tensor_to_sparse(torch::Tensor& coo_tensor){
   torch::Tensor index = coo_tensor.index({at::indexing::Slice(), at::indexing::Slice(0,2)}).transpose(0,1);
@@ -148,25 +185,45 @@ int learnable_w(ConfigProperties& config, bool timing, int run_id, int cpus){
   return 0;
 }
 
-int dist_learning(ConfigProperties& config) {
+int dist_model(ConfigProperties& config, bool timing, int run_id, int cpus) {
 
-  torch::Tensor labels = tensor_from_file<float>(config.data_properties.labels_path);
-  labels = labels.index({at::indexing::Slice(), at::indexing::Slice(-1)}).squeeze().to(torch::kLong);
-  std::cout << "labels shape: " << labels.sizes() << std::endl;
-   
-  torch::Tensor features = tensor_from_file<float>(config.data_properties.features_path);
-  std::cout << "features shape: " << features.sizes() << std::endl;
-  int f_cols = features.size(1);
+  int nprocs, myrank;
+  MPI_Init(NULL, NULL);
+  MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
+  MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
 
-  // auto model = new DistModel(config, f_cols);
+  shared_ptr<CommGrid> fullWorld;
+	fullWorld.reset(new CommGrid(MPI_COMM_WORLD, std::sqrt(nprocs), std::sqrt(nprocs)));
 
-  // Define the loss function
-  // LossFunction ce_loss_fn = [](const torch::Tensor& predicted, const torch::Tensor& target) {
-  //       return torch::nn::functional::cross_entropy(predicted, target);
-  //   };
+  std::string timing_file = "../data/timing/main_training.csv";
 
-  // Train the model
-  // train_model(config, labels, features, ce_loss_fn, model);
+  // Create Model
+  DistModel model(config, 6144, fullWorld, 24622);
+
+  cout << myrank << ": model initialized" << endl;
+
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  vector<int> labels = readCSV(config.data_properties.labels_path);
+  labels.erase(labels.begin()); // delete first element (size)
+
+
+  DenseMatrix<double> input(0, 0, fullWorld);
+  input.ParallelReadDMM(config.data_properties.features_path, false);
+  
+  int totalRows = input.getnrow();
+  int totalCols = input.getncol();
+
+  if (myrank == 0){
+    cout << "number of samples: " << totalRows << endl;
+    cout << "number of features: " << totalCols << endl;
+  }
+
+  int test_idx = config.data_properties.test_idx;
+
+  train_dist_model(config, labels, input, &model, run_id, timing, timing_file);
+
+  MPI_Finalize();
 
   return 0;
 }
@@ -226,19 +283,13 @@ int main(int argc, char** argv){
     config.data_properties.invde_ht_dvh_path = config.data_properties.invde_ht_dvh_path.replace(config.data_properties.invde_ht_dvh_path.find(".."), 2, tmp_dir);
   }
 
-
-  // if(timing) {
-  //   fs::create_directories("../data/timing/" + std::to_string(run_id));
-  //   fs::copy_file(config_path, "../data/timing/" + std::to_string(run_id) + "/config.yaml");
-  //   std::ofstream outfile;
-  //   outfile.open("../data/timing/" + std::to_string(run_id) + "/config.yaml", std::ios_base::app);
-  //   outfile << "\nrun_id: " << run_id;
-  //   outfile << "\ncpus: " << cpus;
-  //   outfile.close();
-  // }
-  if (config.model_properties.learnable_w) {
-    return learnable_w(config, timing, run_id, cpus);
+  if (config.model_properties.distributed) {
+    return dist_model(config, timing, run_id, cpus);
   } else {
-    return model(config, timing, run_id, cpus);
+    if (config.model_properties.learnable_w) {
+      return learnable_w(config, timing, run_id, cpus);
+    } else {
+      return model(config, timing, run_id, cpus);
+    }
   }
 }

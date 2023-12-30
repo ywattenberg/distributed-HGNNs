@@ -1,19 +1,19 @@
 model:
   dataset: "ModelNet40"
   classes: 40
-  distributed: false
+  distributed: true
   learnable_w: false
-  hidden_dims: [128]
-  dropout_rate: 0.5
+  hidden_dims: [256]
+  dropout_rate: 0
   with_bias: true
   activation: "relu"
 trainer: 
-  learning_rate: 0.001
+  learning_rate: 0.1
   epochs: 1000
-  output_stepsize: 10
+  output_stepsize: 5
   loss_fn: "cross_entropy"
 lr_scheduler:
-  step_size: 100
+  step_size: 50
   gamma: 0.9
 task_type: "classification"
 data:
