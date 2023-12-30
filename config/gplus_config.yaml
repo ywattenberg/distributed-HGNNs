@@ -16,9 +16,9 @@ lr_scheduler:
 task_type: "classification"
 data:
   g_path: "../data/gplus/G.mtx"
-  dvh_path: "../data/gplus/DVH.mtx"
-  invde_ht_dvh_path: "../data/gplus/invDE_HT_DVH.mtx"
-  labels_path: "../data/gplus/labels.mtx"
+  dvh_path: "../data/gplus/DVH_coo.mtx"
+  invde_ht_dvh_path: "../data/gplus/invDE_HT_DVH_coo.mtx"
+  train_labels_path: "../data/gplus/labels.mtx"
   features_path: "../data/gplus/features.mtx"
 experiment:
   fwd_only: true
