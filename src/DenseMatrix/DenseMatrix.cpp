@@ -232,70 +232,66 @@ namespace combblas {
 
   }
 
-  void DenseMatrix<NT>::writeMatrix(std::string filename){
+  template<typename NT>
+  void DenseMatrix<NT>::WriteMatrix(const std::string& filename){
     int myrank;
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
 
-    int totalRows = getnrow();
-    int totalCols = getncol();
+    int totalRows = this->getnrow();
+    int totalCols = this->getncol();
 
     int gridRows = commGrid->GetGridRows();
     int gridCols = commGrid->GetGridCols();
+    int nprocs = gridRows * gridCols;
+
 
     int rowsPerProc = totalRows / gridRows;
     int colsPerProc = totalCols / gridCols;
 
     int roffset = 0;
     int coffset = 0;
-    GetPlaceInGlobalGrid(roffset, coffset);
+    this->GetPlaceInGlobalGrid(roffset, coffset);
 
-    // First accumulate all the data of the rows in the first column
-    int rowrank;
-    MPI_Comm rowComm = commGrid->GetRowWorld();
-    MPI_Comm_rank(rowComm, &rowrank);
-    std::vector<NT> rowbuffer = std::vector<NT>();
-    if (rowrank == 0){
-      rowbuffer.resize(totalCols * rowsPerProc);
+    MPI_File thefile;
+
+    MPI_File_open(commGrid->GetWorld(), (char*) filename.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &thefile) ;
+    // int mpi_err = MPI_File_set_view(thefile, bytesuntil, MPI_CHAR, MPI_CHAR, (char*)"external32", MPI_INFO_NULL);
+    // if (mpi_err == 51) {
+    //     // external32 datarep is not supported, use native instead
+    //     MPI_File_set_view(thefile, bytesuntil, MPI_CHAR, MPI_CHAR, (char*)"native", MPI_INFO_NULL);
+    // }
+
+    size_t header_offset = 0;
+    std::stringstream headers;
+    headers << "%%MatrixMarket matrix array real general\n%\n";
+    headers << totalRows << " " << totalCols << "\n";
+    std::string header = headers.str();
+    if(myrank == 0)
+    {
+      MPI_File_write(thefile, header.c_str(), header.length(), MPI_CHAR, MPI_STATUS_IGNORE);
     }
-    std::vector<int> offset = std::vector<int>(gridRows);
-    std::vector<int> sizes = std::vector<int>(gridRows, rowsPerProc * colsPerProc);
-    for (int i = 0; i < gridRows; i++){
-      offset.at(i) = i * rowsPerProc * colsPerProc;
-    }
-    sizes.at(gridRows-1) = totalCols * rowsPerProc - offset.at(gridRows-1);
-
-    MPI_Gatherv(values->data(), localRows * localCols, MPIType<NT>(), rowbuffer.data(), sizes.data(), offset.data(), MPIType<NT>(), 0, rowComm);
-
-    // Now gather all the data in the first row
-    if(rowrank == 0){
-      int colrank; 
-      MPI_Comm colComm = commGrid->GetColWorld();
-      MPI_Comm_rank(colComm, &colrank);
-      std::vector<NT> buffer = std::vector<NT>();
-      if (myrank == 0){
-        buffer->resize(totalRows * totalCols); 
-      }
-
-      std::vector<int> offset = std::vector<int>(gridCols);
-      std::vector<int> sizes = std::vector<int>(gridCols, totalCols * rowsPerProc);
-      for (int i = 0; i < gridCols; i++){
-        offset.at(i) = i * totalCols * rowsPerProc;
-      }
-      sizes.at(gridCols-1) = totalCols * totalRows - offset.at(gridCols-1);
-
-      MPI_Gatherv(rowbuffer.data(), totalRows * colsPerProc, MPIType<NT>(), buffer->data(), sizes.data(), offset.data(), MPIType<NT>(), 0, colComm);
-    }
-    if(!myrank){
-      // Write buffer to file
-      std::ofstream outfile;
-      outfile.open(filename);
-      for (int i = 0; i < totalRows; i++){
-        for (int j = 0; j < totalCols; j++){
-          outfile << buffer->at(i*totalCols + j) << ",";
+    header_offset += header.length()*sizeof(char);
+    //Iterate over rowrank
+    int offset = roffset * totalCols + coffset;
+    //Write each row of local matrix to the file with the offset
+    std::stringstream ss;
+    for(int i = 0; i < localRows; i++)
+    {
+        int row = i * totalCols + offset;
+        ss.clear();
+        ss.str(std::string());
+        for(int j = 0; j < localCols; j++)
+        {
+            NT val = values->at(i*localCols + j);
+            ss << std::setprecision(8) << std::scientific << val << "\n";
         }
-        outfile << "\n";
-      }
+        std::string rowstr = ss.str();
+        MPI_File_write_at_all(thefile, row * 15 * sizeof(char) + header_offset, rowstr.c_str(), rowstr.length(), MPI_CHAR, MPI_STATUS_IGNORE);
     }
-
+    
+   
+    MPI_File_close(&thefile);
+    
   }
+  
 }
