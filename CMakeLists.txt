@@ -104,6 +104,8 @@ set(SOURCES
     src/model/dist-model.cpp
     src/model/dist-model-w.h
     src/model/dist-model-w.cpp
+    src/trainer/dist-trainer.h
+    src/trainer/dist-trainer.cpp
 )
 
 set(DIST 
@@ -131,9 +133,9 @@ set(DIST
     src/model/dist-model-w.cpp
 )
 
-add_executable(dist-model src/examples/example_model.cpp ${DIST})
-target_link_libraries(model "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
-set_property(TARGET model PROPERTY CXX_STANDARD 17)
+add_executable(dist-model-example src/examples/example_model.cpp ${DIST})
+target_link_libraries(dist-model-example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
+set_property(TARGET dist-model-example PROPERTY CXX_STANDARD 17)
 
 add_executable(example src/examples/example.cpp)
 target_link_libraries(example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
