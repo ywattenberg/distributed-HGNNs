@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
-project(torchtest)
+project(dist-hgnn)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(MACOSX TRUE)
@@ -131,7 +131,7 @@ set(DIST
     src/model/dist-model-w.cpp
 )
 
-add_executable(model src/examples/example_model.cpp ${DIST})
+add_executable(dist-model src/examples/example_model.cpp ${DIST})
 target_link_libraries(model "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS)
 set_property(TARGET model PROPERTY CXX_STANDARD 17)
 
