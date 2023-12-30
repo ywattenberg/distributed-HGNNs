@@ -1,0 +1,24 @@
+model:
+  classes: 40
+  learnable_w: true
+  hidden_dims: [128]
+  dropout_rate: 0.5
+  with_bias: true
+  activation: "relu"
+trainer: 
+  learning_rate: 0.001
+  epochs: 1000
+  output_stepsize: 10
+  loss_function: "cross_entropy"
+lr_scheduler:
+  step_size: 100
+  gamma: 0.9
+task_type: "classification"
+data:
+  g_path: "../data/gplus/G.mtx"
+  dvh_path: "../data/gplus/DVH.mtx"
+  invde_ht_dvh_path: "../data/gplus/invDE_HT_DVH.mtx"
+  labels_path: "../data/gplus/labels.mtx"
+  features_path: "../data/gplus/features.mtx"
+experiment:
+  fwd_only: true
