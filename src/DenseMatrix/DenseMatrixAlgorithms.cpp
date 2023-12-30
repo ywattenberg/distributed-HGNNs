@@ -67,6 +67,7 @@ void blockDenseSparse(size_t dense_rows, size_t dense_cols, std::vector<NT>* den
   }
 
   Dcsc<IT, NT>* Bdcsc = sparse_B->GetDCSC();
+  #pragma omp parallel for
   for(size_t i = 0; i < dense_rows; i++){
     for (size_t j = 0; j < Bdcsc->nzc; j++){
       IT col = Bdcsc->jc[j];
@@ -108,7 +109,7 @@ void blockSparseDense(size_t dense_rows, size_t dense_cols, DER* sparse_B, std::
     for (size_t j = 0; j < nnzInCol; j++){
       IT sparseRow = Bdcsc->ir[Bdcsc->cp[i]+ j];
       NT elem = Bdcsc->numx[Bdcsc->cp[i]+ j];
-
+      #pragma omp parallel for
       for (size_t k = 0; k < dense_cols; k++){
         outValues->at(sparseRow * dense_cols + k) += SR::multiply(elem, dense_A->at(Col * dense_cols + k));
       }
