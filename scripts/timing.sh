@@ -49,14 +49,14 @@ cd $HOME/distributed-HGNNs/build
 cmake ..
 make -j $CPUS
 
-echo "Build finished at:     $(date)"
+echo "Build finished at:          $(date)"
 
 echo "Starting timing run at:     $(date)"
 
 # bash $HOME/discord-webhook/discord.sh --webhook-url=https://discord.com/api/webhooks/1105789194959339611/-tDqh7eGfQJhaLoxjCsHbHrwTzhNEsR5SDxabXFiYdhg-KHwzN3kVwr87rxUggqWCQ0K --title "Starting training for $USER" --color 3066993 --field "Date;$(date);false" --field "Jobid;${SLURM_JOB_ID};false"
 
 # mpiexec -np ${SLURM_NTASKS}  $HOME/distributed-HGNNs/build/timing
-$HOME/distributed-HGNNs/build/torchtest -c "${HOME}/distributed-HGNNs/config/256.yaml" -d ${TMPDIR} -i ${SLURM_JOB_ID} -p $CPUS -t 1
+$HOME/distributed-HGNNs/build/torchtest -c "${HOME}/distributed-HGNNs/config/128.yaml" -d ${TMPDIR} -i ${SLURM_JOB_ID} -p $CPUS -t 1
 
 echo "Finished timing run at:     $(date)"
 

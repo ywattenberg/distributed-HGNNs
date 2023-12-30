@@ -27,13 +27,13 @@ cd "${TMPDIR}" || exit 1
 
 CPUS=$((${SLURM_CPUS_PER_TASK} * ${SLURM_NTASKS}))
 # Send some noteworthy information to the output log
-echo "Running on node: $(hostname)"
-echo "In directory:    $(pwd)"
-echo "Starting on:     $(date)"
-echo "SLURM_JOB_ID:    ${SLURM_JOB_ID}"
+echo "Running on node:       $(hostname)"
+echo "In directory:          $(pwd)"
+echo "Starting on:           $(date)"
+echo "SLURM_JOB_ID:          ${SLURM_JOB_ID}"
 echo "SLURM_JOB_NODELIST:    ${SLURM_JOB_NODELIST}"
-echo "SLURM_NTASKS:     ${SLURM_NTASKS}"
-echo "CPUS:                 ${CPUS}"
+echo "SLURM_NTASKS:          ${SLURM_NTASKS}"
+echo "CPUS:                  ${CPUS}"
 
 rsync -ah --stats /cluster/home/$USER/distributed-HGNNs/data $TMPDIR
 
@@ -49,7 +49,7 @@ cd $HOME/distributed-HGNNs/build
 cmake ..
 make -j $CPUS
 
-echo "Build finished at:     $(date)"
+echo "Build finished at:        $(date)"
 
 echo "Starting training at:     $(date)"
 
