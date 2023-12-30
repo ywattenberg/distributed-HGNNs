@@ -54,7 +54,7 @@ namespace combblas{
       int getnrow();
       int getncol();
       void GetPlaceInGlobalGrid(int &roffset, int &coffset) const;
-
+      void WriteMatrix(const std::string& filename);
       void ParallelReadDMM (const std::string & filename, bool onebased);
       void addBiasLocally(std::vector<NT>* bias);
       void clear();

@@ -89,6 +89,7 @@ int main(int argc, char* argv[]){
         exit(1);
     }
   }
+  std::cout << "config path: " << config_file << std::endl;
   ConfigProperties config = ParseConfig(config_file);
   if(myrank == 0)
   {
@@ -153,7 +154,7 @@ int main(int argc, char* argv[]){
     if(!myrank)std::cout <<"loss: " << loss << std::endl;
     model.backward(res, &labels, lr);
     if(i > 100 && i % 5 == 0){
-      lr = lr * 0.9;
+      lr = lr * 0.8;
     }
 
     if (myrank == 0){

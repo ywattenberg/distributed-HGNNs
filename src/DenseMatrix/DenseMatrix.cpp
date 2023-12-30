@@ -233,4 +233,67 @@ namespace combblas {
     return allRowSums;
 
   }
+
+  template<typename NT>
+  void DenseMatrix<NT>::WriteMatrix(const std::string& filename){
+    int myrank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+
+    int totalRows = this->getnrow();
+    int totalCols = this->getncol();
+
+    int gridRows = commGrid->GetGridRows();
+    int gridCols = commGrid->GetGridCols();
+    int nprocs = gridRows * gridCols;
+
+
+    int rowsPerProc = totalRows / gridRows;
+    int colsPerProc = totalCols / gridCols;
+
+    int roffset = 0;
+    int coffset = 0;
+    this->GetPlaceInGlobalGrid(roffset, coffset);
+
+    MPI_File thefile;
+
+    MPI_File_open(commGrid->GetWorld(), (char*) filename.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &thefile) ;
+    // int mpi_err = MPI_File_set_view(thefile, bytesuntil, MPI_CHAR, MPI_CHAR, (char*)"external32", MPI_INFO_NULL);
+    // if (mpi_err == 51) {
+    //     // external32 datarep is not supported, use native instead
+    //     MPI_File_set_view(thefile, bytesuntil, MPI_CHAR, MPI_CHAR, (char*)"native", MPI_INFO_NULL);
+    // }
+
+    size_t header_offset = 0;
+    std::stringstream headers;
+    headers << "%%MatrixMarket matrix array real general\n%\n";
+    headers << totalRows << " " << totalCols << "\n";
+    std::string header = headers.str();
+    if(myrank == 0)
+    {
+      MPI_File_write(thefile, header.c_str(), header.length(), MPI_CHAR, MPI_STATUS_IGNORE);
+    }
+    header_offset += header.length()*sizeof(char);
+    //Iterate over rowrank
+    int offset = roffset * totalCols + coffset;
+    //Write each row of local matrix to the file with the offset
+    std::stringstream ss;
+    for(int i = 0; i < localRows; i++)
+    {
+        int row = i * totalCols + offset;
+        ss.clear();
+        ss.str(std::string());
+        for(int j = 0; j < localCols; j++)
+        {
+            NT val = values->at(i*localCols + j);
+            ss << std::setprecision(8) << std::scientific << val << "\n";
+        }
+        std::string rowstr = ss.str();
+        MPI_File_write_at_all(thefile, row * 15 * sizeof(char) + header_offset, rowstr.c_str(), rowstr.length(), MPI_CHAR, MPI_STATUS_IGNORE);
+    }
+    
+   
+    MPI_File_close(&thefile);
+    
+  }
+  
 }

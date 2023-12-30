@@ -261,6 +261,9 @@ DistConv::DistConv(shared_ptr<CommGrid> fullWorld, int in_dim, int out_dim, bool
     this->weights = DENSE_DOUBLE(local_rows, local_cols, weight_vec, fullWorld);
 
     if (withBias){
-        this->bias = vector<double>(out_dim, 1.0);
+        this->bias = vector<double>(out_dim);
+        for(int i = 0; i < out_dim; i++){
+            this->bias[i] = dis(gen);
+        }
     } 
 }
