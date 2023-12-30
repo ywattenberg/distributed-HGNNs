@@ -127,6 +127,8 @@ namespace combblas {
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
     localRows = -1;
     localCols = -1;
+    globalRows = -1;
+    globalCols = -1;
     if (this->values != nullptr) {
       delete this->values;
       this->values = nullptr;
