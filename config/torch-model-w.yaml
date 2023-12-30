@@ -17,9 +17,9 @@ lr_scheduler:
   gamma: 0.9
 task_type: "classification"
 data:
-  g_path: "../data/m_g_ms_gs/G.mtx"
-  dvh_path: "../data/m_g_ms_gs/DVH.mtx"
-  invde_ht_dvh_path: "../data/m_g_ms_gs/invDE_HT_DVH.mtx"
-  labels_path: "../data/m_g_ms_gs/labels.mtx"
-  features_path: "../data/m_g_ms_gs/features.mtx"
+  g_path: "../data/m_g_ms_gs/G.csv"
+  dvh_path: "../data/m_g_ms_gs/DVH.csv"
+  invde_ht_dvh_path: "../data/m_g_ms_gs/invDE_HT_DVH.csv"
+  labels_path: "../data/m_g_ms_gs/labels.csv"
+  features_path: "../data/m_g_ms_gs/features.csv"
   test_idx: 9842
