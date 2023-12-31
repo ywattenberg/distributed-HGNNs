@@ -10,7 +10,6 @@ ConfigProperties ParseConfig(const std::string& config_path){
     ConfigProperties config_properties;
 
     // model properties
-    config_properties.model_properties.dataset = config["model"]["dataset"].as<std::string>();
     config_properties.model_properties.classes = config["model"]["classes"].as<int>();
     config_properties.model_properties.distributed = config["model"]["distributed"].as<bool>();
     config_properties.model_properties.learnable_w = config["model"]["learnable_w"].as<bool>();
@@ -33,6 +32,7 @@ ConfigProperties ParseConfig(const std::string& config_path){
     config_properties.task_type = config["task_type"].as<std::string>();
 
     // data properties
+    config_properties.data_properties.dataset = config["data"]["dataset"].as<std::string>();
     config_properties.data_properties.g_path = config["data"]["g_path"].as<std::string>();
     config_properties.data_properties.dvh_path = config["data"]["dvh_path"].as<std::string>();
     config_properties.data_properties.invde_ht_dvh_path = config["data"]["invde_ht_dvh_path"].as<std::string>();

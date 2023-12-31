@@ -7,7 +7,6 @@
 // Struct for model parameters
 struct ModelProperties
 {
-    std::string dataset;
     int classes;
     bool distributed;
     bool learnable_w;
@@ -36,6 +35,7 @@ struct LRSchedulerProperties
 // Struct for data parameters
 struct DataProperties
 {
+    std::string dataset;
     std::string g_path;
     std::string dvh_path;
     std::string invde_ht_dvh_path;

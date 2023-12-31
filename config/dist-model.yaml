@@ -1,15 +1,14 @@
 model:
-  dataset: "ModelNet40"
   classes: 40
   distributed: true
   learnable_w: false
-  hidden_dims: [256]
+  hidden_dims: [512]
   dropout_rate: 0
   with_bias: true
   activation: "relu"
 trainer: 
   learning_rate: 0.1
-  epochs: 1000
+  epochs: 500
   output_stepsize: 5
   loss_fn: "cross_entropy"
 lr_scheduler:
@@ -17,6 +16,7 @@ lr_scheduler:
   gamma: 0.9
 task_type: "classification"
 data:
+  dataset: "ModelNet40"
   g_path: "../data/m_g_ms_gs/G.mtx"
   dvh_path: "../data/m_g_ms_gs/DVH.mtx"
   invde_ht_dvh_path: "../data/m_g_ms_gs/invDE_HT_DVH.mtx"

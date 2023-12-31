@@ -64,18 +64,20 @@ void train_dist_model(const ConfigProperties& config, std::vector<int> &labels, 
         double test_acc = loss_vec[2];
         double test_f1 = loss_vec[3];
 
-        std::cout << "Epoch [" << epoch << "/" << n_epochs << "], " << ms_int.count() << "ms, ";
-        std::cout << "Train Loss: " << train_loss << ", ";
-        std::cout << "Test Loss: " << test_loss << ", ";
-        std::cout << "Test Accuracy: " << test_acc << ", ";
-        std::cout << "Test F1: " << test_f1 << std::endl;
+        if (myrank == 0) {
+          std::cout << "Epoch [" << epoch << "/" << n_epochs << "], " << ms_int.count() << "ms, ";
+          std::cout << "Train Loss: " << train_loss << ", ";
+          std::cout << "Test Loss: " << test_loss << ", ";
+          std::cout << "Test Accuracy: " << test_acc << ", ";
+          std::cout << "Test F1: " << test_f1 << std::endl;
+        }
 
 
         if (timing && myrank == 0){
             std::ofstream outfile;
             outfile.open(timing_file, std::ios_base::app);
             // append time to csv file
-            outfile << run_id << "," << epoch << "," << ms_int.count() << "," << train_loss << "," << test_loss << "," << test_acc << "," << test_f1 << "," << config.model_properties.distributed<< "," << config.model_properties.hidden_dims << "," << config.model_properties.learnable_w << "," << config.model_properties.with_bias << "," << config.model_properties.dropout_rate << "," << config.model_properties.dataset << "\n";
+            outfile << run_id << "," << epoch << "," << ms_int.count() << "," << train_loss << "," << test_loss << "," << test_acc << "," << test_f1 << "\n";
             outfile.close();
         }
         t1 = high_resolution_clock::now();

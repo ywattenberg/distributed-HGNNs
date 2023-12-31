@@ -92,15 +92,15 @@ int model(ConfigProperties& config, bool timing, int run_id, int cpus){
   
   std::string timing_file = "../data/timing/main_training.csv";
 
-  // if (timing) {
-  //   std::ostringstream oss;
-  //   oss << "../data/timing/" << run_id << "/base_model.csv";
-  //   timing_file = oss.str();
-  //   std::ofstream outfile;
-  //   outfile.open(timing_file, std::ios_base::app);
-  //   outfile << "run_id,epoch,epoch_time,train_loss,test_loss,test_acc,test_f1\n";
-  //   outfile.close();
-  // }
+  if (timing) {
+    std::ostringstream oss;
+    oss << "../data/timing/main_training_info.csv";
+    std::string info_file = oss.str();
+    std::ofstream outfile;
+    outfile.open(info_file, std::ios_base::app);
+    outfile << run_id << "," << config.model_properties.distributed << "," << config.model_properties.learnable_w << "," << config.model_properties.hidden_dims << "," << config.model_properties.with_bias << "," << config.model_properties.dropout_rate << "," << config.trainer_properties.epochs << "," << config.data_properties.dataset << "\n";
+    outfile.close();
+  }
 
   // Train the model
   train_model(config, labels, features, ce_loss_fn, model, run_id, timing, timing_file);
@@ -156,15 +156,15 @@ int learnable_w(ConfigProperties& config, bool timing, int run_id, int cpus){
   
   std::string timing_file = "../data/timing/main_training.csv";
 
-  // if (timing) {
-  //   std::ostringstream oss;
-  //   oss << "../data/timing/" << run_id << "/base_model.csv";
-  //   timing_file = oss.str();
-  //   std::ofstream outfile;
-  //   outfile.open(timing_file, std::ios_base::app);
-  //   outfile << "run_id,epoch,epoch_time,train_loss,test_loss,test_acc,test_f1\n";
-  //   outfile.close();
-  // }
+  if (timing) {
+    std::ostringstream oss;
+    oss << "../data/timing/main_training_info.csv";
+    std::string info_file = oss.str();
+    std::ofstream outfile;
+    outfile.open(info_file, std::ios_base::app);
+    outfile << run_id << "," << config.model_properties.distributed << "," << config.model_properties.learnable_w << "," << config.model_properties.hidden_dims << "," << config.model_properties.with_bias << "," << config.model_properties.dropout_rate << "," << config.trainer_properties.epochs << "," << config.data_properties.dataset << "\n";
+    outfile.close();
+  }
   // Train the model
   train_model(config, labels, features, ce_loss_fn, model, run_id, timing, timing_file);
 
@@ -220,6 +220,16 @@ int dist_model(ConfigProperties& config, bool timing, int run_id, int cpus) {
   }
 
   int test_idx = config.data_properties.test_idx;
+
+  if (timing && myrank == 0) {
+    std::ostringstream oss;
+    oss << "../data/timing/main_training_info.csv";
+    std::string info_file = oss.str();
+    std::ofstream outfile;
+    outfile.open(info_file, std::ios_base::app);
+    outfile << run_id << "," << config.model_properties.distributed << "," << config.model_properties.learnable_w << "," << config.model_properties.hidden_dims << "," << config.model_properties.with_bias << "," << config.model_properties.dropout_rate << "," << config.trainer_properties.epochs << "," << config.data_properties.dataset << "\n";
+    outfile.close();
+  }
 
   train_dist_model(config, labels, input, &model, run_id, timing, timing_file);
 

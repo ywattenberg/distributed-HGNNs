@@ -46,17 +46,16 @@ module load gcc/11.4.0 openmpi openblas cmake/3.26.3 eth_proxy curl
 echo "Dependencies installed"
 
 cd $HOME/distributed-HGNNs/build
-cmake ..
-make -j $CPUS
+# cmake ..
+# make -j $CPUS
 
-echo "Build finished at:          $(date)"
+# echo "Build finished at:          $(date)"
 
 echo "Starting timing run at:     $(date)"
 
 # bash $HOME/discord-webhook/discord.sh --webhook-url=https://discord.com/api/webhooks/1105789194959339611/-tDqh7eGfQJhaLoxjCsHbHrwTzhNEsR5SDxabXFiYdhg-KHwzN3kVwr87rxUggqWCQ0K --title "Starting training for $USER" --color 3066993 --field "Date;$(date);false" --field "Jobid;${SLURM_JOB_ID};false"
 
-# $HOME/distributed-HGNNs/build/dist-hgnn -c "${HOME}/distributed-HGNNs/config/torch-model.yaml" -d ${TMPDIR} -i ${SLURM_JOB_ID} -p $CPUS -t 1
-mpiexec -np ${SLURM_NTASKS} $HOME/distributed-HGNNs/build/dist-hgnn -c "${HOME}/distributed-HGNNs/config/dist-model.yaml" -d ${TMPDIR} -i ${SLURM_JOB_ID} -p $CPUS -t 1
+$HOME/distributed-HGNNs/build/dist-hgnn -c "${HOME}/distributed-HGNNs/config/torch-model-w.yaml" -d ${TMPDIR} -i ${SLURM_JOB_ID} -p $CPUS -t 1
 
 echo "Finished timing run at:     $(date)"
 

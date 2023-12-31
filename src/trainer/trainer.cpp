@@ -80,7 +80,7 @@ void train_model(const ConfigProperties& config, torch::Tensor &labels, torch::T
                     std::ofstream outfile;
                     outfile.open(timing_file, std::ios_base::app);
                     // append time to csv file
-                    outfile << run_id << "," << epoch << "," << ms_int.count() << "," << loss.item<double>() << "," << test_loss.item<double>() << "," << acc.item<double>() << "," << f1.item<double>() << "," << config.model_properties.distributed << "," << config.model_properties.hidden_dims << "," << config.model_properties.learnable_w << "," << config.model_properties.with_bias << "," << config.model_properties.dropout_rate << "," << config.model_properties.dataset << "\n";
+                    outfile << run_id << "," << epoch << "," << ms_int.count() << "," << loss.item<double>() << "," << test_loss.item<double>() << "," << acc.item<double>() << "," << f1.item<double>() << "\n";
                     outfile.close();
                 }
                 t1 = high_resolution_clock::now();
