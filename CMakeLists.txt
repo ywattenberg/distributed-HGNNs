@@ -13,6 +13,10 @@ set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_LIST_DIR}/libs/libtorch")
 find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
+# set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_LIST_DIR}/libs/mkl")
+# find_package(MKL REQUIRED)
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MKL_CXX_FLAGS}")
+
 # find openblas, use homebrew when on macos
 if (MACOSX)
     set(MAKE_PREFIX_PATH /opt/homebrew/opt/openblas/lib)
@@ -63,9 +67,25 @@ add_subdirectory(${CombBLAS_SOURCE_DIR} ${CombBLAS_BINARY_DIR})
 # Add include directories
 include_directories(BEFORE SYSTEM ${CombBLAS_SOURCE_DIR} ${CombBLAS_BINARY_DIR})
 
+set(EIGEN_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/libs/eigen)
+
+
 # set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_LIST_DIR}/libs/eigen")
 # find_package(Eigen3 REQUIRED)
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${EIGEN3_CXX_FLAGS}")
+
+# set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_LIST_DIR}/libs/distributed_sddmm")
+# # find_package(Eigen3 REQUIRED)
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${EIGEN3_CXX_FLAGS}")
+
+set(distributed_sddmm_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs/distributed_sddmm)
+set(distributed_sddmm_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/libs/distributed_sddmm)
+
+# Add the library as a subdirectory
+add_subdirectory(${distributed_sddmm_SOURCE_DIR} ${distributed_sddmm_BINARY_DIR})
+
+# Add include directories
+include_directories(BEFORE SYSTEM ${distributed_sddmm_SOURCE_DIR} ${distributed_sddmm_BINARY_DIR})
 
 include(FetchContent)
 FetchContent_Declare(
@@ -143,6 +163,7 @@ set_property(TARGET example PROPERTY CXX_STANDARD 17)
 
 # add_executable(example_2 src/examples/example_2.cpp ${SOURCES} ${DIST})
 # target_link_libraries(example_2 "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
+# target_include_directories(example_2 PRIVATE ${EIGEN_INCLUDE_DIR})
 # set_property(TARGET example_2 PROPERTY CXX_STANDARD 17)
 
 # add_executable(openBLAS_example src/examples/openBLAS_example.cpp ${SOURCES} ${DIST})
@@ -152,4 +173,10 @@ set_property(TARGET example PROPERTY CXX_STANDARD 17)
 add_executable(${PROJECT_NAME} ${SOURCES} ${DIST})
 target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
+
+add_executable(example_sddmm src/examples/example_sddmm.cpp)
+target_link_libraries(example_sddmm "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
+target_include_directories(example_sddmm PRIVATE ${EIGEN_INCLUDE_DIR})
+set_property(TARGET example_sddmm PROPERTY CXX_STANDARD 17)
+
 
