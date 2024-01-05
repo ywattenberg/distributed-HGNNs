@@ -57,12 +57,19 @@ echo "Starting timing run at:     $(date)"
 # bash $HOME/discord-webhook/discord.sh --webhook-url=https://discord.com/api/webhooks/1105789194959339611/-tDqh7eGfQJhaLoxjCsHbHrwTzhNEsR5SDxabXFiYdhg-KHwzN3kVwr87rxUggqWCQ0K --title "Starting training for $USER" --color 3066993 --field "Date;$(date);false" --field "Jobid;${SLURM_JOB_ID};false"
 
 export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+for it in {1..3}
+do
+    run_id="${SLURM_JOB_ID}_${it}"
+    echo "Starting iteration ${it} at:  $(date)"
 
-# write info to csv file
-# run_id,distributed,ntasks,tasks_per_node,cpus_per_task,mem_per_cpu
-echo "${SLURM_JOB_ID},true,${SLURM_NTASKS},${SLURM_NTASKS_PER_NODE},${SLURM_CPUS_PER_TASK},${SLURM_MEM_PER_CPU}" >> $HOME/distributed-HGNNs/data/timing/main_training_hw.csv
+    # write info to csv file
+    # run_id,distributed,ntasks,tasks_per_node,cpus_per_task,mem_per_cpu
+    echo "${run_id},false,${SLURM_NTASKS},${SLURM_NTASKS_PER_NODE},${SLURM_CPUS_PER_TASK},${SLURM_MEM_PER_CPU}" >> $HOME/distributed-HGNNs/data/timing/main_training_hw.csv
 
-mpiexec -np ${SLURM_NTASKS} $HOME/distributed-HGNNs/build/dist-hgnn -c "${HOME}/distributed-HGNNs/config/dist-model.yaml" -d "${HOME}/distributed-HGNNs/" -i ${SLURM_JOB_ID} -t 1
+    mpiexec -np ${SLURM_NTASKS} $HOME/distributed-HGNNs/build/dist-hgnn -c "${HOME}/distributed-HGNNs/config/dist-model.yaml" -d "${HOME}/distributed-HGNNs/" -i ${run_id} -t 1
+
+    echo "Finished iteration ${it} at:  $(date)"
+done
 
 echo "Finished timing run at:     $(date)"
 

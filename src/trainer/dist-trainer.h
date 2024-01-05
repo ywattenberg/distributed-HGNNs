@@ -7,6 +7,6 @@
 #include "../model/dist-model.h"
 #include "../utils/configParse.h"
 
-void train_dist_model(const ConfigProperties& config, vector<int> &labels, DenseMatrix<double> &input_features, DistModel *model, int run_id, bool timing, std::string timing_file);
+void train_dist_model(const ConfigProperties& config, vector<int> &labels, DenseMatrix<double> &input_features, DistModel *model, std::string run_id, bool timing, std::string timing_file);
 
 #endif

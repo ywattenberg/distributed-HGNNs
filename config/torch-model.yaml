@@ -2,7 +2,7 @@ model:
   classes: 40
   distributed: false
   learnable_w: false
-  hidden_dims: [1024]
+  hidden_dims: [128]
   dropout_rate: 0.5
   with_bias: true
   activation: "relu"
@@ -12,7 +12,7 @@ trainer:
   output_stepsize: 1
   loss_fn: "cross_entropy"
 lr_scheduler:
-  step_size: 100
+  step_size: 10
   gamma: 0.9
 task_type: "classification"
 data:

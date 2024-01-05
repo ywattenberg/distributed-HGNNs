@@ -12,7 +12,7 @@ trainer:
   output_stepsize: 1
   loss_fn: "cross_entropy"
 lr_scheduler:
-  step_size: 100
+  step_size: 10
   gamma: 0.9
 task_type: "classification"
 data:

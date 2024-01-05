@@ -5,9 +5,9 @@
 #SBATCH --output=/cluster/home/%u/distributed-HGNNs/log/%j.out
 #SBATCH --error=/cluster/home/%u/distributed-HGNNs/log/%j.err
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=2
+#SBATCH --cpus-per-task=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --mem-per-cpu=4G
+#SBATCH --mem-per-cpu=8G
 # Exit on errors
 set -o errexit
 
@@ -58,11 +58,19 @@ echo "Starting timing run at:     $(date)"
 
 export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-# write info to csv file
-# run_id,distributed,ntasks,tasks_per_node,cpus_per_task,mem_per_cpu
-echo "${SLURM_JOB_ID},false,${SLURM_NTASKS},${SLURM_NTASKS_PER_NODE},${SLURM_CPUS_PER_TASK},${SLURM_MEM_PER_CPU}" >> $HOME/distributed-HGNNs/data/timing/main_training_hw.csv
+for it in {1..3}
+do
+    run_id="${SLURM_JOB_ID}_${it}"
+    echo "Starting iteration ${it} at:  $(date)"
 
-$HOME/distributed-HGNNs/build/dist-hgnn -c "${HOME}/distributed-HGNNs/config/torch-model.yaml" -d "${HOME}/distributed-HGNNs/" -i ${SLURM_JOB_ID} -t 1
+    # write info to csv file
+    # run_id,distributed,ntasks,tasks_per_node,cpus_per_task,mem_per_cpu
+    echo "${run_id},false,${SLURM_NTASKS},${SLURM_NTASKS_PER_NODE},${SLURM_CPUS_PER_TASK},${SLURM_MEM_PER_CPU}" >> $HOME/distributed-HGNNs/data/timing/main_training_hw.csv
+
+    $HOME/distributed-HGNNs/build/dist-hgnn -c "${HOME}/distributed-HGNNs/config/torch-model.yaml" -d "${HOME}/distributed-HGNNs/" -i ${run_id} -t 1
+
+    echo "Finished iteration ${it} at:  $(date)"
+done
 
 echo "Finished timing run at:     $(date)"
 

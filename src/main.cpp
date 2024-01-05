@@ -63,7 +63,7 @@ inline torch::Tensor coo_tensor_to_sparse(torch::Tensor& coo_tensor){
 
 using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&); //Supertype for loss functions
 
-int model(ConfigProperties& config, bool timing, int run_id){
+int model(ConfigProperties& config, bool timing, std::string run_id){
   std::cout << "Running model" << std::endl;
   torch::Tensor coo_list = tensor_from_file<float>(config.data_properties.g_path);
   torch::Tensor left_side = coo_tensor_to_sparse(coo_list);
@@ -122,7 +122,7 @@ int model(ConfigProperties& config, bool timing, int run_id){
   return 0;
 }
 
-int learnable_w(ConfigProperties& config, bool timing, int run_id){
+int learnable_w(ConfigProperties& config, bool timing, std::string run_id){
 
   torch::Tensor dvh_coo_list = tensor_from_file<float>(config.data_properties.dvh_path);
   torch::Tensor dvh = coo_tensor_to_sparse(dvh_coo_list);
@@ -185,7 +185,7 @@ int learnable_w(ConfigProperties& config, bool timing, int run_id){
   return 0;
 }
 
-int dist_model(ConfigProperties& config, bool timing, int run_id) {
+int dist_model(ConfigProperties& config, bool timing, std::string run_id) {
 
   int nprocs, myrank;
   MPI_Init(NULL, NULL);
@@ -245,7 +245,7 @@ int main(int argc, char** argv){
   std::string config_path;
   std::string tmp_dir = "";
   bool timing = false;
-  int run_id = -1;
+  std::string run_id = "-1_-1";
   while((opt = getopt(argc, argv, "c:d:i:t:")) != -1){
     switch(opt){
       case 'c':
@@ -255,7 +255,7 @@ int main(int argc, char** argv){
         tmp_dir = optarg;
         break;
       case 'i':
-        run_id = atoi(optarg);
+        run_id = optarg;
         break;
       case 't':
         if (atoi(optarg) == 1) {

@@ -23,7 +23,7 @@ using namespace combblas;
 
 typedef combblas::PlusTimesSRing<double, double> PTFF;
 
-void train_dist_model(const ConfigProperties& config, std::vector<int> &labels, DenseMatrix<double> &input, DistModel *model, int run_id, bool timing, std::string timing_file) {
+void train_dist_model(const ConfigProperties& config, std::vector<int> &labels, DenseMatrix<double> &input, DistModel *model, std::string run_id, bool timing, std::string timing_file) {
 
     int nprocs, myrank;
     MPI_Comm_size(MPI_COMM_WORLD,&nprocs);

@@ -19,7 +19,7 @@ using std::chrono::duration_cast;
 using std::chrono::duration;
 using std::chrono::milliseconds;
 
-void train_model(const ConfigProperties& config, torch::Tensor &labels, torch::Tensor &input_features, LossFunction loss_fn, BaseModel *model, int run_id, bool timing, std::string timing_file){
+void train_model(const ConfigProperties& config, torch::Tensor &labels, torch::Tensor &input_features, LossFunction loss_fn, BaseModel *model, std::string run_id, bool timing, std::string timing_file){
     
     double lr = config.trainer_properties.learning_rate;
     int n_epochs = config.trainer_properties.epochs;
