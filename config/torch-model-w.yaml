@@ -8,8 +8,8 @@ model:
   activation: "relu"
 trainer: 
   learning_rate: 0.001
-  epochs: 500
-  output_stepsize: 5
+  epochs: 200
+  output_stepsize: 1
   loss_fn: "cross_entropy"
 lr_scheduler:
   step_size: 100

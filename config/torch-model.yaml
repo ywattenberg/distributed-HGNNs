@@ -2,14 +2,14 @@ model:
   classes: 40
   distributed: false
   learnable_w: false
-  hidden_dims: [256]
+  hidden_dims: [1024]
   dropout_rate: 0.5
   with_bias: true
   activation: "relu"
 trainer: 
   learning_rate: 0.001
-  epochs: 500
-  output_stepsize: 5
+  epochs: 200
+  output_stepsize: 1
   loss_fn: "cross_entropy"
 lr_scheduler:
   step_size: 100

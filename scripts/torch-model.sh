@@ -4,9 +4,10 @@
 #SBATCH --time=04:00:00
 #SBATCH --output=/cluster/home/%u/distributed-HGNNs/log/%j.out
 #SBATCH --error=/cluster/home/%u/distributed-HGNNs/log/%j.err
-#SBATCH --ntasks=4
+#SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2
-#SBATCH --mem-per-cpu=8G
+#SBATCH --ntasks-per-node=1
+#SBATCH --mem-per-cpu=4G
 # Exit on errors
 set -o errexit
 
@@ -55,7 +56,13 @@ echo "Starting timing run at:     $(date)"
 
 # bash $HOME/discord-webhook/discord.sh --webhook-url=https://discord.com/api/webhooks/1105789194959339611/-tDqh7eGfQJhaLoxjCsHbHrwTzhNEsR5SDxabXFiYdhg-KHwzN3kVwr87rxUggqWCQ0K --title "Starting training for $USER" --color 3066993 --field "Date;$(date);false" --field "Jobid;${SLURM_JOB_ID};false"
 
-$HOME/distributed-HGNNs/build/dist-hgnn -c "${HOME}/distributed-HGNNs/config/torch-model-w.yaml" -d ${TMPDIR} -i ${SLURM_JOB_ID} -p $CPUS -t 1
+export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+
+# write info to csv file
+# run_id,distributed,ntasks,tasks_per_node,cpus_per_task,mem_per_cpu
+echo "${SLURM_JOB_ID},false,${SLURM_NTASKS},${SLURM_NTASKS_PER_NODE},${SLURM_CPUS_PER_TASK},${SLURM_MEM_PER_CPU}" >> $HOME/distributed-HGNNs/data/timing/main_training_hw.csv
+
+$HOME/distributed-HGNNs/build/dist-hgnn -c "${HOME}/distributed-HGNNs/config/torch-model.yaml" -d "${HOME}/distributed-HGNNs/" -i ${SLURM_JOB_ID} -t 1
 
 echo "Finished timing run at:     $(date)"
 

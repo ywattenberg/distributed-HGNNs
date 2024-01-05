@@ -63,7 +63,7 @@ inline torch::Tensor coo_tensor_to_sparse(torch::Tensor& coo_tensor){
 
 using LossFunction = at::Tensor(*)(const at::Tensor&, const at::Tensor&); //Supertype for loss functions
 
-int model(ConfigProperties& config, bool timing, int run_id, int cpus){
+int model(ConfigProperties& config, bool timing, int run_id){
   std::cout << "Running model" << std::endl;
   torch::Tensor coo_list = tensor_from_file<float>(config.data_properties.g_path);
   torch::Tensor left_side = coo_tensor_to_sparse(coo_list);
@@ -98,7 +98,7 @@ int model(ConfigProperties& config, bool timing, int run_id, int cpus){
     std::string info_file = oss.str();
     std::ofstream outfile;
     outfile.open(info_file, std::ios_base::app);
-    outfile << run_id << "," << config.model_properties.distributed << "," << config.model_properties.learnable_w << "," << config.model_properties.hidden_dims << "," << config.model_properties.with_bias << "," << config.model_properties.dropout_rate << "," << config.trainer_properties.epochs << "," << config.data_properties.dataset << "\n";
+    outfile << run_id << "," << config.model_properties.learnable_w << "," << config.model_properties.hidden_dims << "," << config.model_properties.with_bias << "," << config.model_properties.dropout_rate << "," << config.trainer_properties.epochs << "," << config.data_properties.dataset << "\n";
     outfile.close();
   }
 
@@ -122,7 +122,7 @@ int model(ConfigProperties& config, bool timing, int run_id, int cpus){
   return 0;
 }
 
-int learnable_w(ConfigProperties& config, bool timing, int run_id, int cpus){
+int learnable_w(ConfigProperties& config, bool timing, int run_id){
 
   torch::Tensor dvh_coo_list = tensor_from_file<float>(config.data_properties.dvh_path);
   torch::Tensor dvh = coo_tensor_to_sparse(dvh_coo_list);
@@ -162,7 +162,7 @@ int learnable_w(ConfigProperties& config, bool timing, int run_id, int cpus){
     std::string info_file = oss.str();
     std::ofstream outfile;
     outfile.open(info_file, std::ios_base::app);
-    outfile << run_id << "," << config.model_properties.distributed << "," << config.model_properties.learnable_w << "," << config.model_properties.hidden_dims << "," << config.model_properties.with_bias << "," << config.model_properties.dropout_rate << "," << config.trainer_properties.epochs << "," << config.data_properties.dataset << "\n";
+    outfile << run_id << "," << config.model_properties.learnable_w << "," << config.model_properties.hidden_dims << "," << config.model_properties.with_bias << "," << config.model_properties.dropout_rate << "," << config.trainer_properties.epochs << "," << config.data_properties.dataset << "\n";
     outfile.close();
   }
   // Train the model
@@ -185,7 +185,7 @@ int learnable_w(ConfigProperties& config, bool timing, int run_id, int cpus){
   return 0;
 }
 
-int dist_model(ConfigProperties& config, bool timing, int run_id, int cpus) {
+int dist_model(ConfigProperties& config, bool timing, int run_id) {
 
   int nprocs, myrank;
   MPI_Init(NULL, NULL);
@@ -227,7 +227,7 @@ int dist_model(ConfigProperties& config, bool timing, int run_id, int cpus) {
     std::string info_file = oss.str();
     std::ofstream outfile;
     outfile.open(info_file, std::ios_base::app);
-    outfile << run_id << "," << config.model_properties.distributed << "," << config.model_properties.learnable_w << "," << config.model_properties.hidden_dims << "," << config.model_properties.with_bias << "," << config.model_properties.dropout_rate << "," << config.trainer_properties.epochs << "," << config.data_properties.dataset << "\n";
+    outfile << run_id << "," << config.model_properties.learnable_w << "," << config.model_properties.hidden_dims << "," << config.model_properties.with_bias << "," << config.model_properties.dropout_rate << "," << config.trainer_properties.epochs << "," << config.data_properties.dataset << "\n";
     outfile.close();
   }
 
@@ -246,8 +246,7 @@ int main(int argc, char** argv){
   std::string tmp_dir = "";
   bool timing = false;
   int run_id = -1;
-  int cpus = 1;
-  while((opt = getopt(argc, argv, "c:d:i:p:t:")) != -1){
+  while((opt = getopt(argc, argv, "c:d:i:t:")) != -1){
     switch(opt){
       case 'c':
         config_path = optarg;
@@ -257,11 +256,6 @@ int main(int argc, char** argv){
         break;
       case 'i':
         run_id = atoi(optarg);
-        break;
-      case 'p':
-        // std::cout << "type of p " << optarg << std::endl;
-        // std::cout << "Using " << atoi(optarg) << " cpus" << std::endl;
-        cpus = atoi(optarg);
         break;
       case 't':
         if (atoi(optarg) == 1) {
@@ -276,7 +270,6 @@ int main(int argc, char** argv){
     }
   }
 
-  std::cout << "Using " << cpus << " cpus" << std::endl;
   std::cout << "Run id: " << run_id << std::endl;
 
   std::cout << "Config path: " << config_path << std::endl;
@@ -294,12 +287,12 @@ int main(int argc, char** argv){
   }
 
   if (config.model_properties.distributed) {
-    return dist_model(config, timing, run_id, cpus);
+    return dist_model(config, timing, run_id);
   } else {
     if (config.model_properties.learnable_w) {
-      return learnable_w(config, timing, run_id, cpus);
+      return learnable_w(config, timing, run_id);
     } else {
-      return model(config, timing, run_id, cpus);
+      return model(config, timing, run_id);
     }
   }
 }
