@@ -1,11 +1,42 @@
+import sys
+sys.path.append("..")
+
 import numpy as np
 import os
 import csv
 import pandas as pd
 import time
+import psutil
 
 from scipy.sparse import coo_matrix
 from scipy.io import mmread, mmwrite
+# from ..variables import GPLUS_NUM_CLASSES
+
+NUM_CPUS = os.cpu_count()
+os.environ["OMP_NUM_THREADS"] = str(NUM_CPUS)
+
+
+# inner psutil function
+def process_memory():
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+    return mem_info.rss
+ 
+ 
+# decorator function
+def profile(func):
+    def wrapper(*args, **kwargs):
+ 
+        mem_before = process_memory()
+        result = func(*args, **kwargs)
+        mem_after = process_memory()
+        print("{}:consumed memory: {:,}".format(
+            func.__name__,
+            mem_before, mem_after, mem_after - mem_before))
+ 
+        return result
+    return wrapper
+
 
 
 def generate_gplus(path="data/google+", reset=False):
@@ -150,7 +181,8 @@ def convert_matrices(filename, variable_weight=True):
             for (i,j) in zip(*indexes):
                 f.write(f"{i},{j},{G[i,j]}\n")
                 
-                
+
+@profile          
 def generate_mats_from_H(H, variable_weight=False, target_save_dir="google+"):
     """
     calculate G from hypgraph incidence matrix H 
@@ -203,7 +235,10 @@ def generate_mats_from_H(H, variable_weight=False, target_save_dir="google+"):
         return DV2_H, W, invDE_HT_DV2
     else:
         start3 = time.time()
-        G = DV2 * coo_matrix(H) * W * invDE * coo_matrix(HT) * DV2
+        L = coo_matrix(DV2) * coo_matrix(H)
+        R = invDE * coo_matrix(HT) * DV2
+        print("computing L and R finished")
+        G = L * R # assume W is identity
         end3 = time.time()
         print(f"chain3 took {end3-start3} seconds")
         return G
@@ -224,8 +259,8 @@ def convert_matrices_to_mm(filename, variable_weight=True):
     else:
         G = np.load(f"data/{filename}/G.npy")
         mmwrite(f"data/{filename}/G.mtx", coo_matrix(G))          
+            
                
-                
 def generate_gplus_matrices(reset, variable_weight=True):   
     dataset_name = "google+"
     
@@ -245,22 +280,32 @@ def generate_gplus_matrices(reset, variable_weight=True):
     convert_matrices_to_mm("google+", variable_weight=variable_weight)
     print("CONVERTED all MATRICES to mtx")     
     
-#TODO; set label -1 for isolated nodes
-def generate_gplus_train_test_split(filename="google+", train_split=0.8):
+    
+# set label for isolated nodes
+def generate_gplus_labels(filename="google+", train_split=0.8):
     labels = np.load(f"data/{filename}/labels.npy")
-    mmwrite(f"data/{filename}/all_labels.mtx", labels)
+    H = np.load(f"data/{filename}/features_coo.npy", allow_pickle=True).item()
+    N = H.shape[0]
+    labels = dict(labels)
+    
+    for i in range(N):
+        if labels.get(i) is None:
+            labels[i] = 468 # set label for isolated nodes - hardcoded for now
 
+    labels = np.array(list(labels.items()))
     np.random.shuffle(labels)
-    n = int(train_split*len(labels))
-    train_labels = labels[:n]
-    test_labels = labels[n:]
+    mmwrite(f"data/{filename}/labels.mtx", labels)
+
+    # n = int(train_split*len(labels))
+    # train_labels = labels[:n]
+    # test_labels = labels[n:]
     
-    mmwrite(f"data/{filename}/train_labels.mtx", train_labels)
-    mmwrite(f"data/{filename}/test_labels.mtx", test_labels)
-    
+    # mmwrite(f"data/{filename}/train_labels.mtx", train_labels)
+    # mmwrite(f"data/{filename}/test_labels.mtx", test_labels)
 
                 
 if __name__ == "__main__":
     # generate_gplus()
-    # generate_gplus_matrices(reset=False, variable_weight=False)
-    generate_gplus_train_test_split()
+    print(f"using {NUM_CPUS} cores")
+    generate_gplus_matrices(reset=False, variable_weight=False)
+    # generate_gplus_labels()
