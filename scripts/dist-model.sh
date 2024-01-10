@@ -6,7 +6,8 @@
 #SBATCH --error=/cluster/home/%u/distributed-HGNNs/log/%j.err
 #SBATCH --ntasks=4
 #SBATCH --ntasks-per-node=4
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=1
+#SBATCH --threads-per-core=1
 #SBATCH --mem-per-cpu=4G
 # Exit on errors
 set -o errexit
@@ -64,9 +65,9 @@ do
 
     # write info to csv file
     # run_id,distributed,ntasks,tasks_per_node,cpus_per_task,mem_per_cpu
-    echo "${run_id},false,${SLURM_NTASKS},${SLURM_NTASKS_PER_NODE},${SLURM_CPUS_PER_TASK},${SLURM_MEM_PER_CPU}" >> $HOME/distributed-HGNNs/data/timing/main_training_hw.csv
+    echo "${run_id},true,${SLURM_NTASKS},${SLURM_NTASKS_PER_NODE},${SLURM_CPUS_PER_TASK},${SLURM_MEM_PER_CPU}" >> $HOME/distributed-HGNNs/data/timing/main_training_hw.csv
 
-    mpiexec -np ${SLURM_NTASKS} $HOME/distributed-HGNNs/build/dist-hgnn -c "${HOME}/distributed-HGNNs/config/dist-model.yaml" -d "${HOME}/distributed-HGNNs/" -i ${run_id} -t 1
+    mpiexec -np ${SLURM_NTASKS} $HOME/distributed-HGNNs/build/dist-hgnn -c "${HOME}/distributed-HGNNs/config/dist-model.yaml" -d "${HOME}/distributed-HGNNs/" -i ${run_id} -t 1 || echo "${run_id} did not complete successfully"
 
     echo "Finished iteration ${it} at:  $(date)"
 done

@@ -8,13 +8,14 @@
 
 #include "CombBLAS/CombBLAS.h"
 #include "CombBLAS/CommGrid3D.h"
-#include "CombBLAS/SpParMat.h"
+#include "CombBLAS/SpParMat3D.h"
 #include "CombBLAS/ParFriends.h"
 #include "CombBLAS/FullyDistVec.h"
 #include "CombBLAS/SpParMat.h"
 #include "CombBLAS/DenseParMat.h"
 #include "utils/parDenseGEMM.h"
-#include "utils/DenseMatrix.h"
+#include "DenseMatrix/DenseMatrix.h"
+#include "DenseMatrix/DenseMatrixAlgorithms.h"
 
 using namespace std;
 using namespace combblas;
@@ -24,19 +25,15 @@ typedef PlusTimesSRing<double, double> PTFF;
 int main(int argc, char* argv[]) {
     int opt;
     std::string tmp_dir;
-    int cpus = -1;
     int run_id = -1;
     int iterations = 10;
-    while((opt = getopt(argc, argv, "t:i:p:")) != -1){
+    while((opt = getopt(argc, argv, "t:i:")) != -1){
       switch(opt){
         case 't':
           tmp_dir = optarg;
           break;
         case 'i':
           run_id = atoi(optarg);
-          break;
-        case 'p':
-          cpus = atoi(optarg);
           break;
         default:
           std::cerr << "Invalid command line argument" << std::endl;
@@ -87,8 +84,8 @@ int main(int argc, char* argv[]) {
             std::cout <<"Forward took " << ms_int.count() << "ms\n";
 
             std::ofstream outfile;
-            outfile.open("../data/timing/spdense_bench.csv", std::ios_base::app);
-            outfile << run_id << "," << size << "," << cpus << "," << scale << "," << i << "," << ms_int.count() << "\n";
+            outfile.open("../data/timing/mm_bench.csv", std::ios_base::app);
+            outfile << run_id << "," << scale << "," << i << "," << ms_int.count() << "\n";
           }
         }
         delete B.getValues();

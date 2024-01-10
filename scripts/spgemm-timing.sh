@@ -4,10 +4,11 @@
 #SBATCH --time=04:00:00
 #SBATCH --output=/cluster/home/%u/distributed-HGNNs/log/%j.out
 #SBATCH --error=/cluster/home/%u/distributed-HGNNs/log/%j.err
-#SBATCH --ntasks=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem-per-cpu=4G
+#SBATCH --ntasks=4
+#SBATCH --ntasks-per-node=4
+#SBATCH --cpus-per-task=1
+#SBATCH --threads-per-core=1
+#SBATCH --mem-per-cpu=32G
 # Exit on errors
 set -o errexit
 
@@ -36,7 +37,8 @@ echo "SLURM_NTASKS:         ${SLURM_NTASKS}"
 echo "SLURM_CPUS_PER_TASK:  ${SLURM_CPUS_PER_TASK}"
 echo "CPUS:                 ${CPUS}"
 
-rsync -ah --stats /cluster/home/$USER/distributed-HGNNs/data $TMPDIR
+# rsync -ah --stats /cluster/home/$USER/distributed-HGNNs/data $TMPDIR
+rsync -ah --stats /cluster/scratch/$USER/data $TMPDIR
 
 # echo "Data copied at:     $(date)"
 
@@ -56,21 +58,12 @@ echo "Starting timing run at:     $(date)"
 
 # bash $HOME/discord-webhook/discord.sh --webhook-url=https://discord.com/api/webhooks/1105789194959339611/-tDqh7eGfQJhaLoxjCsHbHrwTzhNEsR5SDxabXFiYdhg-KHwzN3kVwr87rxUggqWCQ0K --title "Starting training for $USER" --color 3066993 --field "Date;$(date);false" --field "Jobid;${SLURM_JOB_ID};false"
 
-export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+# write info to csv file
+# run_id,distributed,ntasks,tasks_per_node,cpus_per_task,mem_per_cpu
+echo "${SLURM_JOB_ID},spgemm,${SLURM_NTASKS},${SLURM_NTASKS_PER_NODE},${SLURM_CPUS_PER_TASK},${SLURM_MEM_PER_CPU}" >> $HOME/distributed-HGNNs/data/timing/mm_bench_hw.csv
 
-for it in {1..3}
-do
-    run_id="${SLURM_JOB_ID}_${it}"
-    echo "Starting iteration ${it} at:  $(date)"
+mpiexec -np ${SLURM_NTASKS} $HOME/distributed-HGNNs/build/spgemm_bench -t "${TMPDIR}/" -i "${SLURM_JOB_ID}"
 
-    # write info to csv file
-    # run_id,distributed,ntasks,tasks_per_node,cpus_per_task,mem_per_cpu
-    echo "${run_id},false,${SLURM_NTASKS},${SLURM_NTASKS_PER_NODE},${SLURM_CPUS_PER_TASK},${SLURM_MEM_PER_CPU}" >> $HOME/distributed-HGNNs/data/timing/main_training_hw.csv
-
-    $HOME/distributed-HGNNs/build/dist-hgnn -c "${HOME}/distributed-HGNNs/config/torch-model.yaml" -d "${HOME}/distributed-HGNNs/" -i ${run_id} -t 1
-
-    echo "Finished iteration ${it} at:  $(date)"
-done
 
 echo "Finished timing run at:     $(date)"
 

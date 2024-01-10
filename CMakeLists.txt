@@ -77,7 +77,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(fast_matrix_market)
 
 set(SOURCES
-    src/main.cpp
     src/model/model.h
     src/model/model.cpp
     src/trainer/trainer.h
@@ -149,7 +148,24 @@ set_property(TARGET example PROPERTY CXX_STANDARD 17)
 # target_link_libraries(openBLAS_example "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}" fast_matrix_market::fast_matrix_market)
 # set_property(TARGET openBLAS_example PROPERTY CXX_STANDARD 17)
 
-add_executable(${PROJECT_NAME} ${SOURCES} ${DIST})
+add_executable(${PROJECT_NAME} 
+src/main.cpp ${SOURCES} ${DIST})
 target_link_libraries(${PROJECT_NAME} "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 
+
+add_executable(matrix_bench src/matrix_bench.cpp ${SOURCES} ${DIST})
+target_link_libraries(matrix_bench "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
+set_property(TARGET matrix_bench PROPERTY CXX_STANDARD 17)
+
+add_executable(spgemm_bench src/spmatrix_bench.cpp ${SOURCES} ${DIST})
+target_link_libraries(spgemm_bench "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
+set_property(TARGET spgemm_bench PROPERTY CXX_STANDARD 17)
+
+add_executable(torch_matrix_bench src/torch_matrix_bench.cpp ${SOURCES} ${DIST})
+target_link_libraries(torch_matrix_bench "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
+set_property(TARGET torch_matrix_bench PROPERTY CXX_STANDARD 17)
+
+add_executable(torch_spmatrix_bench src/torch_spmatrix_bench.cpp ${SOURCES} ${DIST})
+target_link_libraries(torch_spmatrix_bench "${TORCH_LIBRARIES}" "${BLAS_LIBRARIES}" yaml-cpp CombBLAS "${EIGEN3_LIBRARIES}")
+set_property(TARGET torch_spmatrix_bench PROPERTY CXX_STANDARD 17)
