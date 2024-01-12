@@ -1,7 +1,7 @@
 # Distributed-HGNNs
-
-GNN Guide - https://distill.pub/2021/gnn-intro/
-
+We implement a distributed-memory full-batch version of "Hypergraph Neural Networks" by Feng et al..
+This makes it possible to train on larger graph datasets without using mini-batch techniques, which can introduce additional biases and often cost some precision 
+We show that our implementation achieves the same accuracy as the original HGNN model. Further, we compare runtimes to the highly optimized and non-distributed model implemented using the torch framework.
 
 ### How to run the project on Linux
 
