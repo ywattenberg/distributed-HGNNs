@@ -43,9 +43,6 @@ cmake ..
 make
 ```
 
-Now you can run the executable files that have been produced. 
-
-
 ### How to run the project on MACOS
 
 ```
@@ -63,3 +60,32 @@ cd build
 cmake ..
 make
 ```
+
+
+### Train the HGNN Model
+The data needed for the training is mostly present in the folder "data/m_g_ms_gs". The features are too big for the repository. You can download here form our Drive-Folder:
+https://drive.google.com/drive/folders/18Bhjj8Mbt2g_JBRQB8JpzUG6BzTkGr6c?usp=sharing. 
+
+It's best to also move the features also into the "data/m_g_ms_gs" folder. 
+
+The file example_model.cpp runs the HGNN-Model with our distributed implementation. After having executed the steps above, it can be run with the following command:
+```
+mpiexec -np 4 <path-to-directory>/distributed-HGNNs/build/dist-hgnn -c "<path-to-directory>/distributed-HGNNs/config/dist-model.yaml" -d "<path-to-directory>/distributed-HGNNs/" -i 1 -t 1
+```
+Replace <path-to-directory> with the path where you stored this git repository. This command will train the model with our distributed algorithm using 4 MPI-Processes (declared by -np 4). Please notice, that it can only be started using a squared number of MPI-Processes/Nodes, i.e. 4,9,16,... . If t is set to 1, it also measures the time an epoch takes. 
+You can also create other config files or change the parameters in the "dist-model.yaml"-file to play around with the hyperparameters. 
+
+The (non-distributed) torch implementation can be run with the following command:
+```
+<path-to-directory>/distributed-HGNNs/build/dist-hgnn -c "$<path-to-directory>/distributed-HGNNs/config/torch-model.yaml" -d "<path-to-directory>/distributed-HGNNs/" -i 1 -t 1
+```
+
+We also provide scripts (in the scripts folder) to run our model and some benchmarks on euler using slurms. However, you have to first install libtorch and BLAS on euler in order to use them. 
+
+
+
+
+
+
+
+
