@@ -5,6 +5,16 @@ We show that our implementation achieves the same accuracy as the original HGNN 
 
 ### How to run the project on Linux
 
+Clone the repository using git clone. As our repository has a submodule you have to run the following commands after you cloned it:
+```
+git submodule init
+```
+and
+```
+git pull --recurse-submodules
+```
+
+
 Install BLAS library:
 ```
 sudo apt install libopenblas-dev
