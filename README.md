@@ -82,7 +82,11 @@ The file example_model.cpp runs the HGNN-Model with our distributed implementati
 ```
 mpiexec -np 4 <path-to-directory>/distributed-HGNNs/build/dist-hgnn -c "<path-to-directory>/distributed-HGNNs/config/dist-model.yaml" -d "<path-to-directory>/distributed-HGNNs/" -i 1 -t 1
 ```
-Replace <path-to-directory> with the path where you stored this git repository. This command will train the model with our distributed algorithm using 4 MPI-Processes (declared by -np 4). Please notice, that it can only be started using a squared number of MPI-Processes/Nodes, i.e. 4,9,16,... . If t is set to 1, it also measures the time an epoch takes. 
+Depending on the machine, it may be necessary to set the number of omp-threads manually to a lower number.
+```
+export OMP_NUM_THREADS=1
+```
+Further replace <path-to-directory> with the path where you stored this git repository. This command will train the model with our distributed algorithm using 4 MPI-Processes (declared by -np 4). Please notice, that it can only be started using a squared number of MPI-Processes/Nodes, i.e. 4,9,16,... . If t is set to 1, it also measures the time an epoch takes. 
 You can also create other config files or change the parameters in the "dist-model.yaml"-file to play around with the hyperparameters. 
 
 The (non-distributed) torch implementation can be run with the following command:
